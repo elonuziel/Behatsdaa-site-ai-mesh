@@ -4,6 +4,7 @@
 
 import { state } from './state.js';
 import { normalizeHebrew, formatILS } from './utils.js';
+import { searchBilling } from './search.js';
 
 export function populateBillingCitiesFilter(billingCitySelect) {
   if (!billingCitySelect) return;
@@ -93,62 +94,67 @@ export function getFilteredBillingStores() {
   }
 
   if (state.billingSearchQuery) {
-    const queryNorm = normalizeHebrew(state.billingSearchQuery);
-    const queryTerms = queryNorm.split(' ').filter(Boolean);
+    const miniMatches = !state.billingSearchInDesc ? searchBilling(state.billingSearchQuery) : null;
+    if (miniMatches && miniMatches.size > 0) {
+      result = result.filter(s => miniMatches.has(String(s.id)));
+    } else {
+      const queryNorm = normalizeHebrew(state.billingSearchQuery);
+      const queryTerms = queryNorm.split(' ').filter(Boolean);
 
-    if (queryTerms.length > 0) {
-      const isSingle = queryTerms.length === 1;
-      const inDesc = state.billingSearchInDesc;
-      const sortMode = state.currentBillingSort;
+      if (queryTerms.length > 0) {
+        const isSingle = queryTerms.length === 1;
+        const inDesc = state.billingSearchInDesc;
+        const sortMode = state.currentBillingSort;
 
-      const exactMatches = [];
-      const prefixMatches = [];
-      const containsMatches = [];
-      const descOnlyMatches = [];
+        const exactMatches = [];
+        const prefixMatches = [];
+        const containsMatches = [];
+        const descOnlyMatches = [];
 
-      for (let i = 0; i < result.length; i++) {
-        const s = result[i];
-        const sName = s._nameNorm || '';
-        const searchStr = inDesc ? (s._searchWithDescStr || '') : (s._searchStr || '');
+        for (let i = 0; i < result.length; i++) {
+          const s = result[i];
+          const sName = s._nameNorm || '';
+          const searchStr = inDesc ? (s._searchWithDescStr || '') : (s._searchStr || '');
 
-        const isMatch = isSingle
-          ? searchStr.includes(queryNorm)
-          : queryTerms.every(term => searchStr.includes(term));
+          const isMatch = isSingle
+            ? searchStr.includes(queryNorm)
+            : queryTerms.every(term => searchStr.includes(term));
 
-        if (isMatch) {
-          if (sName === queryNorm) {
-            exactMatches.push(s);
-          } else if (sName.startsWith(queryNorm)) {
-            prefixMatches.push(s);
-          } else if (sName.includes(queryNorm)) {
-            containsMatches.push(s);
-          } else {
-            descOnlyMatches.push(s);
+          if (isMatch) {
+            if (sName === queryNorm) {
+              exactMatches.push(s);
+            } else if (sName.startsWith(queryNorm)) {
+              prefixMatches.push(s);
+            } else if (sName.includes(queryNorm)) {
+              containsMatches.push(s);
+            } else {
+              descOnlyMatches.push(s);
+            }
           }
         }
+
+        const sortBucket = (arr) => {
+          if (arr.length <= 1) return;
+          if (sortMode === 'discount-desc') {
+            arr.sort((a, b) => b.discount - a.discount || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+          } else if (sortMode === 'discount-asc') {
+            arr.sort((a, b) => a.discount - b.discount || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+          } else if (sortMode === 'name-asc') {
+            arr.sort((a, b) => (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+          } else if (sortMode === 'city-asc') {
+            arr.sort((a, b) => ((a.city || '') > (b.city || '') ? 1 : (a.city || '') < (b.city || '') ? -1 : 0) || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+          } else {
+            arr.sort((a, b) => b.discount - a.discount || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+          }
+        };
+
+        sortBucket(exactMatches);
+        sortBucket(prefixMatches);
+        sortBucket(containsMatches);
+        sortBucket(descOnlyMatches);
+
+        return exactMatches.concat(prefixMatches, containsMatches, descOnlyMatches);
       }
-
-      const sortBucket = (arr) => {
-        if (arr.length <= 1) return;
-        if (sortMode === 'discount-desc') {
-          arr.sort((a, b) => b.discount - a.discount || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
-        } else if (sortMode === 'discount-asc') {
-          arr.sort((a, b) => a.discount - b.discount || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
-        } else if (sortMode === 'name-asc') {
-          arr.sort((a, b) => (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
-        } else if (sortMode === 'city-asc') {
-          arr.sort((a, b) => ((a.city || '') > (b.city || '') ? 1 : (a.city || '') < (b.city || '') ? -1 : 0) || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
-        } else {
-          arr.sort((a, b) => b.discount - a.discount || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
-        }
-      };
-
-      sortBucket(exactMatches);
-      sortBucket(prefixMatches);
-      sortBucket(containsMatches);
-      sortBucket(descOnlyMatches);
-
-      return exactMatches.concat(prefixMatches, containsMatches, descOnlyMatches);
     }
   }
 

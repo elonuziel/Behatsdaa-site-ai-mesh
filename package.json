@@ -3,14 +3,20 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node server.js",
+    "dev": "vite --port 3000 --host 0.0.0.0",
     "start": "node server.js",
-    "update-data": "node scripts/build-data.js",
-    "test": "node tests/test_data_integrity.js",
-    "build": "node scripts/build-data.js",
+    "process-data": "node scripts/split-data.js",
+    "update-data": "node scripts/split-data.js",
+    "test": "node scripts/split-data.js && node tests/test_data_integrity.js",
+    "build": "node scripts/split-data.js && vite build",
+    "preview": "vite preview --port 3000 --host 0.0.0.0",
     "lint": "node --check app.js server.js js/*.js"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "minisearch": "^7.2.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.3"
   }
 }

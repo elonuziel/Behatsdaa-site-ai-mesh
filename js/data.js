@@ -4,6 +4,90 @@
 
 import { state } from './state.js';
 import { normalizeHebrew } from './utils.js';
+import { initStoresSearch, initDealsSearch, initBillingSearch } from './search.js';
+
+// In-Memory LRU Caches for on-demand dynamic details
+const storeDetailCache = new Map();
+const dealDetailCache = new Map();
+
+/**
+ * On-demand dynamic fetcher for dedicated [slug].json store files
+ */
+export async function fetchStoreDetail(slugOrId) {
+  if (!slugOrId) return null;
+  const key = String(slugOrId);
+  if (storeDetailCache.has(key)) {
+    return storeDetailCache.get(key);
+  }
+
+  // Find store in state to identify slug
+  const storeObj = state.allStores.find(s => s.id === slugOrId || s.slug === slugOrId);
+  const slug = storeObj?.slug || slugOrId;
+
+  try {
+    const res = await fetch(`data/stores/${encodeURIComponent(slug)}.json`);
+    if (res.ok) {
+      const data = await res.json();
+      storeDetailCache.set(key, data);
+      storeDetailCache.set(String(data.id), data);
+      storeDetailCache.set(String(data.slug), data);
+      return data;
+    }
+  } catch (err) {
+    console.warn(`Dynamic fetch failed for store ${slug}, fallback to memory:`, err);
+  }
+
+  // Fallback to in-memory store object if individual file fetch failed
+  if (storeObj) {
+    storeDetailCache.set(key, storeObj);
+    return storeObj;
+  }
+  return null;
+}
+
+/**
+ * On-demand dynamic fetcher for dedicated [id].json deal files
+ */
+export async function fetchDealDetail(id) {
+  if (!id) return null;
+  const key = String(id);
+  if (dealDetailCache.has(key)) {
+    return dealDetailCache.get(key);
+  }
+
+  try {
+    const res = await fetch(`data/deals/${encodeURIComponent(key)}.json`);
+    if (res.ok) {
+      const data = await res.json();
+      dealDetailCache.set(key, data);
+      return data;
+    }
+  } catch (err) {
+    console.warn(`Dynamic fetch failed for deal ${id}, fallback to memory:`, err);
+  }
+
+  const dealObj = state.allDeals.find(d => String(d.id) === key);
+  if (dealObj) {
+    dealDetailCache.set(key, dealObj);
+    return dealObj;
+  }
+  return null;
+}
+
+/**
+ * Lightweight initial search index loader (< 400KB)
+ */
+export async function loadSearchIndex() {
+  try {
+    const res = await fetch('data/search-index.json');
+    if (!res.ok) throw new Error('Failed to load search-index.json');
+    state.searchIndexData = await res.json();
+    return state.searchIndexData;
+  } catch (err) {
+    console.warn('search-index fallback:', err);
+    return null;
+  }
+}
 
 export function getCoreBrand(name) {
   if (!name) return '';
@@ -226,6 +310,13 @@ export async function loadStores(onStoresLoaded) {
   state.availableCards = state.storeData.metadata?.available_cards || [];
   state.storesLoaded = true;
 
+  // Initialize high-performance MiniSearch for stores
+  try {
+    initStoresSearch(state.allStores);
+  } catch (err) {
+    console.warn('MiniSearch stores init:', err);
+  }
+
   if (onStoresLoaded) onStoresLoaded();
 }
 
@@ -253,6 +344,13 @@ export async function loadDeals(onDealsLoaded) {
   state.availableTags = state.dealsData.metadata?.tags || [];
   state.dealsLoaded = true;
 
+  // Initialize high-performance MiniSearch for deals
+  try {
+    initDealsSearch(state.allDeals);
+  } catch (err) {
+    console.warn('MiniSearch deals init:', err);
+  }
+
   if (onDealsLoaded) onDealsLoaded();
 }
 
@@ -277,6 +375,13 @@ export async function loadBilling(onBillingLoaded) {
     s._searchWithDescStr = `${s._searchStr} ${s._descNorm}`.trim();
   });
   state.billingLoaded = true;
+
+  // Initialize high-performance MiniSearch for billing
+  try {
+    initBillingSearch(state.allBillingStores);
+  } catch (err) {
+    console.warn('MiniSearch billing init:', err);
+  }
 
   if (onBillingLoaded) onBillingLoaded();
 }

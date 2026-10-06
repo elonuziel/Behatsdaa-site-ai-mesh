@@ -3,15 +3,16 @@
  */
 
 export const state = {
-  // Navigation & Page Sizes
+  // Navigation & Strict Mobile DOM Limits (30 items at a time to prevent memory spikes)
   currentTab: 'stores',
   globalSearchAcrossTabs: localStorage.getItem('behatsdaa_global_search') !== 'false',
-  STORES_PAGE_SIZE: 60,
-  storesVisibleCount: 60,
-  DEALS_PAGE_SIZE: 60,
-  dealsVisibleCount: 60,
-  BILLING_PAGE_SIZE: 60,
-  billingVisibleCount: 60,
+  STORES_PAGE_SIZE: 30,
+  storesVisibleCount: 30,
+  DEALS_PAGE_SIZE: 30,
+  dealsVisibleCount: 30,
+  BILLING_PAGE_SIZE: 30,
+  billingVisibleCount: 30,
+  searchIndexData: null,
 
   // Stores (Rechargeable Cards)
   storeData: null,

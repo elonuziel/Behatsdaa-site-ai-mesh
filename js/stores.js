@@ -4,6 +4,8 @@
 
 import { state } from './state.js';
 import { normalizeHebrew } from './utils.js';
+import { searchStores } from './search.js';
+import { fetchStoreDetail } from './data.js';
 
 export function populateCardsFilter(cardFilterSelect) {
   if (!cardFilterSelect) return;
@@ -84,49 +86,54 @@ export function getFilteredStores() {
   }
 
   if (state.searchQuery) {
-    const queryNorm = normalizeHebrew(state.searchQuery);
-    const queryTerms = queryNorm.split(' ').filter(Boolean);
+    const miniMatches = searchStores(state.searchQuery);
+    if (miniMatches && miniMatches.size > 0) {
+      result = result.filter(s => miniMatches.has(s.id));
+    } else {
+      const queryNorm = normalizeHebrew(state.searchQuery);
+      const queryTerms = queryNorm.split(' ').filter(Boolean);
 
-    if (queryTerms.length > 0) {
-      const matches = [];
-      const isSingle = queryTerms.length === 1;
+      if (queryTerms.length > 0) {
+        const matches = [];
+        const isSingle = queryTerms.length === 1;
 
-      for (let i = 0; i < result.length; i++) {
-        const store = result[i];
-        const searchStr = store._searchStr || '';
-        let isMatch = isSingle
-          ? searchStr.includes(queryNorm)
-          : queryTerms.every(term => searchStr.includes(term));
+        for (let i = 0; i < result.length; i++) {
+          const store = result[i];
+          const searchStr = store._searchStr || '';
+          let isMatch = isSingle
+            ? searchStr.includes(queryNorm)
+            : queryTerms.every(term => searchStr.includes(term));
 
-        if (!isMatch && state.storesSearchInDesc) {
-          const descStr = store._searchWithDescStr || '';
-          if (isSingle ? descStr.includes(queryNorm) : queryTerms.every(term => descStr.includes(term))) {
-            isMatch = true;
-          } else if (store.linkedBillingStore && store.linkedBillingStore._descNorm) {
-            const bDesc = store.linkedBillingStore._descNorm;
-            if (isSingle ? bDesc.includes(queryNorm) : queryTerms.every(term => bDesc.includes(term))) {
+          if (!isMatch && state.storesSearchInDesc) {
+            const descStr = store._searchWithDescStr || '';
+            if (isSingle ? descStr.includes(queryNorm) : queryTerms.every(term => descStr.includes(term))) {
               isMatch = true;
+            } else if (store.linkedBillingStore && store.linkedBillingStore._descNorm) {
+              const bDesc = store.linkedBillingStore._descNorm;
+              if (isSingle ? bDesc.includes(queryNorm) : queryTerms.every(term => bDesc.includes(term))) {
+                isMatch = true;
+              }
+            } else if (store.linkedDeals && store.linkedDeals.length > 0) {
+              isMatch = store.linkedDeals.some(d => {
+                const dDesc = d._descNorm || '';
+                const dTerms = d._termsNorm || '';
+                return isSingle
+                  ? (dDesc.includes(queryNorm) || dTerms.includes(queryNorm))
+                  : (queryTerms.every(term => dDesc.includes(term)) || queryTerms.every(term => dTerms.includes(term)));
+              });
             }
-          } else if (store.linkedDeals && store.linkedDeals.length > 0) {
-            isMatch = store.linkedDeals.some(d => {
-              const dDesc = d._descNorm || '';
-              const dTerms = d._termsNorm || '';
-              return isSingle
-                ? (dDesc.includes(queryNorm) || dTerms.includes(queryNorm))
-                : (queryTerms.every(term => dDesc.includes(term)) || queryTerms.every(term => dTerms.includes(term)));
-            });
+          }
+
+          if (isMatch) {
+            const sName = store._nameNorm || '';
+            store._score = sName === queryNorm ? 3 : (sName.startsWith(queryNorm) ? 2 : (sName.includes(queryNorm) ? 1 : 0));
+            matches.push(store);
           }
         }
 
-        if (isMatch) {
-          const sName = store._nameNorm || '';
-          store._score = sName === queryNorm ? 3 : (sName.startsWith(queryNorm) ? 2 : (sName.includes(queryNorm) ? 1 : 0));
-          matches.push(store);
-        }
+        result = matches;
+        result.sort((a, b) => b._score - a._score);
       }
-
-      result = matches;
-      result.sort((a, b) => b._score - a._score);
     }
   }
 
@@ -287,10 +294,7 @@ export function createStoreTableRow(store) {
   return tr;
 }
 
-export function openStoreModal(store, elements, callbacks) {
-  if (!store || !elements.storeModal) return;
-  state.activeModalStore = store;
-
+function populateStoreModal(store, elements, callbacks) {
   elements.modalTitle.textContent = store.name;
   elements.modalCategory.textContent = store.category || 'כללי';
   elements.modalLogo.src = store.logo || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="80">🛍️</text></svg>';
@@ -303,7 +307,8 @@ export function openStoreModal(store, elements, callbacks) {
     elements.modalWebsiteLink.classList.add('hidden');
   }
 
-  if (store.linkedDeals && store.linkedDeals.length > 0) {
+  const linkedDeals = store.linked_deals || store.linkedDeals;
+  if (linkedDeals && linkedDeals.length > 0) {
     elements.modalLinkedDealBanner.classList.remove('hidden');
     elements.modalViewDealBtn.onclick = () => {
       closeStoreModal(elements.storeModal);
@@ -313,10 +318,11 @@ export function openStoreModal(store, elements, callbacks) {
     elements.modalLinkedDealBanner.classList.add('hidden');
   }
 
-  if (store.linkedBillingStore && elements.modalLinkedBillingBanner) {
+  const linkedBilling = store.linked_billing || store.linkedBillingStore;
+  if (linkedBilling && elements.modalLinkedBillingBanner) {
     elements.modalLinkedBillingBanner.classList.remove('hidden');
     if (elements.modalLinkedBillingTitle) {
-      elements.modalLinkedBillingTitle.textContent = `לרשת זו קיימת גם הנחה של ${store.linkedBillingStore.discount}% במעמד החיוב!`;
+      elements.modalLinkedBillingTitle.textContent = `לרשת זו קיימת גם הנחה של ${linkedBilling.discount}% במעמד החיוב!`;
     }
     if (elements.modalViewBillingBtn) {
       elements.modalViewBillingBtn.onclick = () => {
@@ -341,6 +347,24 @@ export function openStoreModal(store, elements, callbacks) {
   elements.modalConditions.textContent = store.conditions || 'לא צוינו תנאים מיוחדים מעבר לתקנון הכללי של המועדון.';
   elements.storeModal.classList.remove('hidden');
   if (window.lucide) lucide.createIcons();
+}
+
+export function openStoreModal(store, elements, callbacks) {
+  if (!store || !elements.storeModal) return;
+  state.activeModalStore = store;
+
+  // Immediately render with available store data
+  populateStoreModal(store, elements, callbacks);
+
+  // Asynchronously fetch full dedicated [slug].json on demand
+  const slug = store.slug || store.id;
+  fetchStoreDetail(slug).then(fullDetail => {
+    if (fullDetail && state.activeModalStore && (state.activeModalStore.id === store.id || state.activeModalStore.slug === slug)) {
+      populateStoreModal(fullDetail, elements, callbacks);
+    }
+  }).catch(err => {
+    console.warn('Dynamic fetch store detail error:', err);
+  });
 }
 
 export function closeStoreModal(storeModal) {

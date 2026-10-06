@@ -4,6 +4,8 @@
 
 import { state } from './state.js';
 import { normalizeHebrew, formatILS } from './utils.js';
+import { searchDeals } from './search.js';
+import { fetchDealDetail } from './data.js';
 
 export function populateDealsTagsFilter(dealsTagSelect) {
   if (!dealsTagSelect) return;
@@ -84,37 +86,42 @@ export function getFilteredDeals() {
   }
 
   if (state.dealsSearchQuery) {
-    const queryNorm = normalizeHebrew(state.dealsSearchQuery);
-    const queryTerms = queryNorm.split(' ').filter(Boolean);
+    const miniMatches = searchDeals(state.dealsSearchQuery);
+    if (miniMatches && miniMatches.size > 0) {
+      result = result.filter(d => miniMatches.has(String(d.id)));
+    } else {
+      const queryNorm = normalizeHebrew(state.dealsSearchQuery);
+      const queryTerms = queryNorm.split(' ').filter(Boolean);
 
-    if (queryTerms.length > 0) {
-      result = result.filter(d => {
-        const searchStr = d._searchStr || '';
-        const baseMatch = queryTerms.length === 1
-          ? searchStr.includes(queryNorm)
-          : queryTerms.every(term => searchStr.includes(term));
+      if (queryTerms.length > 0) {
+        result = result.filter(d => {
+          const searchStr = d._searchStr || '';
+          const baseMatch = queryTerms.length === 1
+            ? searchStr.includes(queryNorm)
+            : queryTerms.every(term => searchStr.includes(term));
 
-        if (baseMatch) return true;
+          if (baseMatch) return true;
 
-        if (state.dealsSearchInDesc) {
-          const descStr = d._searchWithDescStr || '';
-          return queryTerms.length === 1
-            ? descStr.includes(queryNorm)
-            : queryTerms.every(term => descStr.includes(term));
-        }
-        return false;
-      });
+          if (state.dealsSearchInDesc) {
+            const descStr = d._searchWithDescStr || '';
+            return queryTerms.length === 1
+              ? descStr.includes(queryNorm)
+              : queryTerms.every(term => descStr.includes(term));
+          }
+          return false;
+        });
 
-      result.sort((a, b) => {
-        const aTitle = a._titleNorm || '';
-        const bTitle = b._titleNorm || '';
-        const aSupp = a._suppNorm || '';
-        const bSupp = b._suppNorm || '';
+        result.sort((a, b) => {
+          const aTitle = a._titleNorm || '';
+          const bTitle = b._titleNorm || '';
+          const aSupp = a._suppNorm || '';
+          const bSupp = b._suppNorm || '';
 
-        const aScore = aTitle.includes(queryNorm) ? 2 : (aSupp.includes(queryNorm) ? 1 : 0);
-        const bScore = bTitle.includes(queryNorm) ? 2 : (bSupp.includes(queryNorm) ? 1 : 0);
-        return bScore - aScore;
-      });
+          const aScore = aTitle.includes(queryNorm) ? 2 : (aSupp.includes(queryNorm) ? 1 : 0);
+          const bScore = bTitle.includes(queryNorm) ? 2 : (bSupp.includes(queryNorm) ? 1 : 0);
+          return bScore - aScore;
+        });
+      }
     }
   }
 
@@ -333,9 +340,7 @@ export function createDealTableRow(deal) {
   return tr;
 }
 
-export function openDealModal(deal, elements, callbacks) {
-  if (!deal || !elements.dealModal) return;
-
+function populateDealModal(deal, elements, callbacks) {
   elements.dealModalTitle.textContent = deal.title;
   elements.dealModalSupplier.textContent = deal.supplier || 'בהצדעה';
   elements.dealModalCategory.textContent = deal.category || 'כללי';
@@ -385,10 +390,11 @@ export function openDealModal(deal, elements, callbacks) {
     elements.dealModalLinkedStoreBanner.classList.add('hidden');
   }
 
-  if (deal.linkedBillingStore && elements.dealModalLinkedBillingBanner) {
+  const linkedBilling = deal.linked_billing || deal.linkedBillingStore;
+  if (linkedBilling && elements.dealModalLinkedBillingBanner) {
     elements.dealModalLinkedBillingBanner.classList.remove('hidden');
     if (elements.dealModalLinkedBillingTitle) {
-      elements.dealModalLinkedBillingTitle.textContent = `לספק "${deal.supplier}" קיימת גם הנחה של ${deal.linkedBillingStore.discount}% במעמד החיוב!`;
+      elements.dealModalLinkedBillingTitle.textContent = `לספק "${deal.supplier}" קיימת גם הנחה של ${linkedBilling.discount}% במעמד החיוב!`;
     }
     if (elements.dealModalViewBillingBtn) {
       elements.dealModalViewBillingBtn.onclick = () => {
@@ -430,6 +436,22 @@ export function openDealModal(deal, elements, callbacks) {
   elements.dealModalBuyLink.href = deal.url || `https://www.behatsdaa.org.il/category/productPage/${deal.id}`;
   elements.dealModal.classList.remove('hidden');
   if (window.lucide) lucide.createIcons();
+}
+
+export function openDealModal(deal, elements, callbacks) {
+  if (!deal || !elements.dealModal) return;
+
+  // Immediately render with available data
+  populateDealModal(deal, elements, callbacks);
+
+  // Asynchronously fetch full dynamic details on demand
+  fetchDealDetail(deal.id).then(fullDeal => {
+    if (fullDeal) {
+      populateDealModal(fullDeal, elements, callbacks);
+    }
+  }).catch(err => {
+    console.warn('Dynamic fetch deal detail error:', err);
+  });
 }
 
 export function closeDealModal(dealModal) {
