@@ -9,7 +9,7 @@ const billingData = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data'
 
 async function setupEnv() {
   const dom = new JSDOM(htmlSource, {
-    url: 'https://elonuziel.github.io/stores-list/',
+    url: 'https://elonuziel.github.io/Behatsdaa-site-ai-mesh/',
     runScripts: 'dangerously'
   });
   const { window } = dom;

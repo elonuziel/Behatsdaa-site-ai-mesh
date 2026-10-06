@@ -1,6 +1,6 @@
 # Behatsdaa Participating Stores, Changing Deals & Billing Discounts Catalog 💳🎁🏷️
 
-> **Live Web Application:** [https://elonuziel.github.io/stores-list/](https://elonuziel.github.io/stores-list/)
+> **Live Web Application:** [https://elonuziel.github.io/Behatsdaa-site-ai-mesh/](https://elonuziel.github.io/Behatsdaa-site-ai-mesh/)
 
 A fast, interactive web catalog and automated pipeline for:
 1. **Rechargeable Card Stores**: All stores, chains, restaurants, fashion brands, and attractions participating in **[Behatsdaa](https://www.behatsdaa.org.il/card/chargingCard)** recharge cards (Club Cards, Fighter Card, Restaurants, Carrefour, Online Grocery, etc.).
@@ -11,7 +11,7 @@ A fast, interactive web catalog and automated pipeline for:
 
 ## 🚀 Live Demo & Key Features
 
-Explore the catalog live at: **[https://elonuziel.github.io/stores-list/](https://elonuziel.github.io/stores-list/)**
+Explore the catalog live at: **[https://elonuziel.github.io/Behatsdaa-site-ai-mesh/](https://elonuziel.github.io/Behatsdaa-site-ai-mesh/)**
 
 - 🗂️ **Tri-Tab Dashboard**:
   - **Tab 1: רשתות וכרטיסים נטענים**: Search & filter 980+ participating store chains across 8 rechargeable wallets with accurate percentage discounts.

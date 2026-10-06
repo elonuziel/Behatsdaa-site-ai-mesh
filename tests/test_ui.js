@@ -30,7 +30,7 @@ async function runTests() {
 
   // Create virtual browser window
   const dom = new JSDOM(htmlSource, {
-    url: 'https://elonuziel.github.io/stores-list/',
+    url: 'https://elonuziel.github.io/Behatsdaa-site-ai-mesh/',
     runScripts: 'dangerously'
   });
 

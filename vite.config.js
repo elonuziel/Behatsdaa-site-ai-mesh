@@ -10,7 +10,7 @@ if (!fs.existsSync('public/data/search-index.json')) {
 
 export default defineConfig({
   // Relative base path ensures deployment works seamlessly on GitHub Pages
-  // whether hosted at the root or under a repository subpath (/Behatsdaa-stores-list/)
+  // whether hosted at the root or under a repository subpath (/Behatsdaa-site-ai-mesh/)
   base: './',
   server: {
     port: 3000,
