@@ -296,11 +296,11 @@ function applyViewMode(mode) {
   state.currentView = mode;
   localStorage.setItem('behatsdaa_view', mode);
   if (mode === 'grid') {
-    viewGridBtn.className = 'p-1.5 rounded-lg text-sm font-medium transition-all bg-white dark:bg-slate-700 shadow-xs text-blue-600 dark:text-blue-400';
-    viewTableBtn.className = 'p-1.5 rounded-lg text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+    viewGridBtn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all bg-white dark:bg-slate-700 shadow-xs text-blue-600 dark:text-blue-400';
+    viewTableBtn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
   } else {
-    viewTableBtn.className = 'p-1.5 rounded-lg text-sm font-medium transition-all bg-white dark:bg-slate-700 shadow-xs text-blue-600 dark:text-blue-400';
-    viewGridBtn.className = 'p-1.5 rounded-lg text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+    viewTableBtn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all bg-white dark:bg-slate-700 shadow-xs text-blue-600 dark:text-blue-400';
+    viewGridBtn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
   }
   renderStores();
 }
@@ -914,4 +914,5 @@ document.addEventListener('keydown', (e) => {
 
 // Initialize
 initTheme();
+if (window.lucide) lucide.createIcons();
 loadAllData();
