@@ -7,8 +7,8 @@ import { state } from './js/state.js';
 import { debounce, initTheme, toggleTheme } from './js/utils.js';
 import { loadStores, loadDeals, loadBilling, crossLinkAllDatasets } from './js/data.js';
 import { populateCardsFilter, updateCategoryChips, getFilteredStores, createStoreCardElement, createStoreTableRow, openStoreModal, closeStoreModal } from './js/stores.js';
-import { populateDealsTagsFilter, updateDealsCategoryChips, getFilteredDeals, createDealCardElement, openDealModal, closeDealModal } from './js/deals.js';
-import { populateBillingCitiesFilter, updateBillingCategoryChips, getFilteredBillingStores, createBillingCardElement, openBillingModal, closeBillingModal } from './js/billing.js';
+import { populateDealsTagsFilter, updateDealsCategoryChips, getFilteredDeals, createDealCardElement, createDealTableRow, openDealModal, closeDealModal } from './js/deals.js';
+import { populateBillingCitiesFilter, updateBillingCategoryChips, getFilteredBillingStores, createBillingCardElement, createBillingTableRow, openBillingModal, closeBillingModal } from './js/billing.js';
 
 // DOM Elements - Navigation Tabs
 const tabStoresBtn = document.getElementById('tab-stores-btn');
@@ -81,6 +81,8 @@ const activeDealsFilterText = document.getElementById('active-deals-filter-text'
 const resetDealsFiltersBtn = document.getElementById('reset-deals-filters-btn');
 const dealsLastUpdatedDateEl = document.getElementById('deals-last-updated-date');
 const dealsGrid = document.getElementById('deals-grid');
+const dealsTableView = document.getElementById('deals-table-view');
+const dealsTableTbody = document.getElementById('deals-table-tbody');
 const dealsTabSpinner = document.getElementById('deals-tab-spinner');
 const noDealsResults = document.getElementById('no-deals-results');
 const clearDealsFiltersBtn = document.getElementById('clear-deals-filters-btn');
@@ -133,6 +135,8 @@ const activeBillingFilterText = document.getElementById('active-billing-filter-t
 const resetBillingFiltersBtn = document.getElementById('reset-billing-filters-btn');
 const billingLastUpdatedDateEl = document.getElementById('billing-last-updated-date');
 const billingGrid = document.getElementById('billing-grid');
+const billingTableView = document.getElementById('billing-table-view');
+const billingTableTbody = document.getElementById('billing-table-tbody');
 const billingTabSpinner = document.getElementById('billing-tab-spinner');
 const noBillingResults = document.getElementById('no-billing-results');
 const clearBillingFiltersBtn = document.getElementById('clear-billing-filters-btn');
@@ -232,7 +236,9 @@ function renderDeals() {
 
   if (filtered.length === 0) {
     dealsGrid.innerHTML = '';
+    if (dealsTableTbody) dealsTableTbody.innerHTML = '';
     noDealsResults.classList.remove('hidden');
+    if (dealsTableView) dealsTableView.classList.add('hidden');
     if (dealsLoadMoreContainer) dealsLoadMoreContainer.classList.add('hidden');
     return;
   }
@@ -240,15 +246,26 @@ function renderDeals() {
   noDealsResults.classList.add('hidden');
 
   const visibleDeals = filtered.slice(0, state.dealsVisibleCount);
-  dealsGrid.innerHTML = '';
-  visibleDeals.forEach(d => dealsGrid.appendChild(createDealCardElement(d)));
+  if (state.currentView === 'grid') {
+    dealsGrid.innerHTML = '';
+    visibleDeals.forEach(d => dealsGrid.appendChild(createDealCardElement(d)));
+    dealsGrid.classList.remove('hidden');
+    if (dealsTableView) dealsTableView.classList.add('hidden');
+  } else {
+    if (dealsTableTbody) {
+      dealsTableTbody.innerHTML = '';
+      visibleDeals.forEach(d => dealsTableTbody.appendChild(createDealTableRow(d)));
+    }
+    if (dealsTableView) dealsTableView.classList.remove('hidden');
+    dealsGrid.classList.add('hidden');
+  }
 
   if (dealsLoadMoreContainer) {
     dealsLoadMoreContainer.classList.toggle('hidden', state.dealsVisibleCount >= filtered.length);
   }
 
   if (window.lucide) {
-    const root = state.currentView === 'grid' ? cardsView : tableView;
+    const root = state.currentView === 'grid' ? dealsGrid : dealsTableView;
     if (root) lucide.createIcons({ root });
   }
 }
@@ -271,7 +288,9 @@ function renderBillingStores() {
 
   if (filtered.length === 0) {
     billingGrid.innerHTML = '';
+    if (billingTableTbody) billingTableTbody.innerHTML = '';
     if (noBillingResults) noBillingResults.classList.remove('hidden');
+    if (billingTableView) billingTableView.classList.add('hidden');
     if (billingLoadMoreContainer) billingLoadMoreContainer.classList.add('hidden');
     return;
   }
@@ -279,15 +298,26 @@ function renderBillingStores() {
   if (noBillingResults) noBillingResults.classList.add('hidden');
 
   const visibleStores = filtered.slice(0, state.billingVisibleCount);
-  billingGrid.innerHTML = '';
-  visibleStores.forEach(s => billingGrid.appendChild(createBillingCardElement(s)));
+  if (state.currentView === 'grid') {
+    billingGrid.innerHTML = '';
+    visibleStores.forEach(s => billingGrid.appendChild(createBillingCardElement(s)));
+    billingGrid.classList.remove('hidden');
+    if (billingTableView) billingTableView.classList.add('hidden');
+  } else {
+    if (billingTableTbody) {
+      billingTableTbody.innerHTML = '';
+      visibleStores.forEach(s => billingTableTbody.appendChild(createBillingTableRow(s)));
+    }
+    if (billingTableView) billingTableView.classList.remove('hidden');
+    billingGrid.classList.add('hidden');
+  }
 
   if (billingLoadMoreContainer) {
     billingLoadMoreContainer.classList.toggle('hidden', state.billingVisibleCount >= filtered.length);
   }
 
   if (window.lucide) {
-    const root = state.currentView === 'grid' ? cardsView : tableView;
+    const root = state.currentView === 'grid' ? billingGrid : billingTableView;
     if (root) lucide.createIcons({ root });
   }
 }
@@ -296,13 +326,130 @@ function applyViewMode(mode) {
   state.currentView = mode;
   localStorage.setItem('behatsdaa_view', mode);
   if (mode === 'grid') {
-    viewGridBtn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all bg-white dark:bg-slate-700 shadow-xs text-blue-600 dark:text-blue-400';
-    viewTableBtn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+    viewGridBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-700 shadow-xs text-blue-600 dark:text-blue-400';
+    viewTableBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
   } else {
-    viewTableBtn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all bg-white dark:bg-slate-700 shadow-xs text-blue-600 dark:text-blue-400';
-    viewGridBtn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+    viewTableBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-700 shadow-xs text-blue-600 dark:text-blue-400';
+    viewGridBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
   }
-  renderStores();
+  if (state.currentTab === 'stores') {
+    renderStores();
+  } else if (state.currentTab === 'deals') {
+    renderDeals();
+  } else if (state.currentTab === 'billing') {
+    renderBillingStores();
+  }
+}
+
+function updateCrossTabBadges() {
+  const query = state.searchQuery || state.dealsSearchQuery || state.billingSearchQuery;
+  if (!query) {
+    if (tabStoresCount) tabStoresCount.textContent = state.allStores.length;
+    if (tabDealsCount) tabDealsCount.textContent = state.dealsLoaded ? state.allDeals.length : 0;
+    if (tabBillingCount) tabBillingCount.textContent = state.billingLoaded ? state.allBillingStores.length.toLocaleString('he-IL') : 0;
+    return;
+  }
+
+  const sCount = getFilteredStores().length;
+  if (tabStoresCount) tabStoresCount.textContent = sCount;
+
+  if (state.dealsLoaded) {
+    const dCount = getFilteredDeals().length;
+    if (tabDealsCount) tabDealsCount.textContent = dCount;
+  }
+
+  if (state.billingLoaded) {
+    const bCount = getFilteredBillingStores().length;
+    if (tabBillingCount) tabBillingCount.textContent = bCount.toLocaleString('he-IL');
+  }
+}
+
+function handleSearchChange(val, originTab) {
+  const term = (val || '').trim();
+
+  if (state.globalSearchAcrossTabs) {
+    state.searchQuery = term;
+    state.dealsSearchQuery = term;
+    state.billingSearchQuery = term;
+
+    if (searchInput && searchInput.value !== val) searchInput.value = val;
+    if (dealsSearchInput && dealsSearchInput.value !== val) dealsSearchInput.value = val;
+    if (billingSearchInput && billingSearchInput.value !== val) billingSearchInput.value = val;
+
+    if (clearSearchBtn) clearSearchBtn.classList.toggle('hidden', !term);
+    if (clearDealsSearchBtn) clearDealsSearchBtn.classList.toggle('hidden', !term);
+    if (clearBillingSearchBtn) clearBillingSearchBtn.classList.toggle('hidden', !term);
+
+    state.storesVisibleCount = state.STORES_PAGE_SIZE;
+    state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
+    state.billingVisibleCount = state.BILLING_PAGE_SIZE;
+
+    if (state.currentTab === 'stores') renderStores();
+    else if (state.currentTab === 'deals') renderDeals();
+    else if (state.currentTab === 'billing') renderBillingStores();
+
+    updateCrossTabBadges();
+  } else {
+    if (originTab === 'stores') {
+      state.searchQuery = term;
+      if (clearSearchBtn) clearSearchBtn.classList.toggle('hidden', !term);
+      state.storesVisibleCount = state.STORES_PAGE_SIZE;
+      renderStores();
+    } else if (originTab === 'deals') {
+      state.dealsSearchQuery = term;
+      if (clearDealsSearchBtn) clearDealsSearchBtn.classList.toggle('hidden', !term);
+      state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
+      renderDeals();
+    } else if (originTab === 'billing') {
+      state.billingSearchQuery = term;
+      if (clearBillingSearchBtn) clearBillingSearchBtn.classList.toggle('hidden', !term);
+      state.billingVisibleCount = state.BILLING_PAGE_SIZE;
+      renderBillingStores();
+    }
+  }
+}
+
+function handleClearSearch(originTab) {
+  if (state.globalSearchAcrossTabs) {
+    if (searchInput) searchInput.value = '';
+    if (dealsSearchInput) dealsSearchInput.value = '';
+    if (billingSearchInput) billingSearchInput.value = '';
+    state.searchQuery = '';
+    state.dealsSearchQuery = '';
+    state.billingSearchQuery = '';
+    if (clearSearchBtn) clearSearchBtn.classList.add('hidden');
+    if (clearDealsSearchBtn) clearDealsSearchBtn.classList.add('hidden');
+    if (clearBillingSearchBtn) clearBillingSearchBtn.classList.add('hidden');
+    state.storesVisibleCount = state.STORES_PAGE_SIZE;
+    state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
+    state.billingVisibleCount = state.BILLING_PAGE_SIZE;
+
+    if (state.currentTab === 'stores') renderStores();
+    else if (state.currentTab === 'deals') renderDeals();
+    else if (state.currentTab === 'billing') renderBillingStores();
+
+    updateCrossTabBadges();
+  } else {
+    if (originTab === 'stores') {
+      if (searchInput) searchInput.value = '';
+      state.searchQuery = '';
+      if (clearSearchBtn) clearSearchBtn.classList.add('hidden');
+      state.storesVisibleCount = state.STORES_PAGE_SIZE;
+      renderStores();
+    } else if (originTab === 'deals') {
+      if (dealsSearchInput) dealsSearchInput.value = '';
+      state.dealsSearchQuery = '';
+      if (clearDealsSearchBtn) clearDealsSearchBtn.classList.add('hidden');
+      state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
+      renderDeals();
+    } else if (originTab === 'billing') {
+      if (billingSearchInput) billingSearchInput.value = '';
+      state.billingSearchQuery = '';
+      if (clearBillingSearchBtn) clearBillingSearchBtn.classList.add('hidden');
+      state.billingVisibleCount = state.BILLING_PAGE_SIZE;
+      renderBillingStores();
+    }
+  }
 }
 
 function getTabSearchQuery(tab) {
@@ -336,7 +483,10 @@ function switchTab(tab, options = {}) {
   const previousTab = state.currentTab;
   state.currentTab = tab;
 
-  if (!options.preserveSearch && previousTab && previousTab !== tab) {
+  if (state.globalSearchAcrossTabs) {
+    const currentQuery = getTabSearchQuery(previousTab);
+    setTabSearchQuery(tab, currentQuery);
+  } else if (!options.preserveSearch && previousTab && previousTab !== tab) {
     const currentQuery = getTabSearchQuery(previousTab);
     setTabSearchQuery(tab, currentQuery);
   }
@@ -351,7 +501,6 @@ function switchTab(tab, options = {}) {
   storesTabSection.classList.add('hidden');
   dealsTabSection.classList.add('hidden');
   if (billingTabSection) billingTabSection.classList.add('hidden');
-  viewModeToggleWrapper.classList.add('hidden');
 
   if (tab === 'deals') {
     tabDealsBtn.className = 'main-tab-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-emerald-600 text-white dark:bg-emerald-600 dark:text-white';
@@ -363,7 +512,6 @@ function switchTab(tab, options = {}) {
       if (dealsLoadMoreContainer) dealsLoadMoreContainer.classList.add('hidden');
     } else {
       if (dealsTabSpinner) dealsTabSpinner.classList.add('hidden');
-      if (dealsGrid) dealsGrid.classList.remove('hidden');
       renderDeals();
     }
   } else if (tab === 'billing') {
@@ -379,13 +527,11 @@ function switchTab(tab, options = {}) {
       startLoadBilling();
     } else {
       if (billingTabSpinner) billingTabSpinner.classList.add('hidden');
-      if (billingGrid) billingGrid.classList.remove('hidden');
       renderBillingStores();
     }
   } else {
     tabStoresBtn.className = 'main-tab-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-blue-600 text-white dark:bg-blue-600 dark:text-white';
     storesTabSection.classList.remove('hidden');
-    viewModeToggleWrapper.classList.remove('hidden');
     if (state.storesLoaded) {
       renderStores();
     }
@@ -394,6 +540,7 @@ function switchTab(tab, options = {}) {
 
 function onDatasetsLoaded() {
   crossLinkAllDatasets();
+  updateCrossTabBadges();
   if (state.currentTab === 'stores') {
     renderStores();
   } else if (state.currentTab === 'deals' && state.dealsLoaded) {
@@ -555,24 +702,17 @@ window.addEventListener('hashchange', () => {
   else switchTab('stores');
 });
 
-// Stores Search & Filters
-const debouncedRenderStores = debounce(() => {
-  state.storesVisibleCount = state.STORES_PAGE_SIZE;
-  renderStores();
+// Cross-Tab Search Handlers & Debouncing
+const debouncedCrossTabSearch = debounce((query, originTab) => {
+  handleSearchChange(query, originTab);
 }, 120);
 
 searchInput.addEventListener('input', (e) => {
-  state.searchQuery = e.target.value.trim();
-  clearSearchBtn.classList.toggle('hidden', !state.searchQuery);
-  debouncedRenderStores();
+  debouncedCrossTabSearch(e.target.value, 'stores');
 });
 
 clearSearchBtn.addEventListener('click', () => {
-  searchInput.value = '';
-  state.searchQuery = '';
-  clearSearchBtn.classList.add('hidden');
-  state.storesVisibleCount = state.STORES_PAGE_SIZE;
-  renderStores();
+  handleClearSearch('stores');
 });
 
 if (storesSearchDescToggle) {
@@ -580,6 +720,7 @@ if (storesSearchDescToggle) {
     state.storesSearchInDesc = e.target.checked;
     state.storesVisibleCount = state.STORES_PAGE_SIZE;
     renderStores();
+    updateCrossTabBadges();
   });
 }
 
@@ -606,17 +747,13 @@ categoryChipsContainer.addEventListener('click', (e) => {
 });
 
 function resetStoresFilters() {
-  searchInput.value = '';
-  state.searchQuery = '';
   state.currentCard = 'all';
   cardFilterSelect.value = 'all';
   state.currentCategory = 'all';
   if (storesSearchDescToggle) storesSearchDescToggle.checked = false;
   state.storesSearchInDesc = false;
-  clearSearchBtn.classList.add('hidden');
-  state.storesVisibleCount = state.STORES_PAGE_SIZE;
+  handleClearSearch('stores');
   updateCategoryChips(categoryChipsContainer);
-  renderStores();
 }
 
 resetFiltersBtn.addEventListener('click', resetStoresFilters);
@@ -634,23 +771,12 @@ storeModalElements.storeModal.addEventListener('click', (e) => {
 });
 
 // Deals Search & Filters
-const debouncedRenderDeals = debounce(() => {
-  state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
-  renderDeals();
-}, 120);
-
 dealsSearchInput.addEventListener('input', (e) => {
-  state.dealsSearchQuery = e.target.value.trim();
-  clearDealsSearchBtn.classList.toggle('hidden', !state.dealsSearchQuery);
-  debouncedRenderDeals();
+  debouncedCrossTabSearch(e.target.value, 'deals');
 });
 
 clearDealsSearchBtn.addEventListener('click', () => {
-  dealsSearchInput.value = '';
-  state.dealsSearchQuery = '';
-  clearDealsSearchBtn.classList.add('hidden');
-  state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
-  renderDeals();
+  handleClearSearch('deals');
 });
 
 if (dealsSearchDescToggle) {
@@ -658,6 +784,7 @@ if (dealsSearchDescToggle) {
     state.dealsSearchInDesc = e.target.checked;
     state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
     renderDeals();
+    updateCrossTabBadges();
   });
 }
 
@@ -689,8 +816,6 @@ dealsCategoryChipsContainer.addEventListener('click', (e) => {
 });
 
 function resetDealsFilters() {
-  dealsSearchInput.value = '';
-  state.dealsSearchQuery = '';
   state.currentDealTag = 'all';
   dealsTagSelect.value = 'all';
   state.currentDealCategory = 'all';
@@ -698,10 +823,8 @@ function resetDealsFilters() {
   dealsPriceFilterSelect.value = 'all';
   if (dealsSearchDescToggle) dealsSearchDescToggle.checked = false;
   state.dealsSearchInDesc = false;
-  clearDealsSearchBtn.classList.add('hidden');
-  state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
+  handleClearSearch('deals');
   updateDealsCategoryChips(dealsCategoryChipsContainer);
-  renderDeals();
 }
 
 resetDealsFiltersBtn.addEventListener('click', resetDealsFilters);
@@ -715,26 +838,15 @@ dealModalElements.dealModal.addEventListener('click', (e) => {
 });
 
 // Billing Search & Filters
-const debouncedRenderBilling = debounce(() => {
-  state.billingVisibleCount = state.BILLING_PAGE_SIZE;
-  renderBillingStores();
-}, 120);
-
 if (billingSearchInput) {
   billingSearchInput.addEventListener('input', (e) => {
-    state.billingSearchQuery = e.target.value.trim();
-    if (clearBillingSearchBtn) clearBillingSearchBtn.classList.toggle('hidden', !state.billingSearchQuery);
-    debouncedRenderBilling();
+    debouncedCrossTabSearch(e.target.value, 'billing');
   });
 }
 
 if (clearBillingSearchBtn) {
   clearBillingSearchBtn.addEventListener('click', () => {
-    billingSearchInput.value = '';
-    state.billingSearchQuery = '';
-    clearBillingSearchBtn.classList.add('hidden');
-    state.billingVisibleCount = state.BILLING_PAGE_SIZE;
-    renderBillingStores();
+    handleClearSearch('billing');
   });
 }
 
@@ -743,8 +855,30 @@ if (billingSearchDescToggle) {
     state.billingSearchInDesc = e.target.checked;
     state.billingVisibleCount = state.BILLING_PAGE_SIZE;
     renderBillingStores();
+    updateCrossTabBadges();
   });
 }
+
+// Synchronize all "Search across all tabs" checkboxes
+const searchAllTabsCheckboxes = document.querySelectorAll('.search-all-tabs-checkbox');
+searchAllTabsCheckboxes.forEach(cb => {
+  cb.checked = state.globalSearchAcrossTabs;
+  cb.addEventListener('change', (e) => {
+    const isChecked = e.target.checked;
+    state.globalSearchAcrossTabs = isChecked;
+    localStorage.setItem('behatsdaa_global_search', isChecked);
+    searchAllTabsCheckboxes.forEach(other => {
+      other.checked = isChecked;
+    });
+
+    if (isChecked) {
+      const activeQuery = getTabSearchQuery(state.currentTab);
+      if (activeQuery) {
+        handleSearchChange(activeQuery, state.currentTab);
+      }
+    }
+  });
+});
 
 if (billingCitySelect) {
   billingCitySelect.addEventListener('change', (e) => {
@@ -775,17 +909,13 @@ if (billingCategoryChipsContainer) {
 }
 
 function resetBillingFilters() {
-  billingSearchInput.value = '';
-  state.billingSearchQuery = '';
   state.currentBillingCity = 'all';
   if (billingCitySelect) billingCitySelect.value = 'all';
   state.currentBillingCategory = 'all';
   if (billingSearchDescToggle) billingSearchDescToggle.checked = false;
   state.billingSearchInDesc = false;
-  if (clearBillingSearchBtn) clearBillingSearchBtn.classList.add('hidden');
-  state.billingVisibleCount = state.BILLING_PAGE_SIZE;
+  handleClearSearch('billing');
   updateBillingCategoryChips(billingCategoryChipsContainer);
-  renderBillingStores();
 }
 
 if (resetBillingFiltersBtn) resetBillingFiltersBtn.addEventListener('click', resetBillingFilters);
@@ -887,7 +1017,7 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  const dealCard = e.target.closest('.deal-card');
+  const dealCard = e.target.closest('.deal-card, #deals-table-tbody tr');
   if (dealCard) {
     const dealId = dealCard.dataset.dealId;
     const deal = state.allDeals.find(d => String(d.id) === String(dealId));
@@ -895,7 +1025,7 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  const billingCard = e.target.closest('.billing-card');
+  const billingCard = e.target.closest('.billing-card, #billing-table-tbody tr');
   if (billingCard) {
     const billingId = billingCard.dataset.billingId;
     const billingStore = state.allBillingStores.find(b => String(b.id) === String(billingId));

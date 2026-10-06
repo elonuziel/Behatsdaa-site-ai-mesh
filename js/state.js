@@ -5,6 +5,7 @@
 export const state = {
   // Navigation & Page Sizes
   currentTab: 'stores',
+  globalSearchAcrossTabs: localStorage.getItem('behatsdaa_global_search') !== 'false',
   STORES_PAGE_SIZE: 60,
   storesVisibleCount: 60,
   DEALS_PAGE_SIZE: 60,

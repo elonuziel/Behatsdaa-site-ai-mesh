@@ -70,21 +70,8 @@
         </div>
       </div>
 
-      <!-- Controls: Theme & View Mode & Scraper Info -->
-      <div class="flex items-center gap-2 sm:gap-2.5">
-        <!-- View Toggle (Grid / Table - for stores view) -->
-        <div id="view-mode-toggle-wrapper" class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
-          <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 px-1.5 hidden md:inline">תצוגה:</span>
-          <button id="view-grid-btn" title="תצוגת כרטיסים" aria-label="תצוגת כרטיסים" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all bg-white dark:bg-slate-700 shadow-xs text-blue-600 dark:text-blue-400">
-            <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
-            <span class="hidden sm:inline">כרטיסים</span>
-          </button>
-          <button id="view-table-btn" title="תצוגת טבלה" aria-label="תצוגת טבלה" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-            <i data-lucide="table" class="w-3.5 h-3.5"></i>
-            <span class="hidden sm:inline">טבלה</span>
-          </button>
-        </div>
-
+      <!-- Controls: Theme & Scraper Info -->
+      <div class="flex items-center gap-2">
         <!-- Dark / Light Mode Toggle -->
         <button id="theme-toggle-btn" title="החלף מצב תצוגה (בהיר/כהה)" aria-label="החלף מצב תצוגה" class="flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition text-xs font-medium">
           <i data-lucide="moon" id="theme-icon-moon" class="w-4 h-4 hidden dark:block text-indigo-400"></i>
@@ -104,27 +91,48 @@
   <!-- Main Content Container -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-    <!-- Top-Level Tab Navigation: Stores & Cards vs Deals & Vouchers vs Billing Discounts -->
-    <div class="flex items-center justify-start gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap">
-      <button id="tab-stores-btn" class="main-tab-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-blue-600 text-white dark:bg-blue-600 dark:text-white">
-        <i data-lucide="store" class="w-4 h-4"></i>
-        <span>רשתות וכרטיסים נטענים</span>
-        <span id="tab-stores-count" class="text-xs px-2 py-0.5 rounded-full bg-blue-700/80 text-white font-semibold">0</span>
-      </button>
+    <!-- Top-Level Tab Navigation: Stores & Cards vs Deals & Vouchers vs Billing Discounts + View Mode Toggle -->
+    <div class="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap">
+      
+      <!-- Category Tabs -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="tab-stores-btn" class="main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-blue-600 text-white dark:bg-blue-600 dark:text-white">
+          <i data-lucide="store" class="w-4 h-4"></i>
+          <span>רשתות וכרטיסים נטענים</span>
+          <span id="tab-stores-count" class="text-xs px-2 py-0.5 rounded-full bg-blue-700/80 text-white font-semibold">0</span>
+        </button>
 
-      <button id="tab-deals-btn" class="main-tab-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
-        <i data-lucide="tag" class="w-4 h-4"></i>
-        <span>מבצעים ושוברים ייעודיים</span>
-        <span id="tab-deals-count" class="text-xs px-2 py-0.5 rounded-full bg-emerald-600 text-white font-semibold">0</span>
-        <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-400 text-amber-950 uppercase tracking-wider">מתחלף</span>
-      </button>
+        <button id="tab-deals-btn" class="main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i data-lucide="tag" class="w-4 h-4"></i>
+          <span>מבצעים ושוברים ייעודיים</span>
+          <span id="tab-deals-count" class="text-xs px-2 py-0.5 rounded-full bg-emerald-600 text-white font-semibold">0</span>
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-400 text-amber-950 uppercase tracking-wider">מתחלף</span>
+        </button>
 
-      <button id="tab-billing-btn" class="main-tab-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
-        <i data-lucide="credit-card" class="w-4 h-4"></i>
-        <span>הנחות במעמד החיוב</span>
-        <span id="tab-billing-count" class="text-xs px-2 py-0.5 rounded-full bg-purple-600 text-white font-semibold">0</span>
-        <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 uppercase tracking-wider">10,000+ עסקים</span>
-      </button>
+        <button id="tab-billing-btn" class="main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i data-lucide="credit-card" class="w-4 h-4"></i>
+          <span>הנחות במעמד החיוב</span>
+          <span id="tab-billing-count" class="text-xs px-2 py-0.5 rounded-full bg-purple-600 text-white font-semibold">0</span>
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 uppercase tracking-wider">10,000+ עסקים</span>
+        </button>
+      </div>
+
+      <!-- View Mode Toggle (Handy and accessible across all tabs) -->
+      <div id="view-mode-toggle-wrapper" class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs mr-auto">
+        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 px-2 flex items-center gap-1">
+          <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+          <span>תצוגה:</span>
+        </span>
+        <button id="view-grid-btn" title="תצוגת כרטיסים" aria-label="תצוגת כרטיסים" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-700 shadow-xs text-blue-600 dark:text-blue-400">
+          <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+          <span>כרטיסים</span>
+        </button>
+        <button id="view-table-btn" title="תצוגת טבלה" aria-label="תצוגת טבלה" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+          <i data-lucide="table" class="w-3.5 h-3.5"></i>
+          <span>טבלה</span>
+        </button>
+      </div>
+
     </div>
 
     <!-- ========================================== -->
@@ -154,7 +162,11 @@
                 <i data-lucide="x" class="w-4 h-4"></i>
               </button>
             </div>
-            <div class="mt-1.5 flex items-center">
+            <div class="mt-1.5 flex flex-wrap items-center gap-4">
+              <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 select-none transition-colors" title="חיפוש מונח זה יסונכרן ויציג תוצאות בכל שלוש הלשוניות במקביל">
+                <input type="checkbox" id="stores-search-all-tabs-toggle" class="search-all-tabs-checkbox rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 dark:bg-slate-900 w-3.5 h-3.5 cursor-pointer" checked>
+                <span class="font-medium">חפש בכל הלשוניות במקביל</span>
+              </label>
               <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 select-none transition-colors">
                 <input type="checkbox" id="stores-search-desc-toggle" class="rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 dark:bg-slate-900 w-3.5 h-3.5 cursor-pointer">
                 <span>חפש גם בתיאור ובתנאי המימוש</span>
@@ -230,14 +242,6 @@
         <!-- Dynamic store cards inserted here -->
       </section>
 
-      <!-- Stores Load More Container -->
-      <div id="stores-load-more-container" class="hidden text-center pt-2 pb-6">
-        <button id="stores-load-more-btn" class="px-6 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold transition shadow-xs inline-flex items-center gap-2">
-          <span>הצג עוד רשתות</span>
-          <i data-lucide="chevron-down" class="w-4 h-4"></i>
-        </button>
-      </div>
-
       <!-- Table View Container (hidden by default) -->
       <section id="table-view" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div class="overflow-x-auto">
@@ -257,6 +261,14 @@
           </table>
         </div>
       </section>
+
+      <!-- Stores Load More Container (Below both grid and table view) -->
+      <div id="stores-load-more-container" class="hidden text-center pt-4 pb-8">
+        <button id="stores-load-more-btn" class="px-6 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold transition shadow-xs inline-flex items-center gap-2">
+          <span>הצג עוד רשתות</span>
+          <i data-lucide="chevron-down" class="w-4 h-4"></i>
+        </button>
+      </div>
 
       <!-- No Results Placeholder -->
       <div id="no-results" class="hidden text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8 space-y-3">
@@ -300,7 +312,11 @@
                 <i data-lucide="x" class="w-4 h-4"></i>
               </button>
             </div>
-            <div class="mt-1.5 flex items-center">
+            <div class="mt-1.5 flex flex-wrap items-center gap-4">
+              <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 select-none transition-colors" title="חיפוש מונח זה יסונכרן ויציג תוצאות בכל שלוש הלשוניות במקביל">
+                <input type="checkbox" id="deals-search-all-tabs-toggle" class="search-all-tabs-checkbox rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-slate-600 dark:bg-slate-900 w-3.5 h-3.5 cursor-pointer" checked>
+                <span class="font-medium">חפש בכל הלשוניות במקביל</span>
+              </label>
               <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 select-none transition-colors">
                 <input type="checkbox" id="deals-search-desc-toggle" class="rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-slate-600 dark:bg-slate-900 w-3.5 h-3.5 cursor-pointer">
                 <span>חפש גם בתיאור השובר ובתנאים</span>
@@ -403,6 +419,26 @@
         <!-- Dynamic deal cards inserted here -->
       </section>
 
+      <!-- Deals Table View Container (hidden by default) -->
+      <section id="deals-table-view" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-right text-sm">
+            <thead class="bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 text-xs uppercase border-b border-slate-200 dark:border-slate-700">
+              <tr>
+                <th scope="col" class="py-3 px-4">שם המבצע והספק</th>
+                <th scope="col" class="py-3 px-4">קטגוריה ומיקום</th>
+                <th scope="col" class="py-3 px-4 text-center">מחיר בהצדעה</th>
+                <th scope="col" class="py-3 px-4">קישורים נוספים</th>
+                <th scope="col" class="py-3 px-4 text-center">פעולות</th>
+              </tr>
+            </thead>
+            <tbody id="deals-table-tbody" class="divide-y divide-slate-100 dark:divide-slate-700/60">
+              <!-- Dynamic deals table rows inserted here -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- Deals Load More Container -->
       <div id="deals-load-more-container" class="hidden text-center pt-2 pb-6">
         <button id="deals-load-more-btn" class="px-6 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold transition shadow-xs inline-flex items-center gap-2">
@@ -453,7 +489,11 @@
                 <i data-lucide="x" class="w-4 h-4"></i>
               </button>
             </div>
-            <div class="mt-1.5 flex items-center">
+            <div class="mt-1.5 flex flex-wrap items-center gap-4">
+              <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 select-none transition-colors" title="חיפוש מונח זה יסונכרן ויציג תוצאות בכל שלוש הלשוניות במקביל">
+                <input type="checkbox" id="billing-search-all-tabs-toggle" class="search-all-tabs-checkbox rounded text-purple-600 focus:ring-purple-500 border-slate-300 dark:border-slate-600 dark:bg-slate-900 w-3.5 h-3.5 cursor-pointer" checked>
+                <span class="font-medium">חפש בכל הלשוניות במקביל</span>
+              </label>
               <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 select-none transition-colors">
                 <input type="checkbox" id="billing-search-desc-toggle" class="rounded text-purple-600 focus:ring-purple-500 border-slate-300 dark:border-slate-600 dark:bg-slate-900 w-3.5 h-3.5 cursor-pointer">
                 <span>חפש גם בתיאור בית העסק</span>
@@ -541,6 +581,26 @@
       <div id="billing-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <!-- Rendered dynamically -->
       </div>
+
+      <!-- Billing Table View Container (hidden by default) -->
+      <section id="billing-table-view" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-right text-sm">
+            <thead class="bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 text-xs uppercase border-b border-slate-200 dark:border-slate-700">
+              <tr>
+                <th scope="col" class="py-3 px-4">שם בית העסק</th>
+                <th scope="col" class="py-3 px-4">עיר / מיקום</th>
+                <th scope="col" class="py-3 px-4">קטגוריה</th>
+                <th scope="col" class="py-3 px-4 text-center">הנחה במעמד החיוב</th>
+                <th scope="col" class="py-3 px-4 text-center">פעולות</th>
+              </tr>
+            </thead>
+            <tbody id="billing-table-tbody" class="divide-y divide-slate-100 dark:divide-slate-700/60">
+              <!-- Dynamic billing table rows inserted here -->
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <!-- Progressive Rendering: Load More Button -->
       <div id="billing-load-more-container" class="hidden text-center pt-2 pb-6">

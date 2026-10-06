@@ -247,6 +247,92 @@ export function createDealCardElement(deal) {
   return card;
 }
 
+export function createDealTableRow(deal) {
+  const tr = document.createElement('tr');
+  tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-700/40 transition cursor-pointer deal-table-row';
+  tr.dataset.dealId = deal.id;
+
+  const discountPill = deal.discount_percent ? `
+    <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+      ${deal.discount_percent}% הנחה
+    </span>
+  ` : '';
+
+  const tagPill = deal.tag ? `
+    <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+      ${deal.tag}
+    </span>
+  ` : '';
+
+  const origPriceHtml = deal.original_price && deal.original_price > deal.price ? `
+    <span class="text-xs text-slate-400 line-through mr-1">${formatILS(deal.original_price)}</span>
+  ` : '';
+
+  const linksPills = [];
+  if (deal.linkedStore) {
+    linksPills.push(`
+      <span class="inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-md">
+        <i data-lucide="store" class="w-3 h-3"></i>
+        <span>כרטיס נטען</span>
+      </span>
+    `);
+  }
+  if (deal.linkedBillingStore) {
+    linksPills.push(`
+      <span class="inline-flex items-center gap-1 text-[11px] text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-md">
+        <i data-lucide="credit-card" class="w-3 h-3"></i>
+        <span>${deal.linkedBillingStore.discount}% בחיוב</span>
+      </span>
+    `);
+  }
+
+  tr.innerHTML = `
+    <td class="py-3 px-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-700 p-1 flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-600">
+          <img src="${deal.image || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🎁</text></svg>'}"
+               alt="${deal.title}" class="max-h-full max-w-full object-contain" loading="lazy" decoding="async" referrerpolicy="no-referrer"
+               onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🎁</text></svg>'"/>
+        </div>
+        <div class="min-w-0">
+          <div class="font-bold text-slate-900 dark:text-white truncate max-w-xs md:max-w-sm" title="${deal.title}">${deal.title}</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
+            <span>${deal.supplier || 'בהצדעה'}</span>
+            ${tagPill}
+          </div>
+        </div>
+      </div>
+    </td>
+    <td class="py-3 px-4 text-slate-600 dark:text-slate-300">
+      <div>${deal.category || 'כללי'}</div>
+      <div class="text-[11px] text-slate-400 truncate max-w-[120px]">${deal.locations || 'לכל הארץ'}</div>
+    </td>
+    <td class="py-3 px-4 text-center">
+      ${deal.is_external ? `
+        <span class="inline-flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-lg">
+          הטבת שותף
+        </span>
+      ` : `
+        <div class="font-black text-emerald-600 dark:text-emerald-400 text-base">${formatILS(deal.price)}</div>
+        <div class="text-xs">${origPriceHtml} ${discountPill}</div>
+      `}
+    </td>
+    <td class="py-3 px-4">
+      <div class="flex items-center gap-1.5 flex-wrap">
+        ${linksPills.length > 0 ? linksPills.join(' ') : '<span class="text-slate-400 text-xs">-</span>'}
+      </div>
+    </td>
+    <td class="py-3 px-4 text-center">
+      <button class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-emerald-50 dark:bg-slate-700 dark:hover:bg-emerald-950 text-slate-700 hover:text-emerald-700 dark:text-slate-200 dark:hover:text-emerald-300 text-xs font-semibold transition" title="צפה בפרטי השובר">
+        <span>פרטים</span>
+        <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+      </button>
+    </td>
+  `;
+
+  return tr;
+}
+
 export function openDealModal(deal, elements, callbacks) {
   if (!deal || !elements.dealModal) return;
 

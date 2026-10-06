@@ -303,6 +303,84 @@ export function createBillingCardElement(store) {
   return card;
 }
 
+export function createBillingTableRow(store) {
+  const tr = document.createElement('tr');
+  tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-700/40 transition cursor-pointer billing-table-row';
+  tr.dataset.billingId = store.id;
+
+  const cityLabel = store.city && store.city.toLowerCase() !== 'online' ? store.city : 'Online / כל הארץ';
+
+  const logoHtml = store.logo ? `
+    <img
+      src="${store.logo}"
+      alt="${store.name}"
+      class="max-h-full max-w-full object-contain"
+      loading="lazy"
+      decoding="async"
+      referrerpolicy="no-referrer"
+      onerror="if(this.src.includes('/icons/')){this.src=this.src.replace('/icons/','/images/');}else{this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>💳</text></svg>';}"
+    />
+  ` : `<i data-lucide="credit-card" class="w-5 h-5 text-purple-400"></i>`;
+
+  const linksPills = [];
+  if (store.linkedStore) {
+    linksPills.push(`
+      <span class="inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-md">
+        <i data-lucide="store" class="w-3 h-3"></i>
+        <span>${store.linkedStore.max_discount}% בכרטיס</span>
+      </span>
+    `);
+  }
+  if (store.linkedDeals && store.linkedDeals.length > 0) {
+    linksPills.push(`
+      <span class="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md">
+        <i data-lucide="tag" class="w-3 h-3"></i>
+        <span>${store.linkedDeals.length} שוברים</span>
+      </span>
+    `);
+  }
+
+  tr.innerHTML = `
+    <td class="py-3 px-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-purple-50 dark:bg-slate-700 p-1 flex-shrink-0 flex items-center justify-center overflow-hidden border border-purple-100 dark:border-slate-600">
+          ${logoHtml}
+        </div>
+        <div class="min-w-0">
+          <div class="font-bold text-slate-900 dark:text-white truncate max-w-xs md:max-w-sm" title="${store.name}">${store.name}</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 truncate max-w-xs">${store.address || cityLabel}</div>
+        </div>
+      </div>
+    </td>
+    <td class="py-3 px-4 text-slate-600 dark:text-slate-300">
+      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium">
+        <i data-lucide="map-pin" class="w-3 h-3 text-slate-400"></i>
+        ${cityLabel}
+      </span>
+    </td>
+    <td class="py-3 px-4 text-slate-600 dark:text-slate-300 text-xs">
+      <div>${store.category || 'כללי'}</div>
+      ${store.subcategory ? `<div class="text-[11px] text-slate-400">${store.subcategory}</div>` : ''}
+    </td>
+    <td class="py-3 px-4 text-center">
+      <span class="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-bold bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-200">
+        ${store.discount}% בחיוב
+      </span>
+      <div class="mt-1 flex items-center justify-center gap-1 flex-wrap">
+        ${linksPills.join(' ')}
+      </div>
+    </td>
+    <td class="py-3 px-4 text-center">
+      <button class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-purple-50 dark:bg-slate-700 dark:hover:bg-purple-950 text-slate-700 hover:text-purple-700 dark:text-slate-200 dark:hover:text-purple-300 text-xs font-semibold transition" title="צפה בפרטי בית העסק">
+        <span>פרטים</span>
+        <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+      </button>
+    </td>
+  `;
+
+  return tr;
+}
+
 export function openBillingModal(store, elements, callbacks) {
   if (!store || !elements.billingModal) return;
   state.activeModalBillingStore = store;
