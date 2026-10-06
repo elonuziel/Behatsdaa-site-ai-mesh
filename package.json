@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "build": "echo 'Build complete'",
+    "update-data": "node scripts/build-data.js",
+    "test": "node tests/test_data_integrity.js",
+    "build": "node scripts/build-data.js",
     "lint": "node --check app.js server.js js/*.js"
   },
   "dependencies": {

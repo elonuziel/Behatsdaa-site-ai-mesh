@@ -15,6 +15,10 @@ export function getCoreBrand(name) {
 
 export function crossLinkAllDatasets() {
   if (!state.allStores.length) return;
+  // If data was already pre-linked at build-time, skip expensive client-side regex loops
+  if (state.allStores[0] && state.allStores[0].linkedDeals !== undefined) {
+    return;
+  }
 
   const cleanKey = (str) => (str || '').toLowerCase().replace(/[^א-תa-z0-9]/g, '');
 
