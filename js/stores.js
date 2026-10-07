@@ -85,8 +85,9 @@ export function getFilteredStores() {
     result = result.filter(s => (s.category || 'כללי') === state.currentCategory);
   }
 
+  let miniMatches = null;
   if (state.searchQuery) {
-    const miniMatches = searchStores(state.searchQuery);
+    miniMatches = searchStores(state.searchQuery, { inDesc: !!state.storesSearchInDesc });
     if (miniMatches && miniMatches.size > 0) {
       result = result.filter(s => miniMatches.has(s.id));
     } else {
@@ -137,16 +138,24 @@ export function getFilteredStores() {
     }
   }
 
-  switch (state.currentSort) {
-    case 'discount-desc':
-      result.sort((a, b) => (b.max_discount || 0) - (a.max_discount || 0) || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
-      break;
-    case 'name-asc':
-      result.sort((a, b) => (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
-      break;
-    case 'cards-desc':
-      result.sort((a, b) => ((b.cards && b.cards.length) || 0) - ((a.cards && a.cards.length) || 0) || (b.max_discount || 0) - (a.max_discount || 0));
-      break;
+  const isDefaultSort = state.currentSort === 'default' || !state.userHasSortedStores;
+  if (state.searchQuery && miniMatches && miniMatches.size > 0 && isDefaultSort) {
+    result.sort((a, b) => ((miniMatches.get(b.id) || 0) - (miniMatches.get(a.id) || 0)) || ((b.max_discount || 0) - (a.max_discount || 0)));
+  } else {
+    switch (state.currentSort) {
+      case 'discount-desc':
+        result.sort((a, b) => (b.max_discount || 0) - (a.max_discount || 0) || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+        break;
+      case 'name-asc':
+        result.sort((a, b) => (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+        break;
+      case 'cards-desc':
+        result.sort((a, b) => ((b.cards && b.cards.length) || 0) - ((a.cards && a.cards.length) || 0) || (b.max_discount || 0) - (a.max_discount || 0));
+        break;
+      default:
+        result.sort((a, b) => (b.max_discount || 0) - (a.max_discount || 0) || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+        break;
+    }
   }
 
   return result;

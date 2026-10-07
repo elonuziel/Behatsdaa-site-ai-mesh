@@ -97,10 +97,16 @@ export function getCoreBrand(name) {
   return (s || '').toLowerCase().replace(/[^א-תa-z0-9]/g, '');
 }
 
+let crossLinkedWithDeals = false;
+let crossLinkedWithBilling = false;
+
 export function crossLinkAllDatasets() {
   if (!state.allStores.length) return;
-  // If data was already pre-linked at build-time, skip expensive client-side regex loops
-  if (state.allStores[0] && state.allStores[0].linkedDeals !== undefined) {
+  const hasDeals = state.allDeals && state.allDeals.length > 0;
+  const hasBilling = state.allBillingStores && state.allBillingStores.length > 0;
+
+  // If already linked with whatever datasets are currently loaded, skip
+  if ((!hasDeals || crossLinkedWithDeals) && (!hasBilling || crossLinkedWithBilling)) {
     return;
   }
 
@@ -286,6 +292,9 @@ export function crossLinkAllDatasets() {
     }
     deal.linkedBillingStore = bestBilling;
   });
+
+  if (hasDeals) crossLinkedWithDeals = true;
+  if (hasBilling) crossLinkedWithBilling = true;
 }
 
 export async function loadStores(onStoresLoaded) {

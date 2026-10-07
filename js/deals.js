@@ -85,8 +85,9 @@ export function getFilteredDeals() {
     }
   }
 
+  let miniMatches = null;
   if (state.dealsSearchQuery) {
-    const miniMatches = searchDeals(state.dealsSearchQuery);
+    miniMatches = searchDeals(state.dealsSearchQuery, { inDesc: !!state.dealsSearchInDesc });
     if (miniMatches && miniMatches.size > 0) {
       result = result.filter(d => miniMatches.has(String(d.id)));
     } else {
@@ -125,19 +126,27 @@ export function getFilteredDeals() {
     }
   }
 
-  switch (state.currentDealSort) {
-    case 'discount-desc':
-      result.sort((a, b) => (b.discount_percent || 0) - (a.discount_percent || 0) || (a.price || 0) - (b.price || 0));
-      break;
-    case 'price-asc':
-      result.sort((a, b) => (a.price || 0) - (b.price || 0));
-      break;
-    case 'price-desc':
-      result.sort((a, b) => (b.price || 0) - (a.price || 0));
-      break;
-    case 'title-asc':
-      result.sort((a, b) => (a.title > b.title ? 1 : a.title < b.title ? -1 : 0));
-      break;
+  const isDefaultSort = state.currentDealSort === 'default' || !state.userHasSortedDeals;
+  if (state.dealsSearchQuery && miniMatches && miniMatches.size > 0 && isDefaultSort) {
+    result.sort((a, b) => ((miniMatches.get(String(b.id)) || 0) - (miniMatches.get(String(a.id)) || 0)) || ((b.discount_percent || 0) - (a.discount_percent || 0)));
+  } else {
+    switch (state.currentDealSort) {
+      case 'discount-desc':
+        result.sort((a, b) => (b.discount_percent || 0) - (a.discount_percent || 0) || (a.price || 0) - (b.price || 0));
+        break;
+      case 'price-asc':
+        result.sort((a, b) => (a.price || 0) - (b.price || 0));
+        break;
+      case 'price-desc':
+        result.sort((a, b) => (b.price || 0) - (a.price || 0));
+        break;
+      case 'title-asc':
+        result.sort((a, b) => (a.title > b.title ? 1 : a.title < b.title ? -1 : 0));
+        break;
+      default:
+        result.sort((a, b) => (b.discount_percent || 0) - (a.discount_percent || 0) || (a.price || 0) - (b.price || 0));
+        break;
+    }
   }
 
   return result;

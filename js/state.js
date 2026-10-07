@@ -22,7 +22,8 @@ export const state = {
   currentCategory: 'all',
   searchQuery: '',
   storesSearchInDesc: false,
-  currentSort: 'discount-desc',
+  currentSort: 'default',
+  userHasSortedStores: false,
   currentView: localStorage.getItem('behatsdaa_view') || 'grid',
 
   // Deals & Vouchers
@@ -33,7 +34,8 @@ export const state = {
   currentDealCategory: 'all',
   dealsSearchQuery: '',
   dealsSearchInDesc: false,
-  currentDealSort: 'discount-desc',
+  currentDealSort: 'default',
+  userHasSortedDeals: false,
   currentDealMaxPrice: 'all',
 
   // Billing Discounts
@@ -45,7 +47,8 @@ export const state = {
   currentBillingCategory: 'all',
   billingSearchQuery: '',
   billingSearchInDesc: false,
-  currentBillingSort: 'discount-desc',
+  currentBillingSort: 'default',
+  userHasSortedBilling: false,
 
   // Active Modals & Loading Flags
   activeModalStore: null,

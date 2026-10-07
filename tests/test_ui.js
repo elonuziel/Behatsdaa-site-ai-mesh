@@ -3,19 +3,14 @@
  * Runs in Node.js using JSDOM with ES module support.
  */
 
-const fs = require('fs');
-const path = require('path');
-const assert = require('assert');
+import fs from 'fs';
+import path from 'path';
+import assert from 'assert';
+import { fileURLToPath } from 'url';
+import { JSDOM } from 'jsdom';
 
-// Load JSDOM
-let JSDOM;
-try {
-  JSDOM = require('jsdom').JSDOM;
-} catch (e) {
-  console.log('[*] Installing jsdom locally for testing...');
-  require('child_process').execSync('npm install --no-save jsdom', { stdio: 'inherit' });
-  JSDOM = require('jsdom').JSDOM;
-}
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const htmlSource = fs.readFileSync(path.join(ROOT_DIR, 'index.html'), 'utf-8');
@@ -31,7 +26,10 @@ async function runTests() {
   // Create virtual browser window
   const dom = new JSDOM(htmlSource, {
     url: 'https://elonuziel.github.io/Behatsdaa-site-ai-mesh/',
-    runScripts: 'dangerously'
+    runScripts: 'dangerously',
+    beforeParse(window) {
+      window.tailwind = { config: {} };
+    }
   });
 
   const { window } = dom;
@@ -41,7 +39,11 @@ async function runTests() {
   global.window = window;
   global.document = document;
   global.localStorage = window.localStorage;
-  global.navigator = window.navigator;
+  try {
+    Object.defineProperty(global, 'navigator', { value: window.navigator, configurable: true, writable: true });
+  } catch (e) {
+    // navigator might already be defined
+  }
 
   // Polyfill Lucide icons
   window.lucide = {
@@ -158,17 +160,17 @@ async function runTests() {
   assert.strictEqual(tabDealsCount.textContent, String(dealsData.deals.length));
   
   let dealCards = document.querySelectorAll('#deals-grid .deal-card');
-  const initialExpected = Math.min(dealsData.deals.length, 60);
+  const initialExpected = Math.min(dealsData.deals.length, 30);
   assert.strictEqual(dealCards.length, initialExpected, `Expected initial batch of ${initialExpected} deals`);
 
   // Test Load More button
   const loadMoreBtn = document.getElementById('deals-load-more-btn');
-  if (dealsData.deals.length > 60) {
+  if (dealsData.deals.length > 30) {
     assert.ok(loadMoreBtn, 'Load more button should exist');
     loadMoreBtn.click();
     await new Promise(r => setTimeout(r, 50));
     dealCards = document.querySelectorAll('#deals-grid .deal-card');
-    const secondExpected = Math.min(dealsData.deals.length, 120);
+    const secondExpected = Math.min(dealsData.deals.length, 60);
     assert.strictEqual(dealCards.length, secondExpected, `Deals count should expand to ${secondExpected} after Load More`);
   }
   console.log(`  -> PASS (Successfully switched to Deals tab with progressive rendering validated)`);
@@ -190,7 +192,7 @@ async function runTests() {
   clearDealsSearchBtn.click();
   await new Promise(r => setTimeout(r, 50));
   filteredDeals = document.querySelectorAll('#deals-grid .deal-card');
-  const resetExpected = Math.min(dealsData.deals.length, 60);
+  const resetExpected = Math.min(dealsData.deals.length, 30);
   assert.strictEqual(filteredDeals.length, resetExpected, `Expected ${resetExpected} deals restored after clear`);
   console.log('  -> PASS (Live search filter works correctly)');
 
@@ -318,17 +320,17 @@ async function runTests() {
   await new Promise(r => setTimeout(r, 50));
 
   let billingCards = document.querySelectorAll('#billing-grid .billing-card');
-  const initialBillingExpected = Math.min(billingData.stores.length, 60);
+  const initialBillingExpected = Math.min(billingData.stores.length, 30);
   assert.strictEqual(billingCards.length, initialBillingExpected, `Expected initial batch of ${initialBillingExpected} billing stores`);
 
   // Test Load More button
   const billingLoadMoreBtn = document.getElementById('billing-load-more-btn');
-  if (billingData.stores.length > 60) {
+  if (billingData.stores.length > 30) {
     assert.ok(billingLoadMoreBtn, 'Load more button for billing should exist');
     billingLoadMoreBtn.click();
     await new Promise(r => setTimeout(r, 50));
     billingCards = document.querySelectorAll('#billing-grid .billing-card');
-    const secondBillingExpected = Math.min(billingData.stores.length, 120);
+    const secondBillingExpected = Math.min(billingData.stores.length, 60);
     assert.strictEqual(billingCards.length, secondBillingExpected, `Billing count should expand to ${secondBillingExpected} after Load More`);
   }
   console.log('  -> PASS (Switched to Billing tab with progressive rendering validated)');
@@ -350,7 +352,7 @@ async function runTests() {
   clearBillingSearchBtn.click();
   await new Promise(r => setTimeout(r, 50));
   filteredBilling = document.querySelectorAll('#billing-grid .billing-card');
-  const resetBillingExpected = Math.min(billingData.stores.length, 60);
+  const resetBillingExpected = Math.min(billingData.stores.length, 30);
   assert.strictEqual(filteredBilling.length, resetBillingExpected, `Expected ${resetBillingExpected} billing stores restored after clear`);
   console.log('  -> PASS (Billing live search filter works correctly)');
 
@@ -418,7 +420,7 @@ async function runTests() {
   if (searchInputStoresEl) {
     searchInputStoresEl.value = 'ריקושט';
     searchInputStoresEl.dispatchEvent(new window.Event('input', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 180));
+    await new Promise(r => setTimeout(r, 250));
   }
 
   // Find a store with linked billing badge

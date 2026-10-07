@@ -483,12 +483,14 @@ function switchTab(tab, options = {}) {
   const previousTab = state.currentTab;
   state.currentTab = tab;
 
-  if (state.globalSearchAcrossTabs) {
-    const currentQuery = getTabSearchQuery(previousTab);
-    setTabSearchQuery(tab, currentQuery);
-  } else if (!options.preserveSearch && previousTab && previousTab !== tab) {
-    const currentQuery = getTabSearchQuery(previousTab);
-    setTabSearchQuery(tab, currentQuery);
+  if (!options.preserveSearch) {
+    if (state.globalSearchAcrossTabs) {
+      const currentQuery = getTabSearchQuery(previousTab);
+      setTabSearchQuery(tab, currentQuery);
+    } else if (previousTab && previousTab !== tab) {
+      const currentQuery = getTabSearchQuery(previousTab);
+      setTabSearchQuery(tab, currentQuery);
+    }
   }
 
   window.location.hash = tab === 'deals' ? 'deals' : (tab === 'billing' ? 'billing' : 'stores');
@@ -733,6 +735,7 @@ cardFilterSelect.addEventListener('change', (e) => {
 
 sortSelect.addEventListener('change', (e) => {
   state.currentSort = e.target.value;
+  state.userHasSortedStores = e.target.value !== 'default';
   state.storesVisibleCount = state.STORES_PAGE_SIZE;
   renderStores();
 });
@@ -802,6 +805,7 @@ dealsPriceFilterSelect.addEventListener('change', (e) => {
 
 dealsSortSelect.addEventListener('change', (e) => {
   state.currentDealSort = e.target.value;
+  state.userHasSortedDeals = e.target.value !== 'default';
   state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
   renderDeals();
 });
@@ -892,6 +896,7 @@ if (billingCitySelect) {
 if (billingSortSelect) {
   billingSortSelect.addEventListener('change', (e) => {
     state.currentBillingSort = e.target.value;
+    state.userHasSortedBilling = e.target.value !== 'default';
     state.billingVisibleCount = state.BILLING_PAGE_SIZE;
     renderBillingStores();
   });

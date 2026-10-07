@@ -93,8 +93,9 @@ export function getFilteredBillingStores() {
     result = result.filter(s => (s.category || 'כללי') === state.currentBillingCategory);
   }
 
+  let miniMatches = null;
   if (state.billingSearchQuery) {
-    const miniMatches = !state.billingSearchInDesc ? searchBilling(state.billingSearchQuery) : null;
+    miniMatches = searchBilling(state.billingSearchQuery, { inDesc: !!state.billingSearchInDesc });
     if (miniMatches && miniMatches.size > 0) {
       result = result.filter(s => miniMatches.has(String(s.id)));
     } else {
@@ -158,16 +159,23 @@ export function getFilteredBillingStores() {
     }
   }
 
-  const sortMode = state.currentBillingSort;
+  const isDefaultSort = state.currentBillingSort === 'default' || !state.userHasSortedBilling;
   const arr = result.slice();
-  if (sortMode === 'discount-desc') {
-    arr.sort((a, b) => b.discount - a.discount || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
-  } else if (sortMode === 'discount-asc') {
-    arr.sort((a, b) => a.discount - b.discount || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
-  } else if (sortMode === 'name-asc') {
-    arr.sort((a, b) => (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
-  } else if (sortMode === 'city-asc') {
-    arr.sort((a, b) => ((a.city || '') > (b.city || '') ? 1 : (a.city || '') < (b.city || '') ? -1 : 0) || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+  if (state.billingSearchQuery && miniMatches && miniMatches.size > 0 && isDefaultSort) {
+    arr.sort((a, b) => ((miniMatches.get(String(b.id)) || 0) - (miniMatches.get(String(a.id)) || 0)) || ((b.discount || 0) - (a.discount || 0)));
+  } else {
+    const sortMode = state.currentBillingSort;
+    if (sortMode === 'discount-desc') {
+      arr.sort((a, b) => b.discount - a.discount || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+    } else if (sortMode === 'discount-asc') {
+      arr.sort((a, b) => a.discount - b.discount || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+    } else if (sortMode === 'name-asc') {
+      arr.sort((a, b) => (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+    } else if (sortMode === 'city-asc') {
+      arr.sort((a, b) => ((a.city || '') > (b.city || '') ? 1 : (a.city || '') < (b.city || '') ? -1 : 0) || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+    } else {
+      arr.sort((a, b) => b.discount - a.discount || (a.name > b.name ? 1 : a.name < b.name ? -1 : 0));
+    }
   }
 
   return arr;
