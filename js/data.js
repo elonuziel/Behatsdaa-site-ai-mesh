@@ -74,6 +74,26 @@ export async function fetchDealDetail(id) {
   return null;
 }
 
+let walletsInfoCache = null;
+
+/**
+ * On-demand loader for wallets terms, limits & specifications
+ */
+export async function fetchWalletsInfo() {
+  if (walletsInfoCache) return walletsInfoCache;
+  try {
+    const res = await fetch('data/wallets_info.json');
+    if (res.ok) {
+      walletsInfoCache = await res.json();
+      state.walletsInfo = walletsInfoCache;
+      return walletsInfoCache;
+    }
+  } catch (err) {
+    console.warn('Dynamic fetch failed for wallets_info.json:', err);
+  }
+  return null;
+}
+
 /**
  * Lightweight initial search index loader (< 400KB)
  */

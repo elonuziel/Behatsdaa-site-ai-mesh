@@ -5,7 +5,7 @@
 
 import { state } from './js/state.js';
 import { debounce, initTheme, toggleTheme } from './js/utils.js';
-import { loadStores, loadDeals, loadBilling, crossLinkAllDatasets } from './js/data.js';
+import { loadStores, loadDeals, loadBilling, crossLinkAllDatasets, fetchWalletsInfo } from './js/data.js';
 import { populateCardsFilter, updateCategoryChips, getFilteredStores, createStoreCardElement, createStoreTableRow, openStoreModal, closeStoreModal } from './js/stores.js';
 import { populateDealsTagsFilter, updateDealsCategoryChips, getFilteredDeals, createDealCardElement, createDealTableRow, openDealModal, closeDealModal } from './js/deals.js';
 import { populateBillingCitiesFilter, updateBillingCategoryChips, getFilteredBillingStores, createBillingCardElement, createBillingTableRow, openBillingModal, closeBillingModal } from './js/billing.js';
@@ -65,6 +65,14 @@ const storeModalElements = {
   modalLinkedBillingTitle: document.getElementById('modal-linked-billing-title'),
   modalViewBillingBtn: document.getElementById('modal-view-billing-btn'),
 };
+
+// DOM Elements - Wallets Terms & Caps Guide Modal
+const walletsGuideBtn = document.getElementById('wallets-guide-btn');
+const storeModalWalletsInfoBtn = document.getElementById('store-modal-wallets-info-btn');
+const walletsModal = document.getElementById('wallets-modal');
+const walletsModalCloseBtn = document.getElementById('wallets-modal-close-btn');
+const walletsModalDismissBtn = document.getElementById('wallets-modal-dismiss-btn');
+const walletsModalCardsGrid = document.getElementById('wallets-modal-cards-grid');
 
 // DOM Elements - Deals
 const dealsSearchInput = document.getElementById('deals-search-input');
@@ -690,6 +698,11 @@ async function loadAllData() {
       startLoadBilling();
     });
   }
+
+  // Preload wallets terms & caps info asynchronously
+  fetchWalletsInfo().catch(err => {
+    console.warn('Preload wallets info:', err);
+  });
 }
 
 // Event Listeners
@@ -935,6 +948,106 @@ if (billingModalElements.billingModal) {
   });
 }
 
+// Wallets Terms & Guide Modal
+function renderWalletsModalCards(walletsInfo) {
+  if (!walletsModalCardsGrid || !walletsInfo?.wallets) return;
+
+  walletsModalCardsGrid.innerHTML = walletsInfo.wallets.map(w => {
+    const storesBadge = w.stores_count ? `מכובד ב-${w.stores_count.toLocaleString('he-IL')} רשתות` : '';
+    const capInfo = `תקרה חודשית: ${w.monthly_cap ? w.monthly_cap.toLocaleString('he-IL') + ' ₪' : '3,000 ₪'}`;
+    const badgeColor = w.badge_class || 'bg-blue-600 text-white';
+
+    return `
+      <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/70 flex flex-col justify-between gap-2.5">
+        <div>
+          <div class="flex items-center justify-between gap-1.5">
+            <span class="font-bold text-slate-800 dark:text-slate-100 text-xs">${w.short_name || w.name}</span>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-black ${badgeColor}">${w.discount}% הנחה</span>
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">${w.description || w.category_scope || ''}</p>
+        </div>
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
+          <div class="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500">
+            <span>${capInfo}</span>
+            ${storesBadge ? `<span class="font-medium text-slate-600 dark:text-slate-300">${storesBadge}</span>` : ''}
+          </div>
+          <button type="button" data-action="filter-wallet" data-card-name="${encodeURIComponent(w.name)}" class="w-full text-center text-xs py-1.5 px-2.5 rounded-lg bg-white hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-950/80 text-blue-700 dark:text-blue-300 font-semibold transition border border-slate-200/80 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 cursor-pointer flex items-center justify-center gap-1 shadow-2xs">
+            <span>סנן רשתות בארנק זה</span>
+            <i data-lucide="arrow-left" class="w-3 h-3"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (window.lucide) lucide.createIcons();
+}
+
+async function openWalletsModal() {
+  if (!walletsModal) return;
+  walletsModal.classList.remove('hidden');
+  if (window.lucide) lucide.createIcons();
+
+  if (!state.walletsInfo) {
+    await fetchWalletsInfo();
+  }
+
+  if (state.walletsInfo && walletsModalCardsGrid && walletsModalCardsGrid.children.length === 0) {
+    renderWalletsModalCards(state.walletsInfo);
+  }
+}
+
+function closeWalletsModal() {
+  if (walletsModal) walletsModal.classList.add('hidden');
+}
+
+if (walletsGuideBtn) walletsGuideBtn.addEventListener('click', openWalletsModal);
+if (storeModalWalletsInfoBtn) storeModalWalletsInfoBtn.addEventListener('click', openWalletsModal);
+if (walletsModalCloseBtn) walletsModalCloseBtn.addEventListener('click', closeWalletsModal);
+if (walletsModalDismissBtn) walletsModalDismissBtn.addEventListener('click', closeWalletsModal);
+if (walletsModal) {
+  walletsModal.addEventListener('click', (e) => {
+    if (e.target === walletsModal) closeWalletsModal();
+  });
+}
+
+if (walletsModalCardsGrid) {
+  walletsModalCardsGrid.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action="filter-wallet"]');
+    if (!btn) return;
+    const cardName = decodeURIComponent(btn.dataset.cardName || '');
+    if (cardName) {
+      if (cardFilterSelect) {
+        const matchingOption = Array.from(cardFilterSelect.options).find(opt =>
+          opt.value === cardName || opt.value.trim() === cardName.trim()
+        );
+        if (matchingOption) {
+          cardFilterSelect.value = matchingOption.value;
+          state.currentCard = matchingOption.value;
+        } else {
+          cardFilterSelect.value = cardName;
+          state.currentCard = cardName;
+        }
+      } else {
+        state.currentCard = cardName;
+      }
+
+      state.storesVisibleCount = state.STORES_PAGE_SIZE;
+      updateCategoryChips(categoryChipsContainer);
+      closeWalletsModal();
+      if (storeModalElements?.storeModal) {
+        closeStoreModal(storeModalElements.storeModal);
+      }
+      switchTab('stores', { preserveSearch: true });
+      renderStores();
+      const mainEl = document.getElementById('stores-tab-section');
+      if (mainEl) {
+        mainEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  });
+}
+
 // Progressive Load More Buttons
 if (storesLoadMoreBtn) {
   storesLoadMoreBtn.addEventListener('click', () => {
@@ -1044,6 +1157,7 @@ document.addEventListener('keydown', (e) => {
     closeStoreModal(storeModalElements.storeModal);
     closeDealModal(dealModalElements.dealModal);
     closeBillingModal(billingModalElements.billingModal);
+    closeWalletsModal();
   }
 });
 

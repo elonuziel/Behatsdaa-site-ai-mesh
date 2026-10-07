@@ -53,6 +53,7 @@ export const state = {
   // Active Modals & Loading Flags
   activeModalStore: null,
   activeModalBillingStore: null,
+  walletsInfo: null,
   storesLoaded: false,
   dealsLoaded: false,
   billingLoaded: false,

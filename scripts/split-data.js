@@ -115,6 +115,22 @@ if (fs.existsSync(billingCsvPath)) {
   fs.writeFileSync(path.join(publicDataDir, 'billing_stores.csv'), header + rows, 'utf-8');
 }
 
+// Copy and enrich wallets_info.json with real-time store counts for Static API
+const walletsInfoPath = path.join(dataDir, 'wallets_info.json');
+if (fs.existsSync(walletsInfoPath)) {
+  const walletsInfo = JSON.parse(fs.readFileSync(walletsInfoPath, 'utf-8'));
+  walletsInfo.wallets = (walletsInfo.wallets || []).map(w => {
+    const count = allStores.filter(s =>
+      (s.cards || []).some(c => (typeof c === 'object' ? (c.card_id === w.id || c.card_name === w.name) : c === w.name))
+    ).length;
+    return {
+      ...w,
+      stores_count: count
+    };
+  });
+  fs.writeFileSync(path.join(publicDataDir, 'wallets_info.json'), JSON.stringify(walletsInfo, null, 2), 'utf-8');
+}
+
 // Hebrew normalization helper
 function normalizeHebrew(text) {
   if (!text) return '';

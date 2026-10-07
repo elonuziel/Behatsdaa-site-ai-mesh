@@ -17,6 +17,7 @@ const htmlSource = fs.readFileSync(path.join(ROOT_DIR, 'index.html'), 'utf-8');
 const storesData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'stores.json'), 'utf-8'));
 const dealsData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'deals.json'), 'utf-8'));
 const billingData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'billing_stores.json'), 'utf-8'));
+const walletsData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'wallets_info.json'), 'utf-8'));
 
 async function runTests() {
   console.log('====================================================');
@@ -45,6 +46,9 @@ async function runTests() {
     // navigator might already be defined
   }
 
+  // Polyfill scrollIntoView for JSDOM
+  window.Element.prototype.scrollIntoView = window.Element.prototype.scrollIntoView || function() {};
+
   // Polyfill Lucide icons
   window.lucide = {
     createIcons: () => {}
@@ -61,8 +65,14 @@ async function runTests() {
   };
   global.matchMedia = window.matchMedia;
 
-  // Mock fetch to serve data/stores.json, data/deals.json, and data/billing_stores.json
+  // Mock fetch to serve data/stores.json, data/deals.json, data/billing_stores.json, and data/wallets_info.json
   const mockFetch = async (url) => {
+    if (url.includes('wallets_info.json')) {
+      return {
+        ok: true,
+        json: async () => JSON.parse(JSON.stringify(walletsData))
+      };
+    }
     if (url.includes('billing_stores.json')) {
       return {
         ok: true,
@@ -550,8 +560,8 @@ async function runTests() {
 
   console.log('  -> PASS (Special option to search in description validated across all 3 tabs)');
 
-  // --- Test 18: Tab 3 Compatible Store Cards Preview and Deals List in Modal ---
-  console.log('[Test 18] Testing Tab 3 compatible store cards preview and deals list in modal...');
+  // --- Test 17: Tab 3 Compatible Store Cards Preview and Deals List in Modal ---
+  console.log('[Test 17] Testing Tab 3 compatible store cards preview and deals list in modal...');
   tabBillingBtn.click();
 
   // Find a billing business that matches a rechargeable chain store
@@ -585,8 +595,8 @@ async function runTests() {
   await new Promise(r => setTimeout(r, 50));
   console.log('  -> PASS (Tab 3 displays compatible cards & deals on cards and in modal)');
 
-  // --- Test 19: Search Term Carryover, Overwriting, Clearing & Cross-Link Preservation ---
-  console.log('[Test 19] Testing Search-Term Carryover, Overwriting, Clearing, and Cross-Link Preservation...');
+  // --- Test 18: Search Term Carryover, Overwriting, Clearing & Cross-Link Preservation ---
+  console.log('[Test 18] Testing Search-Term Carryover, Overwriting, Clearing, and Cross-Link Preservation...');
   {
     const tabStoresBtnEl = document.getElementById('tab-stores-btn');
     const tabDealsBtnEl = document.getElementById('tab-deals-btn');
@@ -654,13 +664,79 @@ async function runTests() {
   }
   console.log('  -> PASS (Search term carryover, overwriting, clearing, and cross-link preservation validated)');
 
-  // --- Test 17: Zero Console Errors ---
-  console.log('[Test 17] Checking for console errors...');
+  // --- Test 19: Wallets Terms & Caps Guide Modal and Filtering Integration ---
+  console.log('[Test 19] Testing Wallets Terms & Caps Guide Modal and Filtering Integration...');
+  {
+    const walletsGuideBtnEl = document.getElementById('wallets-guide-btn');
+    const walletsModalEl = document.getElementById('wallets-modal');
+    const walletsModalCardsGridEl = document.getElementById('wallets-modal-cards-grid');
+    const cardFilterSelectEl = document.getElementById('card-filter-select');
+
+    assert.ok(walletsGuideBtnEl, 'walletsGuideBtn should exist in Tab 1 header');
+    assert.ok(walletsModalEl, 'walletsModal should exist in DOM');
+    assert.ok(walletsModalEl.classList.contains('hidden'), 'walletsModal should initially be hidden');
+
+    // 1. Open wallets guide modal via Tab 1 button
+    walletsGuideBtnEl.click();
+    await new Promise(r => setTimeout(r, 60));
+    assert.ok(!walletsModalEl.classList.contains('hidden'), 'walletsModal should be open after clicking walletsGuideBtn');
+
+    // Verify modal content & key cap figures
+    assert.ok(walletsModalEl.textContent.includes('3,000 ₪'), 'Modal should display 3,000 ₪ monthly cap');
+    assert.ok(walletsModalEl.textContent.includes('1,000 ₪'), 'Modal should display 1,000 ₪ instant balance cap');
+    assert.ok(walletsModalEl.textContent.includes('100 ₪'), 'Modal should display 100 ₪ min reload');
+    assert.ok(walletsModalEl.textContent.includes('כפל מבצעים'), 'Modal should highlight promotions stacking');
+
+    // Verify wallet cards rendered in grid
+    const renderedWalletCards = walletsModalCardsGridEl.querySelectorAll('[data-action="filter-wallet"]');
+    assert.strictEqual(renderedWalletCards.length, 6, `Expected 6 wallet cards in modal, found ${renderedWalletCards.length}`);
+
+    // 2. Click "סנן רשתות בארנק זה" on the first wallet card
+    const firstWalletBtn = renderedWalletCards[0];
+    const firstWalletName = decodeURIComponent(firstWalletBtn.dataset.cardName);
+    firstWalletBtn.click();
+    await new Promise(r => setTimeout(r, 60));
+
+    assert.ok(walletsModalEl.classList.contains('hidden'), 'walletsModal should close after selecting a wallet filter');
+    assert.strictEqual(cardFilterSelectEl.value, firstWalletName, 'cardFilterSelect value should be set to chosen wallet');
+    const matchingStoresCountEl = document.getElementById('matching-count');
+    const filteredCount = parseInt(matchingStoresCountEl.textContent, 10);
+    assert.ok(filteredCount > 0, `Stores should be filtered for wallet ${firstWalletName} (found ${filteredCount})`);
+
+    // 3. Open store modal and verify opening wallets guide modal from store modal
+    const firstStoreCard = document.querySelector('#cards-view .store-card');
+    assert.ok(firstStoreCard, 'At least one store card should be visible');
+    firstStoreCard.click();
+    await new Promise(r => setTimeout(r, 60));
+
+    const storeModalEl = document.getElementById('store-modal');
+    assert.ok(!storeModalEl.classList.contains('hidden'), 'storeModal should be open');
+    const storeModalWalletsInfoBtnEl = document.getElementById('store-modal-wallets-info-btn');
+    assert.ok(storeModalWalletsInfoBtnEl, 'storeModalWalletsInfoBtn should exist in store modal');
+
+    storeModalWalletsInfoBtnEl.click();
+    await new Promise(r => setTimeout(r, 60));
+    assert.ok(!walletsModalEl.classList.contains('hidden'), 'walletsModal should open from store modal button');
+
+    // 4. Test closing via Escape key
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    assert.ok(walletsModalEl.classList.contains('hidden'), 'walletsModal should close on Escape key');
+
+    // Reset card filter back to 'all'
+    cardFilterSelectEl.value = 'all';
+    cardFilterSelectEl.dispatchEvent(new window.Event('change', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+  }
+  console.log('  -> PASS (Wallets guide modal, caps highlights, 6 wallet cards, and quick filtering validated)');
+
+  // --- Test 20: Zero Console Errors ---
+  console.log('[Test 20] Checking for console errors...');
   assert.strictEqual(consoleErrors.length, 0, `Expected 0 console errors, but found: ${consoleErrors.join(', ')}`);
   console.log('  -> PASS (Zero errors during entire session)');
 
   console.log('\n====================================================');
-  console.log('   ALL 19 UI & DOM INTEGRATION TESTS PASSED!       ');
+  console.log('   ALL 20 UI & DOM INTEGRATION TESTS PASSED!       ');
   console.log('====================================================\n');
   process.exit(0);
 }

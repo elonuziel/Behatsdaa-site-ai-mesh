@@ -90,8 +90,21 @@ assert(storesWithBilling.length > 0, `Stores with pre-linked billing exist (foun
 const billingWithStores = billingData.stores.filter(b => b.linked_store);
 assert(billingWithStores.length > 0, `Billing businesses with linked stores exist (found ${billingWithStores.length})`);
 
-// 4. MiniSearch Performance Benchmark
-console.log('\n⚡ 4. Testing MiniSearch Speed Across Billing items:');
+// 4. Wallets Terms & Caps Metadata Verification
+console.log('\n💳 4. Testing Wallets Terms, Caps & Store Count Metadata:');
+const walletsInfoPath = path.join(publicDataDir, 'wallets_info.json');
+assert(fs.existsSync(walletsInfoPath), 'wallets_info.json exists in /public/data/');
+
+const walletsInfoData = JSON.parse(fs.readFileSync(walletsInfoPath, 'utf-8'));
+assert(Boolean(walletsInfoData.wallets && walletsInfoData.wallets.length === 6), `wallets_info contains all 6 wallet cards (found ${walletsInfoData.wallets?.length})`);
+assert(walletsInfoData.metadata?.general_caps?.monthly_cap_general === 3000, 'Monthly cap for general wallets is 3,000 ₪');
+assert(walletsInfoData.metadata?.general_caps?.monthly_cap_fighter === 2500, 'Monthly cap for fighter wallet is 2,500 ₪');
+assert(walletsInfoData.metadata?.general_caps?.instant_balance_cap === 1000, 'Instant balance cap is 1,000 ₪');
+assert(walletsInfoData.metadata?.general_caps?.min_reload === 100, 'Minimum reload is 100 ₪');
+assert(walletsInfoData.wallets.every(w => typeof w.stores_count === 'number' && w.stores_count > 0), 'All wallets have dynamic positive stores_count calculated');
+
+// 5. MiniSearch Performance Benchmark
+console.log('\n⚡ 5. Testing MiniSearch Speed Across Billing items:');
 
 function normalizeHebrew(text) {
   if (!text) return '';
@@ -148,8 +161,8 @@ const maxTime = Math.max(...searchTimes).toFixed(2);
 console.log(`  ⏱️ Average query latency across ${docs.length} items: ${avgTime}ms (Max: ${maxTime}ms)`);
 assert(Number(avgTime) < 12.0, `Average search latency is under 12ms (actual: ${avgTime}ms)`);
 
-// 5. Memory Footprint Test
-console.log('\n💾 5. Testing Memory Profile:');
+// 6. Memory Footprint Test
+console.log('\n💾 6. Testing Memory Profile:');
 const memMB = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
 console.log(`  🧠 Heap memory used: ${memMB} MB`);
 assert(Number(memMB) < 120, `Heap memory used is well under 120MB threshold (actual: ${memMB}MB)`);

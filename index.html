@@ -230,9 +230,15 @@
               </button>
             </span>
           </div>
-          <div class="flex items-center gap-2" id="last-updated-wrapper">
-            <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-            <span>עודכן לאחרונה: <span id="last-updated-date" class="font-medium text-slate-700 dark:text-slate-300">--</span></span>
+          <div class="flex items-center gap-3">
+            <button id="wallets-guide-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 font-semibold transition cursor-pointer shadow-xs">
+              <i data-lucide="wallet" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
+              <span>מדריך תקרות טעינה וכללי כרטיסים</span>
+            </button>
+            <div class="flex items-center gap-2" id="last-updated-wrapper">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+              <span>עודכן לאחרונה: <span id="last-updated-date" class="font-medium text-slate-700 dark:text-slate-300">--</span></span>
+            </div>
           </div>
         </div>
 
@@ -682,10 +688,16 @@
 
       <!-- Modal Body: Cards Discounts Breakdown -->
       <div class="space-y-3 border-t border-slate-100 dark:border-slate-700 pt-4">
-        <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-          <i data-lucide="percent" class="w-4 h-4 text-amber-500"></i>
-          הנחות לפי סוגי כרטיסים:
-        </h4>
+        <div class="flex items-center justify-between">
+          <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+            <i data-lucide="percent" class="w-4 h-4 text-amber-500"></i>
+            <span>הנחות לפי סוגי כרטיסים:</span>
+          </h4>
+          <button id="store-modal-wallets-info-btn" type="button" class="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-medium cursor-pointer">
+            <i data-lucide="info" class="w-3.5 h-3.5"></i>
+            <span>מדריך תקרות טעינה</span>
+          </button>
+        </div>
         <div id="modal-cards-list" class="space-y-2">
           <!-- Dynamic card discounts -->
         </div>
@@ -703,6 +715,119 @@
       <!-- Modal Footer -->
       <div class="pt-2 flex justify-end">
         <button id="modal-dismiss-btn" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium transition">
+          סגור
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Wallets Terms, Caps & Guide Modal -->
+  <div id="wallets-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs hidden transition-opacity">
+    <div class="modal-content bg-white dark:bg-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-6 text-right relative max-h-[90vh] overflow-y-auto">
+      
+      <!-- Close button -->
+      <button id="wallets-modal-close-btn" class="absolute top-4 left-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Modal Header -->
+      <div class="flex items-start gap-3.5 pr-1">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-md flex-shrink-0">
+          <i data-lucide="wallet" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white">מדריך כרטיסים נטענים ותקרות טעינה</h2>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">בהצדעה</span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">כללי שימוש, תקרות חודשיות, יתרות מקסימליות ותנאי כפל מבצעים ברשתות</p>
+        </div>
+      </div>
+
+      <!-- Key Caps Highlights (Grid of 4) -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div class="p-3 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40 text-center">
+          <div class="text-[11px] font-medium text-blue-700 dark:text-blue-300">תקרה חודשית</div>
+          <div class="text-lg font-black text-blue-900 dark:text-blue-100 mt-0.5">3,000 ₪</div>
+          <div class="text-[10px] text-blue-600/80 dark:text-blue-400 mt-0.5">לחודש קלנדרי (פייטר: 2,500)</div>
+        </div>
+        <div class="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/40 text-center">
+          <div class="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">יתרה מקסימלית</div>
+          <div class="text-lg font-black text-emerald-900 dark:text-emerald-100 mt-0.5">1,000 ₪</div>
+          <div class="text-[10px] text-emerald-600/80 dark:text-emerald-400 mt-0.5">בכרטיס בכל רגע נתון</div>
+        </div>
+        <div class="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/40 text-center">
+          <div class="text-[11px] font-medium text-amber-700 dark:text-amber-300">מינימום טעינה</div>
+          <div class="text-lg font-black text-amber-900 dark:text-amber-100 mt-0.5">100 ₪</div>
+          <div class="text-[10px] text-amber-600/80 dark:text-amber-400 mt-0.5">לכל פעולת טעינה</div>
+        </div>
+        <div class="p-3 rounded-xl bg-purple-50/80 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900/40 text-center">
+          <div class="text-[11px] font-medium text-purple-700 dark:text-purple-300">כפל מבצעים</div>
+          <div class="text-lg font-black text-purple-900 dark:text-purple-100 mt-0.5">כולל!</div>
+          <div class="text-[10px] text-purple-600/80 dark:text-purple-400 mt-0.5">וסוף עונה ברוב הרשתות</div>
+        </div>
+      </div>
+
+      <!-- Section: The 6 Wallets -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+            <i data-lucide="layers" class="w-4 h-4 text-blue-600"></i>
+            <span>6 הארנקים והכרטיסים הנטענים במועדון</span>
+          </h3>
+          <span class="text-[11px] text-slate-500 dark:text-slate-400">לחץ לסינון מהיר ברשתות</span>
+        </div>
+        <div id="wallets-modal-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <!-- Dynamically populated or rendered -->
+        </div>
+      </div>
+
+      <!-- Section: Terms & Rules Breakdown -->
+      <div class="space-y-3 border-t border-slate-100 dark:border-slate-700/80 pt-4">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+          <i data-lucide="info" class="w-4 h-4 text-blue-600"></i>
+          <span>כללים ודגשים חשובים לשימוש</span>
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-slate-600 dark:text-slate-300">
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/60 space-y-1">
+            <div class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-blue-500"></i>
+              <span>אופן הטעינה מחדש</span>
+            </div>
+            <p class="leading-relaxed">לאחר ביצוע תשלום בקופה והורדת היתרה, ניתן לטעון סכומים נוספים (עד 1,000 ₪ בכל פעם) עד לתקרה החודשית של 3,000 ₪.</p>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/60 space-y-1">
+            <div class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="credit-card" class="w-3.5 h-3.5 text-purple-500"></i>
+              <span>חיוב בניכוי ההנחה</span>
+            </div>
+            <p class="leading-relaxed">החיוב באשראי בהצדעה מתבצע בתשלום אחד ובסכום המוזל: טעינת 1,000 ₪ בארנק 20% עולה 800 ₪ בחשבון (יתרה מלאה של 1,000 ₪ בכרטיס).</p>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/60 space-y-1">
+            <div class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-500"></i>
+              <span>החרגות ברשתות</span>
+            </div>
+            <p class="leading-relaxed">אינו מכובד בחנויות עודפים/אאוטלט של חלק מהרשתות, אינו מקנה צבירת נקודות מועדון לקוחות (VIP), ואינו תקף לכרטיסי מתנה ומוצרי טבק.</p>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/60 space-y-1">
+            <div class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-500"></i>
+              <span>תוקף ואובדן כרטיס</span>
+            </div>
+            <p class="leading-relaxed">היתרה מוגנת בחוק ל-5 שנים לפחות. במקרה אובדן כרטיס פלסטיק, ניתן לחסום ולהזמין חדש ב-25 ₪ (היתרה נשמרת), או להמשיך להשתמש בברקוד דיגיטלי.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-700/80">
+        <a href="https://www.behatsdaa.org.il/card/chargingCard" target="_blank" class="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold">
+          <span>מעבר לעמוד טעינת הכרטיס בבהצדעה</span>
+          <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+        </a>
+        <button id="wallets-modal-dismiss-btn" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium transition cursor-pointer">
           סגור
         </button>
       </div>

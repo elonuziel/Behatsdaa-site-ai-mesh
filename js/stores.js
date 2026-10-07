@@ -10,10 +10,25 @@ import { fetchStoreDetail } from './data.js';
 export function populateCardsFilter(cardFilterSelect) {
   if (!cardFilterSelect) return;
   cardFilterSelect.innerHTML = '<option value="all">כל הכרטיסים הנטענים</option>';
+
+  // Count stores per card name
+  const cardCounts = new Map();
+  state.allStores.forEach(s => {
+    (s.cards || []).forEach(c => {
+      const name = c.card_name || c.name;
+      if (name) {
+        cardCounts.set(name, (cardCounts.get(name) || 0) + 1);
+      }
+    });
+  });
+
   state.availableCards.forEach(c => {
+    const cardName = c.name || c.card_name;
+    if (!cardName) return;
+    const count = cardCounts.get(cardName) || 0;
     const opt = document.createElement('option');
-    opt.value = c.card_name;
-    opt.textContent = `${c.card_name} (${c.store_count})`;
+    opt.value = cardName;
+    opt.textContent = count > 0 ? `${cardName} (${count})` : cardName;
     cardFilterSelect.appendChild(opt);
   });
 }
