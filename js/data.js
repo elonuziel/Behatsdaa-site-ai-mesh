@@ -400,8 +400,8 @@ export async function loadBilling(onBillingLoaded) {
     s._catNorm = normalizeHebrew(`${s.category || ''} ${s.subcategory || ''}`);
     s._addressNorm = normalizeHebrew(s.address || '');
     s._descNorm = normalizeHebrew(s.description || '');
-    s._searchStr = `${s._nameNorm} ${s._cityNorm} ${s._catNorm} ${s._addressNorm}`.trim();
-    s._searchWithDescStr = `${s._searchStr} ${s._descNorm}`.trim();
+    s._searchStr = `${s._nameNorm} ${s._cityNorm} ${s._catNorm}`.trim();
+    s._searchWithDescStr = `${s._searchStr} ${s._addressNorm} ${s._descNorm}`.trim();
   });
   state.billingLoaded = true;
 

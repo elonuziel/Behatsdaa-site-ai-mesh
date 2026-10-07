@@ -152,7 +152,7 @@ export function initBillingSearch(billingStores) {
     searchOptions: {
       prefix: true,
       fuzzy: (term) => (term.length > 4 ? 0.2 : false),
-      boost: { nameNorm: 3.0, cityNorm: 1.5, catNorm: 1.2, descNorm: 0.5 },
+      boost: { nameNorm: 3.0, cityNorm: 1.5, catNorm: 1.2, addrNorm: 0.8, descNorm: 0.5 },
       processTerm: (term) => normalizeHebrew(term)
     }
   });
@@ -166,7 +166,7 @@ export function initBillingSearch(billingStores) {
     catNorm: normalizeHebrew(`${b.category || ''} ${b.subcategory || ''}`),
     addrNorm: normalizeHebrew(b.address),
     descNorm: normalizeHebrew(b.description || ''),
-    tokens: normalizeHebrew(`${b.name} ${b.city} ${b.category} ${b.address}`)
+    tokens: normalizeHebrew(`${b.name} ${b.city} ${b.category}`)
   }));
 
   billingMiniSearch.addAll(docs);
@@ -183,7 +183,7 @@ export function searchBilling(query, options = {}) {
     if (options.fields) {
       searchOpts.fields = options.fields;
     } else if (options.inDesc === false) {
-      searchOpts.fields = ['nameNorm', 'cityNorm', 'catNorm', 'addrNorm', 'tokens'];
+      searchOpts.fields = ['nameNorm', 'cityNorm', 'catNorm', 'tokens'];
     }
     const results = billingMiniSearch.search(clean, searchOpts);
     const scoreMap = new Map();

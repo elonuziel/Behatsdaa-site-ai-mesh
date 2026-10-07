@@ -516,6 +516,23 @@ async function runTests() {
   await new Promise(r => setTimeout(r, 50));
   assert.strictEqual(document.getElementById('matching-billing-count').textContent.trim(), String(countWithoutDescNum), `Should return to ${countWithoutDescNum} stores when description toggle is off`);
 
+  // Verify that street address terms (e.g. "דוגי" matching address "הדוגית 16" on "מספרת פריזורה") only match when description/address toggle is enabled
+  billingSearchInput.value = 'דוגי';
+  billingSearchInput.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 180));
+  const countDugiWithoutDesc = parseInt(document.getElementById('matching-billing-count').textContent.trim(), 10);
+  assert.strictEqual(countDugiWithoutDesc, 0, 'Address-only match ("דוגי" for "הדוגית") must NOT appear without description toggle enabled');
+
+  billingSearchDescToggle.checked = true;
+  billingSearchDescToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 50));
+  const countDugiWithDesc = parseInt(document.getElementById('matching-billing-count').textContent.trim(), 10);
+  assert.ok(countDugiWithDesc > 0, 'Address match ("דוגי" for "הדוגית 16") should appear when description toggle is enabled');
+
+  billingSearchDescToggle.checked = false;
+  billingSearchDescToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 50));
+
   // Clear billing search
   clearBillingSearchBtn.click();
   await new Promise(r => setTimeout(r, 50));
