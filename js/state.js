@@ -4,7 +4,7 @@
 
 export const state = {
   // Navigation & Strict Mobile DOM Limits (30 items at a time to prevent memory spikes)
-  currentTab: 'stores',
+  currentTab: 'all',
   globalSearchAcrossTabs: localStorage.getItem('behatsdaa_global_search') !== 'false',
   STORES_PAGE_SIZE: 30,
   storesVisibleCount: 30,
@@ -61,3 +61,6 @@ export const state = {
 
 if (window.location.hash === '#deals') state.currentTab = 'deals';
 else if (window.location.hash === '#billing') state.currentTab = 'billing';
+else if (window.location.hash === '#stores') state.currentTab = 'stores';
+else if (window.location.hash === '#all') state.currentTab = 'all';
+else state.currentTab = 'all';

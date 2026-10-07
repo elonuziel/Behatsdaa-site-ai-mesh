@@ -96,7 +96,13 @@
       
       <!-- Category Tabs -->
       <div class="flex items-center gap-2 flex-wrap">
-        <button id="tab-stores-btn" class="main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-blue-600 text-white dark:bg-blue-600 dark:text-white">
+        <button id="tab-all-btn" class="main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-indigo-600 text-white dark:bg-indigo-600 dark:text-white">
+          <i data-lucide="layers" class="w-4 h-4"></i>
+          <span>הכל</span>
+          <span id="tab-all-count" class="text-xs px-2 py-0.5 rounded-full bg-indigo-700/80 text-white font-semibold">0</span>
+        </button>
+
+        <button id="tab-stores-btn" class="main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
           <i data-lucide="store" class="w-4 h-4"></i>
           <span>רשתות וכרטיסים נטענים</span>
           <span id="tab-stores-count" class="text-xs px-2 py-0.5 rounded-full bg-blue-700/80 text-white font-semibold">0</span>
@@ -136,9 +142,191 @@
     </div>
 
     <!-- ========================================== -->
+    <!-- SECTION 0: ALL RESULTS (UNIFIED SECTIONED) -->
+    <!-- ========================================== -->
+    <div id="all-tab-section" class="space-y-6">
+
+      <!-- Search & Master Controls Section -->
+      <section class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700/80 space-y-4">
+        
+        <!-- Row 1: Unified Search input + Category Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+          
+          <!-- Unified Search Input (MD: 7 cols) -->
+          <div class="relative md:col-span-7 flex flex-col justify-start">
+            <div class="relative">
+              <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="search" class="w-5 h-5"></i>
+              </div>
+              <input 
+                type="text" 
+                id="all-search-input" 
+                placeholder="חפש רשת, שובר, ספק, תחום או עיר בכל הלשוניות במקביל..." 
+                class="w-full pr-10 pl-10 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition"
+              />
+              <button id="clear-all-search-btn" class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden" title="נקה חיפוש">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div class="mt-1.5 flex flex-wrap items-center gap-4">
+              <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 select-none transition-colors" title="חיפוש מונח זה יכלול גם תיאור ותנאים בכל הקטגוריות">
+                <input type="checkbox" id="all-search-desc-toggle" class="rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-600 dark:bg-slate-900 w-3.5 h-3.5 cursor-pointer">
+                <span class="font-medium">חפש גם בתיאור ובתנאי המימוש</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Quick Jump / Counts (MD: 5 cols) -->
+          <div class="md:col-span-5 flex items-center justify-start md:justify-end gap-2 flex-wrap">
+            <button type="button" id="all-quick-stores-btn" class="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 shadow-2xs" title="עבור ללשונית רשתות וכרטיסים">
+              <i data-lucide="store" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
+              <span>רשתות:</span>
+              <strong id="all-quick-stores-count">0</strong>
+            </button>
+            <button type="button" id="all-quick-deals-btn" class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 shadow-2xs" title="עבור ללשונית מבצעים ושוברים">
+              <i data-lucide="tag" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
+              <span>מבצעים:</span>
+              <strong id="all-quick-deals-count">0</strong>
+            </button>
+            <button type="button" id="all-quick-billing-btn" class="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 shadow-2xs" title="עבור ללשונית הנחות במעמד החיוב">
+              <i data-lucide="credit-card" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"></i>
+              <span>במעמד חיוב:</span>
+              <strong id="all-quick-billing-count">0</strong>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Row 2: Status Summary & Active Filter Indicator -->
+        <div class="flex flex-wrap items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700/60 gap-2">
+          <div class="flex items-center gap-3">
+            <span>נמצאו <strong id="all-matching-count" class="text-indigo-600 dark:text-indigo-400 font-semibold">0</strong> תוצאות בסך הכל בכל הלשוניות</span>
+            <span id="all-active-filter-badge" class="hidden inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+              <span id="all-active-filter-text"></span>
+              <button id="all-reset-filters-btn" class="hover:text-red-500 mr-1" title="אפס חיפוש">
+                <i data-lucide="x" class="w-3 h-3"></i>
+              </button>
+            </span>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="all-wallets-guide-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 font-semibold transition cursor-pointer shadow-xs">
+              <i data-lucide="wallet" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
+              <span>מדריך תקרות טעינה וכללי כרטיסים</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Spinner if datasets loading -->
+      <div id="all-tab-spinner" class="hidden text-center py-20 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8 space-y-3">
+        <div class="w-10 h-10 border-4 border-indigo-200 dark:border-indigo-900 border-t-indigo-600 rounded-full animate-spin mx-auto"></div>
+        <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">טוען נתונים מכל הלשוניות...</p>
+      </div>
+
+      <!-- Section 1: Stores -->
+      <section id="all-section-stores" class="space-y-3">
+        <div class="flex items-center justify-between flex-wrap gap-2 pb-1.5 border-b border-slate-200 dark:border-slate-800">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold shadow-2xs border border-blue-200 dark:border-blue-800/60">
+              <i data-lucide="store" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">רשתות וכרטיסים נטענים</h2>
+                <span id="all-stores-badge" class="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">0</span>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400">הנחות בטעינת כרטיסי מועדון בהצדעה ברשתות נבחרות</p>
+            </div>
+          </div>
+          <button id="all-jump-stores-btn" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 text-xs font-semibold transition cursor-pointer shadow-xs">
+            <span id="all-jump-stores-text">הצג את כל הרשתות</span>
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <div id="all-stores-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        </div>
+        <div id="all-stores-empty" class="hidden p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/60 text-center text-xs text-slate-500 dark:text-slate-400">
+          לא נמצאו רשתות תואמות לחיפוש זה
+        </div>
+      </section>
+
+      <!-- Section 2: Deals -->
+      <section id="all-section-deals" class="space-y-3 pt-2">
+        <div class="flex items-center justify-between flex-wrap gap-2 pb-1.5 border-b border-slate-200 dark:border-slate-800">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shadow-2xs border border-emerald-200 dark:border-emerald-800/60">
+              <i data-lucide="tag" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">מבצעים ושוברים ייעודיים</h2>
+                <span id="all-deals-badge" class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">0</span>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400">שוברים, אטרקציות וקופונים בהנחות עמוקות באתר</p>
+            </div>
+          </div>
+          <button id="all-jump-deals-btn" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 text-xs font-semibold transition cursor-pointer shadow-xs">
+            <span id="all-jump-deals-text">הצג את כל המבצעים</span>
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <div id="all-deals-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        </div>
+        <div id="all-deals-empty" class="hidden p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/60 text-center text-xs text-slate-500 dark:text-slate-400">
+          לא נמצאו מבצעים או שוברים תואמים לחיפוש זה
+        </div>
+      </section>
+
+      <!-- Section 3: Billing -->
+      <section id="all-section-billing" class="space-y-3 pt-2">
+        <div class="flex items-center justify-between flex-wrap gap-2 pb-1.5 border-b border-slate-200 dark:border-slate-800">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/80 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold shadow-2xs border border-purple-200 dark:border-purple-800/60">
+              <i data-lucide="credit-card" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">הנחות במעמד החיוב (Max)</h2>
+                <span id="all-billing-badge" class="px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">0</span>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400">הנחה אוטומטית בדף החשבון בתשלום בכרטיס האשראי של בהצדעה</p>
+            </div>
+          </div>
+          <button id="all-jump-billing-btn" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 text-xs font-semibold transition cursor-pointer shadow-xs">
+            <span id="all-jump-billing-text">הצג את כל העסקים</span>
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <div id="all-billing-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        </div>
+        <div id="all-billing-empty" class="hidden p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/60 text-center text-xs text-slate-500 dark:text-slate-400">
+          לא נמצאו עסקים תואמים לחיפוש זה
+        </div>
+      </section>
+
+      <!-- Overall No Results Placeholder -->
+      <div id="all-no-results" class="hidden text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8 space-y-3">
+        <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mx-auto text-slate-400">
+          <i data-lucide="search-x" class="w-6 h-6"></i>
+        </div>
+        <h3 class="text-base font-semibold text-slate-800 dark:text-slate-200">לא נמצאו תוצאות באף אחת מהלשוניות</h3>
+        <p class="text-sm text-slate-500 dark:text-slate-400">נסה לשנות את מונח החיפוש, לבדוק שגיאות כתיב או לחפש מילה כללית יותר.</p>
+        <button id="all-clear-filters-btn" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition mt-2">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          אפס את החיפוש
+        </button>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
     <!-- SECTION 1: STORES & RECHARGEABLE CARDS     -->
     <!-- ========================================== -->
-    <div id="stores-tab-section" class="space-y-6">
+    <div id="stores-tab-section" class="hidden space-y-6">
 
       <!-- Search & Filter Controls Section -->
       <section class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700/80 space-y-4">

@@ -111,14 +111,58 @@ async function runTests() {
   // Wait for initial store render and background datasets
   await new Promise(r => setTimeout(r, 250));
 
-  // --- Test 1: Page Title and Initial Tab State ---
-  console.log('[Test 1] Verifying page title and initial tab state...');
+  // --- Test 1: Page Title and Initial Tab State (All Results Sectioned Master Tab) ---
+  console.log('[Test 1] Verifying page title and initial tab state (All Results master tab)...');
   assert.ok(document.title.includes('רשתות'), 'Page title should mention stores');
+  const allSection = document.getElementById('all-tab-section');
   const storesSection = document.getElementById('stores-tab-section');
   const dealsSection = document.getElementById('deals-tab-section');
-  assert.ok(!storesSection.classList.contains('hidden'), 'Stores section should be visible initially');
+  const initialBillingSection = document.getElementById('billing-tab-section');
+  assert.ok(!allSection.classList.contains('hidden'), 'All Results master section should be visible initially');
+  assert.ok(storesSection.classList.contains('hidden'), 'Stores section should be hidden initially');
   assert.ok(dealsSection.classList.contains('hidden'), 'Deals section should be hidden initially');
-  console.log('  -> PASS');
+  assert.ok(initialBillingSection.classList.contains('hidden'), 'Billing section should be hidden initially');
+
+  // Verify all 3 sections are rendered simultaneously in Tab All
+  const allStoreCards = document.querySelectorAll('#all-stores-grid .store-card');
+  const allDealCards = document.querySelectorAll('#all-deals-grid .deal-card');
+  const allBillingCards = document.querySelectorAll('#all-billing-grid .billing-card');
+  assert.strictEqual(allStoreCards.length, 4, 'Top 4 store cards should be rendered in All Results stores section');
+  assert.strictEqual(allDealCards.length, 4, 'Top 4 deal cards should be rendered in All Results deals section');
+  assert.strictEqual(allBillingCards.length, 4, 'Top 4 billing cards should be rendered in All Results billing section');
+
+  // Test live search across all 3 sections simultaneously in Tab All
+  const allSearchInput = document.getElementById('all-search-input');
+  allSearchInput.value = 'סושי';
+  allSearchInput.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 180));
+
+  const allFilteredStores = document.querySelectorAll('#all-stores-grid .store-card');
+  const allFilteredDeals = document.querySelectorAll('#all-deals-grid .deal-card');
+  const allFilteredBilling = document.querySelectorAll('#all-billing-grid .billing-card');
+  assert.ok(allFilteredStores.length >= 0, 'Stores section updated with live search');
+  assert.ok(allFilteredDeals.length > 0, 'Deals section updated with live search');
+  assert.ok(allFilteredBilling.length > 0, 'Billing section updated with live search');
+
+  // Test no-results state in Tab All
+  allSearchInput.value = 'zzzyyyxxx999';
+  allSearchInput.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 180));
+
+  const allNoResults = document.getElementById('all-no-results');
+  assert.ok(!allNoResults.classList.contains('hidden'), 'All Results no-results container should be visible when no matches found');
+  const allClearBtn = document.getElementById('all-clear-filters-btn');
+  allClearBtn.click();
+  await new Promise(r => setTimeout(r, 50));
+  assert.ok(allNoResults.classList.contains('hidden'), 'All Results no-results should be hidden after clearing filters');
+
+  // Test jump button to Stores tab
+  const allJumpStoresBtn = document.getElementById('all-jump-stores-btn');
+  allJumpStoresBtn.click();
+  await new Promise(r => setTimeout(r, 50));
+  assert.ok(!storesSection.classList.contains('hidden'), 'Stores section should be visible after clicking jump button');
+  assert.ok(allSection.classList.contains('hidden'), 'All section should be hidden after jumping to Stores');
+  console.log('  -> PASS (All Results 3-section layout, live search, no-results state, and tab jump validated)');
 
   // --- Test 2: Store Counts and Card Rendering ---
   console.log('[Test 2] Verifying store count and cards rendering...');

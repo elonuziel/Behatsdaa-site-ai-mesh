@@ -11,16 +11,56 @@ import { populateDealsTagsFilter, updateDealsCategoryChips, getFilteredDeals, cr
 import { populateBillingCitiesFilter, updateBillingCategoryChips, getFilteredBillingStores, createBillingCardElement, createBillingTableRow, openBillingModal, closeBillingModal } from './js/billing.js';
 
 // DOM Elements - Navigation Tabs
+const tabAllBtn = document.getElementById('tab-all-btn');
 const tabStoresBtn = document.getElementById('tab-stores-btn');
 const tabDealsBtn = document.getElementById('tab-deals-btn');
 const tabBillingBtn = document.getElementById('tab-billing-btn');
+const tabAllCount = document.getElementById('tab-all-count');
 const tabStoresCount = document.getElementById('tab-stores-count');
 const tabDealsCount = document.getElementById('tab-deals-count');
 const tabBillingCount = document.getElementById('tab-billing-count');
+const allTabSection = document.getElementById('all-tab-section');
 const storesTabSection = document.getElementById('stores-tab-section');
 const dealsTabSection = document.getElementById('deals-tab-section');
 const billingTabSection = document.getElementById('billing-tab-section');
 const viewModeToggleWrapper = document.getElementById('view-mode-toggle-wrapper');
+
+// DOM Elements - All Results Tab
+const allSearchInput = document.getElementById('all-search-input');
+const clearAllSearchBtn = document.getElementById('clear-all-search-btn');
+const allSearchDescToggle = document.getElementById('all-search-desc-toggle');
+const allQuickStoresBtn = document.getElementById('all-quick-stores-btn');
+const allQuickDealsBtn = document.getElementById('all-quick-deals-btn');
+const allQuickBillingBtn = document.getElementById('all-quick-billing-btn');
+const allQuickStoresCount = document.getElementById('all-quick-stores-count');
+const allQuickDealsCount = document.getElementById('all-quick-deals-count');
+const allQuickBillingCount = document.getElementById('all-quick-billing-count');
+const allMatchingCountEl = document.getElementById('all-matching-count');
+const allActiveFilterBadge = document.getElementById('all-active-filter-badge');
+const allActiveFilterText = document.getElementById('all-active-filter-text');
+const allResetFiltersBtn = document.getElementById('all-reset-filters-btn');
+const allWalletsGuideBtn = document.getElementById('all-wallets-guide-btn');
+const allTabSpinner = document.getElementById('all-tab-spinner');
+const allSectionStores = document.getElementById('all-section-stores');
+const allStoresBadge = document.getElementById('all-stores-badge');
+const allJumpStoresBtn = document.getElementById('all-jump-stores-btn');
+const allJumpStoresText = document.getElementById('all-jump-stores-text');
+const allStoresGrid = document.getElementById('all-stores-grid');
+const allStoresEmpty = document.getElementById('all-stores-empty');
+const allSectionDeals = document.getElementById('all-section-deals');
+const allDealsBadge = document.getElementById('all-deals-badge');
+const allJumpDealsBtn = document.getElementById('all-jump-deals-btn');
+const allJumpDealsText = document.getElementById('all-jump-deals-text');
+const allDealsGrid = document.getElementById('all-deals-grid');
+const allDealsEmpty = document.getElementById('all-deals-empty');
+const allSectionBilling = document.getElementById('all-section-billing');
+const allBillingBadge = document.getElementById('all-billing-badge');
+const allJumpBillingBtn = document.getElementById('all-jump-billing-btn');
+const allJumpBillingText = document.getElementById('all-jump-billing-text');
+const allBillingGrid = document.getElementById('all-billing-grid');
+const allBillingEmpty = document.getElementById('all-billing-empty');
+const allNoResults = document.getElementById('all-no-results');
+const allClearFiltersBtn = document.getElementById('all-clear-filters-btn');
 
 // DOM Elements - Stores
 const searchInput = document.getElementById('search-input');
@@ -177,6 +217,93 @@ const billingModalElements = {
 };
 
 // Rendering Functions
+function renderAllTab() {
+  if (!allTabSection) return;
+
+  const stores = getFilteredStores();
+  const deals = state.dealsLoaded ? getFilteredDeals() : [];
+  const billing = state.billingLoaded ? getFilteredBillingStores() : [];
+
+  const totalAllMatches = stores.length + deals.length + billing.length;
+  if (allMatchingCountEl) allMatchingCountEl.textContent = totalAllMatches.toLocaleString('he-IL');
+  if (tabAllCount) tabAllCount.textContent = totalAllMatches.toLocaleString('he-IL');
+
+  // Quick stats
+  if (allQuickStoresCount) allQuickStoresCount.textContent = stores.length.toLocaleString('he-IL');
+  if (allQuickDealsCount) allQuickDealsCount.textContent = (state.dealsLoaded ? deals.length : 0).toLocaleString('he-IL');
+  if (allQuickBillingCount) allQuickBillingCount.textContent = (state.billingLoaded ? billing.length : 0).toLocaleString('he-IL');
+
+  // Active filter badge
+  const query = state.searchQuery || state.dealsSearchQuery || state.billingSearchQuery;
+  const hasFilter = !!query || state.storesSearchInDesc;
+  if (allActiveFilterBadge) allActiveFilterBadge.classList.toggle('hidden', !hasFilter);
+  if (hasFilter && allActiveFilterText) {
+    allActiveFilterText.textContent = `"${query}"${state.storesSearchInDesc ? ' (כולל תיאור)' : ''}`;
+  }
+
+  const isAllZero = (query && totalAllMatches === 0);
+  if (allNoResults) allNoResults.classList.toggle('hidden', !isAllZero);
+  if (allSectionStores) allSectionStores.classList.toggle('hidden', isAllZero);
+  if (allSectionDeals) allSectionDeals.classList.toggle('hidden', isAllZero);
+  if (allSectionBilling) allSectionBilling.classList.toggle('hidden', isAllZero);
+
+  if (isAllZero) return;
+
+  // Render Stores Section (Top 4)
+  const topStores = stores.slice(0, 4);
+  if (allStoresBadge) allStoresBadge.textContent = stores.length.toLocaleString('he-IL');
+  if (allJumpStoresText) {
+    allJumpStoresText.textContent = query 
+      ? `הצג את כל ${stores.length.toLocaleString('he-IL')} הרשתות התואמות` 
+      : `הצג את כל ${stores.length.toLocaleString('he-IL')} הרשתות`;
+  }
+  if (allStoresGrid) {
+    allStoresGrid.innerHTML = '';
+    topStores.forEach(s => allStoresGrid.appendChild(createStoreCardElement(s)));
+  }
+  if (allStoresEmpty) allStoresEmpty.classList.toggle('hidden', stores.length > 0);
+
+  // Render Deals Section (Top 4)
+  const topDeals = deals.slice(0, 4);
+  if (allDealsBadge) allDealsBadge.textContent = (state.dealsLoaded ? deals.length : 0).toLocaleString('he-IL');
+  if (allJumpDealsText) {
+    allJumpDealsText.textContent = query 
+      ? `הצג את כל ${deals.length.toLocaleString('he-IL')} המבצעים התואמים` 
+      : `הצג את כל ${deals.length.toLocaleString('he-IL')} המבצעים`;
+  }
+  if (allDealsGrid) {
+    allDealsGrid.innerHTML = '';
+    if (!state.dealsLoaded) {
+      allDealsGrid.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-slate-400">טוען מבצעים ושוברים...</div>';
+    } else {
+      topDeals.forEach(d => allDealsGrid.appendChild(createDealCardElement(d)));
+    }
+  }
+  if (allDealsEmpty) allDealsEmpty.classList.toggle('hidden', !state.dealsLoaded || deals.length > 0);
+
+  // Render Billing Section (Top 4)
+  const topBilling = billing.slice(0, 4);
+  if (allBillingBadge) allBillingBadge.textContent = (state.billingLoaded ? billing.length : 0).toLocaleString('he-IL');
+  if (allJumpBillingText) {
+    allJumpBillingText.textContent = query 
+      ? `הצג את כל ${billing.length.toLocaleString('he-IL')} העסקים התואמים` 
+      : `הצג את כל ${billing.length.toLocaleString('he-IL')} העסקים`;
+  }
+  if (allBillingGrid) {
+    allBillingGrid.innerHTML = '';
+    if (!state.billingLoaded) {
+      allBillingGrid.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-slate-400">טוען הנחות במעמד החיוב (10,600+ עסקים)...</div>';
+    } else {
+      topBilling.forEach(b => allBillingGrid.appendChild(createBillingCardElement(b)));
+    }
+  }
+  if (allBillingEmpty) allBillingEmpty.classList.toggle('hidden', !state.billingLoaded || billing.length > 0);
+
+  if (window.lucide) {
+    lucide.createIcons({ root: allTabSection });
+  }
+}
+
 function renderStores() {
   const filtered = getFilteredStores();
   matchingCountEl.textContent = filtered.length;
@@ -340,7 +467,9 @@ function applyViewMode(mode) {
     viewTableBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-700 shadow-xs text-blue-600 dark:text-blue-400';
     viewGridBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
   }
-  if (state.currentTab === 'stores') {
+  if (state.currentTab === 'all') {
+    renderAllTab();
+  } else if (state.currentTab === 'stores') {
     renderStores();
   } else if (state.currentTab === 'deals') {
     renderDeals();
@@ -350,40 +479,34 @@ function applyViewMode(mode) {
 }
 
 function updateCrossTabBadges() {
-  const query = state.searchQuery || state.dealsSearchQuery || state.billingSearchQuery;
-  if (!query) {
-    if (tabStoresCount) tabStoresCount.textContent = state.allStores.length;
-    if (tabDealsCount) tabDealsCount.textContent = state.dealsLoaded ? state.allDeals.length : 0;
-    if (tabBillingCount) tabBillingCount.textContent = state.billingLoaded ? state.allBillingStores.length.toLocaleString('he-IL') : 0;
-    return;
-  }
-
   const sCount = getFilteredStores().length;
+  const dCount = state.dealsLoaded ? getFilteredDeals().length : 0;
+  const bCount = state.billingLoaded ? getFilteredBillingStores().length : 0;
+
   if (tabStoresCount) tabStoresCount.textContent = sCount;
+  if (tabDealsCount) tabDealsCount.textContent = dCount;
+  if (tabBillingCount) tabBillingCount.textContent = bCount.toLocaleString('he-IL');
+  if (tabAllCount) tabAllCount.textContent = (sCount + dCount + bCount).toLocaleString('he-IL');
 
-  if (state.dealsLoaded) {
-    const dCount = getFilteredDeals().length;
-    if (tabDealsCount) tabDealsCount.textContent = dCount;
-  }
-
-  if (state.billingLoaded) {
-    const bCount = getFilteredBillingStores().length;
-    if (tabBillingCount) tabBillingCount.textContent = bCount.toLocaleString('he-IL');
-  }
+  if (allQuickStoresCount) allQuickStoresCount.textContent = sCount.toLocaleString('he-IL');
+  if (allQuickDealsCount) allQuickDealsCount.textContent = dCount.toLocaleString('he-IL');
+  if (allQuickBillingCount) allQuickBillingCount.textContent = bCount.toLocaleString('he-IL');
 }
 
 function handleSearchChange(val, originTab) {
   const term = (val || '').trim();
 
-  if (state.globalSearchAcrossTabs) {
+  if (state.globalSearchAcrossTabs || originTab === 'all') {
     state.searchQuery = term;
     state.dealsSearchQuery = term;
     state.billingSearchQuery = term;
 
+    if (allSearchInput && allSearchInput.value !== val) allSearchInput.value = val;
     if (searchInput && searchInput.value !== val) searchInput.value = val;
     if (dealsSearchInput && dealsSearchInput.value !== val) dealsSearchInput.value = val;
     if (billingSearchInput && billingSearchInput.value !== val) billingSearchInput.value = val;
 
+    if (clearAllSearchBtn) clearAllSearchBtn.classList.toggle('hidden', !term);
     if (clearSearchBtn) clearSearchBtn.classList.toggle('hidden', !term);
     if (clearDealsSearchBtn) clearDealsSearchBtn.classList.toggle('hidden', !term);
     if (clearBillingSearchBtn) clearBillingSearchBtn.classList.toggle('hidden', !term);
@@ -392,7 +515,8 @@ function handleSearchChange(val, originTab) {
     state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
     state.billingVisibleCount = state.BILLING_PAGE_SIZE;
 
-    if (state.currentTab === 'stores') renderStores();
+    if (state.currentTab === 'all') renderAllTab();
+    else if (state.currentTab === 'stores') renderStores();
     else if (state.currentTab === 'deals') renderDeals();
     else if (state.currentTab === 'billing') renderBillingStores();
 
@@ -418,13 +542,15 @@ function handleSearchChange(val, originTab) {
 }
 
 function handleClearSearch(originTab) {
-  if (state.globalSearchAcrossTabs) {
+  if (state.globalSearchAcrossTabs || originTab === 'all') {
+    if (allSearchInput) allSearchInput.value = '';
     if (searchInput) searchInput.value = '';
     if (dealsSearchInput) dealsSearchInput.value = '';
     if (billingSearchInput) billingSearchInput.value = '';
     state.searchQuery = '';
     state.dealsSearchQuery = '';
     state.billingSearchQuery = '';
+    if (clearAllSearchBtn) clearAllSearchBtn.classList.add('hidden');
     if (clearSearchBtn) clearSearchBtn.classList.add('hidden');
     if (clearDealsSearchBtn) clearDealsSearchBtn.classList.add('hidden');
     if (clearBillingSearchBtn) clearBillingSearchBtn.classList.add('hidden');
@@ -432,7 +558,8 @@ function handleClearSearch(originTab) {
     state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
     state.billingVisibleCount = state.BILLING_PAGE_SIZE;
 
-    if (state.currentTab === 'stores') renderStores();
+    if (state.currentTab === 'all') renderAllTab();
+    else if (state.currentTab === 'stores') renderStores();
     else if (state.currentTab === 'deals') renderDeals();
     else if (state.currentTab === 'billing') renderBillingStores();
 
@@ -461,6 +588,7 @@ function handleClearSearch(originTab) {
 }
 
 function getTabSearchQuery(tab) {
+  if (tab === 'all') return state.searchQuery || state.dealsSearchQuery || state.billingSearchQuery || '';
   if (tab === 'stores') return state.searchQuery || '';
   if (tab === 'deals') return state.dealsSearchQuery || '';
   if (tab === 'billing') return state.billingSearchQuery || '';
@@ -469,7 +597,13 @@ function getTabSearchQuery(tab) {
 
 function setTabSearchQuery(tab, query) {
   const term = query || '';
-  if (tab === 'stores') {
+  if (tab === 'all') {
+    state.searchQuery = term;
+    state.dealsSearchQuery = term;
+    state.billingSearchQuery = term;
+    if (allSearchInput) allSearchInput.value = term;
+    if (clearAllSearchBtn) clearAllSearchBtn.classList.toggle('hidden', !term);
+  } else if (tab === 'stores') {
     state.searchQuery = term;
     if (searchInput) searchInput.value = term;
     if (clearSearchBtn) clearSearchBtn.classList.toggle('hidden', !term);
@@ -501,19 +635,31 @@ function switchTab(tab, options = {}) {
     }
   }
 
-  window.location.hash = tab === 'deals' ? 'deals' : (tab === 'billing' ? 'billing' : 'stores');
+  window.location.hash = tab === 'deals' ? 'deals' : (tab === 'billing' ? 'billing' : (tab === 'stores' ? 'stores' : 'all'));
 
-  const inactiveClass = 'main-tab-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800';
+  const inactiveClass = 'main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800';
+  if (tabAllBtn) tabAllBtn.className = inactiveClass;
   tabStoresBtn.className = inactiveClass;
   tabDealsBtn.className = inactiveClass;
   if (tabBillingBtn) tabBillingBtn.className = inactiveClass;
 
+  if (allTabSection) allTabSection.classList.add('hidden');
   storesTabSection.classList.add('hidden');
   dealsTabSection.classList.add('hidden');
   if (billingTabSection) billingTabSection.classList.add('hidden');
 
-  if (tab === 'deals') {
-    tabDealsBtn.className = 'main-tab-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-emerald-600 text-white dark:bg-emerald-600 dark:text-white';
+  if (viewModeToggleWrapper) {
+    viewModeToggleWrapper.classList.toggle('hidden', tab === 'all');
+  }
+
+  if (tab === 'all') {
+    if (tabAllBtn) {
+      tabAllBtn.className = 'main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-indigo-600 text-white dark:bg-indigo-600 dark:text-white';
+    }
+    if (allTabSection) allTabSection.classList.remove('hidden');
+    renderAllTab();
+  } else if (tab === 'deals') {
+    tabDealsBtn.className = 'main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-emerald-600 text-white dark:bg-emerald-600 dark:text-white';
     dealsTabSection.classList.remove('hidden');
     if (!state.dealsLoaded) {
       if (dealsTabSpinner) dealsTabSpinner.classList.remove('hidden');
@@ -526,7 +672,7 @@ function switchTab(tab, options = {}) {
     }
   } else if (tab === 'billing') {
     if (tabBillingBtn) {
-      tabBillingBtn.className = 'main-tab-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-purple-600 text-white dark:bg-purple-600 dark:text-white';
+      tabBillingBtn.className = 'main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-purple-600 text-white dark:bg-purple-600 dark:text-white';
     }
     if (billingTabSection) billingTabSection.classList.remove('hidden');
     if (!state.billingLoaded) {
@@ -540,7 +686,7 @@ function switchTab(tab, options = {}) {
       renderBillingStores();
     }
   } else {
-    tabStoresBtn.className = 'main-tab-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-blue-600 text-white dark:bg-blue-600 dark:text-white';
+    tabStoresBtn.className = 'main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-blue-600 text-white dark:bg-blue-600 dark:text-white';
     storesTabSection.classList.remove('hidden');
     if (state.storesLoaded) {
       renderStores();
@@ -551,7 +697,9 @@ function switchTab(tab, options = {}) {
 function onDatasetsLoaded() {
   crossLinkAllDatasets();
   updateCrossTabBadges();
-  if (state.currentTab === 'stores') {
+  if (state.currentTab === 'all') {
+    renderAllTab();
+  } else if (state.currentTab === 'stores') {
     renderStores();
   } else if (state.currentTab === 'deals' && state.dealsLoaded) {
     renderDeals();
@@ -635,6 +783,8 @@ function startLoadBilling() {
 
     if (state.currentTab === 'billing') {
       renderBillingStores();
+    } else if (state.currentTab === 'all') {
+      renderAllTab();
     }
 
     onDatasetsLoaded();
@@ -664,6 +814,8 @@ async function loadAllData() {
 
     if (state.currentTab === 'stores') {
       renderStores();
+    } else if (state.currentTab === 'all') {
+      renderAllTab();
     }
   });
 
@@ -684,12 +836,14 @@ async function loadAllData() {
 
     if (state.currentTab === 'deals') {
       renderDeals();
+    } else if (state.currentTab === 'all') {
+      renderAllTab();
     }
 
     onDatasetsLoaded();
   });
 
-  if (state.currentTab === 'billing') {
+  if (state.currentTab === 'billing' || state.currentTab === 'all') {
     startLoadBilling();
   } else {
     // Schedule billing load during idle time or short delay to keep initial UI thread smooth
@@ -706,6 +860,7 @@ async function loadAllData() {
 }
 
 // Event Listeners
+if (tabAllBtn) tabAllBtn.addEventListener('click', () => switchTab('all'));
 tabStoresBtn.addEventListener('click', () => switchTab('stores'));
 tabDealsBtn.addEventListener('click', () => switchTab('deals'));
 if (tabBillingBtn) tabBillingBtn.addEventListener('click', () => switchTab('billing'));
@@ -714,13 +869,110 @@ window.addEventListener('hashchange', () => {
   const hash = window.location.hash;
   if (hash === '#deals') switchTab('deals');
   else if (hash === '#billing') switchTab('billing');
-  else switchTab('stores');
+  else if (hash === '#stores') switchTab('stores');
+  else switchTab('all');
 });
 
 // Cross-Tab Search Handlers & Debouncing
 const debouncedCrossTabSearch = debounce((query, originTab) => {
   handleSearchChange(query, originTab);
 }, 120);
+
+// Tab All Event Listeners
+if (allSearchInput) {
+  allSearchInput.addEventListener('input', (e) => {
+    debouncedCrossTabSearch(e.target.value, 'all');
+  });
+}
+
+if (clearAllSearchBtn) {
+  clearAllSearchBtn.addEventListener('click', () => {
+    handleClearSearch('all');
+  });
+}
+
+if (allSearchDescToggle) {
+  allSearchDescToggle.addEventListener('change', (e) => {
+    const isChecked = e.target.checked;
+    state.storesSearchInDesc = isChecked;
+    state.dealsSearchInDesc = isChecked;
+    state.billingSearchInDesc = isChecked;
+    if (storesSearchDescToggle) storesSearchDescToggle.checked = isChecked;
+    if (dealsSearchDescToggle) dealsSearchDescToggle.checked = isChecked;
+    if (billingSearchDescToggle) billingSearchDescToggle.checked = isChecked;
+    renderAllTab();
+    updateCrossTabBadges();
+  });
+}
+
+if (allResetFiltersBtn) {
+  allResetFiltersBtn.addEventListener('click', () => {
+    if (allSearchDescToggle) allSearchDescToggle.checked = false;
+    state.storesSearchInDesc = false;
+    state.dealsSearchInDesc = false;
+    state.billingSearchInDesc = false;
+    if (storesSearchDescToggle) storesSearchDescToggle.checked = false;
+    if (dealsSearchDescToggle) dealsSearchDescToggle.checked = false;
+    if (billingSearchDescToggle) billingSearchDescToggle.checked = false;
+    handleClearSearch('all');
+  });
+}
+
+if (allClearFiltersBtn) {
+  allClearFiltersBtn.addEventListener('click', () => {
+    if (allSearchDescToggle) allSearchDescToggle.checked = false;
+    state.storesSearchInDesc = false;
+    state.dealsSearchInDesc = false;
+    state.billingSearchInDesc = false;
+    if (storesSearchDescToggle) storesSearchDescToggle.checked = false;
+    if (dealsSearchDescToggle) dealsSearchDescToggle.checked = false;
+    if (billingSearchDescToggle) billingSearchDescToggle.checked = false;
+    handleClearSearch('all');
+  });
+}
+
+if (allJumpStoresBtn) {
+  allJumpStoresBtn.addEventListener('click', () => {
+    switchTab('stores', { preserveSearch: true });
+    storesTabSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+if (allJumpDealsBtn) {
+  allJumpDealsBtn.addEventListener('click', () => {
+    switchTab('deals', { preserveSearch: true });
+    dealsTabSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+if (allJumpBillingBtn) {
+  allJumpBillingBtn.addEventListener('click', () => {
+    switchTab('billing', { preserveSearch: true });
+    if (billingTabSection) billingTabSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+if (allQuickStoresBtn) {
+  allQuickStoresBtn.addEventListener('click', () => {
+    switchTab('stores', { preserveSearch: true });
+  });
+}
+
+if (allQuickDealsBtn) {
+  allQuickDealsBtn.addEventListener('click', () => {
+    switchTab('deals', { preserveSearch: true });
+  });
+}
+
+if (allQuickBillingBtn) {
+  allQuickBillingBtn.addEventListener('click', () => {
+    switchTab('billing', { preserveSearch: true });
+  });
+}
+
+if (allWalletsGuideBtn) {
+  allWalletsGuideBtn.addEventListener('click', openWalletsModal);
+}
 
 searchInput.addEventListener('input', (e) => {
   debouncedCrossTabSearch(e.target.value, 'stores');
@@ -733,6 +985,7 @@ clearSearchBtn.addEventListener('click', () => {
 if (storesSearchDescToggle) {
   storesSearchDescToggle.addEventListener('change', (e) => {
     state.storesSearchInDesc = e.target.checked;
+    if (allSearchDescToggle) allSearchDescToggle.checked = e.target.checked;
     state.storesVisibleCount = state.STORES_PAGE_SIZE;
     renderStores();
     updateCrossTabBadges();
@@ -798,6 +1051,7 @@ clearDealsSearchBtn.addEventListener('click', () => {
 if (dealsSearchDescToggle) {
   dealsSearchDescToggle.addEventListener('change', (e) => {
     state.dealsSearchInDesc = e.target.checked;
+    if (allSearchDescToggle) allSearchDescToggle.checked = e.target.checked;
     state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
     renderDeals();
     updateCrossTabBadges();
@@ -870,6 +1124,7 @@ if (clearBillingSearchBtn) {
 if (billingSearchDescToggle) {
   billingSearchDescToggle.addEventListener('change', (e) => {
     state.billingSearchInDesc = e.target.checked;
+    if (allSearchDescToggle) allSearchDescToggle.checked = e.target.checked;
     state.billingVisibleCount = state.BILLING_PAGE_SIZE;
     renderBillingStores();
     updateCrossTabBadges();
@@ -1164,4 +1419,5 @@ document.addEventListener('keydown', (e) => {
 // Initialize
 initTheme();
 if (window.lucide) lucide.createIcons();
+switchTab(state.currentTab);
 loadAllData();
