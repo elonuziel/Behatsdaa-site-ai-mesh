@@ -51,17 +51,25 @@ const searchIndexKB = (searchIndexBytes / 1024).toFixed(1);
 console.log(`  📊 search-index.json size: ${searchIndexKB} KB`);
 assert(searchIndexBytes < 400 * 1024, `search-index.json is under 400KB budget (actual: ${searchIndexKB} KB)`);
 
+const rawStoresData = JSON.parse(fs.readFileSync(path.join(rootDir, 'data', 'stores.json'), 'utf-8'));
+const rawDealsData = JSON.parse(fs.readFileSync(path.join(rootDir, 'data', 'deals.json'), 'utf-8'));
+const expectedStoreCount = rawStoresData.stores?.length || 0;
+const expectedDealCount = rawDealsData.deals?.length || 0;
+
+assert(expectedStoreCount > 0, `Master stores dataset is populated (found ${expectedStoreCount})`);
+assert(expectedDealCount > 0, `Master deals dataset is populated (found ${expectedDealCount})`);
+
 const searchIndexData = JSON.parse(fs.readFileSync(searchIndexPath, 'utf-8'));
-assert(searchIndexData.stores && searchIndexData.stores.length === 987, `search-index contains all 987 stores (got ${searchIndexData.stores?.length})`);
-assert(searchIndexData.deals && searchIndexData.deals.length === 1737, `search-index contains all 1,737 deals (got ${searchIndexData.deals?.length})`);
+assert(searchIndexData.stores && searchIndexData.stores.length === expectedStoreCount, `search-index contains all ${expectedStoreCount} stores (got ${searchIndexData.stores?.length})`);
+assert(searchIndexData.deals && searchIndexData.deals.length === expectedDealCount, `search-index contains all ${expectedDealCount} deals (got ${searchIndexData.deals?.length})`);
 
 // 2. Dynamic Detailed Files
 console.log('\n🏬 2. Testing Dynamic Detail Files in /public/data/:');
 const storeFiles = fs.readdirSync(publicStoresDir).filter(f => f.endsWith('.json'));
-assert(storeFiles.length === 987, `All 987 stores have dedicated [slug].json files (found ${storeFiles.length})`);
+assert(storeFiles.length === expectedStoreCount, `All ${expectedStoreCount} stores have dedicated [slug].json files (found ${storeFiles.length})`);
 
 const dealFiles = fs.readdirSync(publicDealsDir).filter(f => f.endsWith('.json'));
-assert(dealFiles.length === 1737, `All 1,737 deals have dedicated [id].json files (found ${dealFiles.length})`);
+assert(dealFiles.length === expectedDealCount, `All ${expectedDealCount} deals have dedicated [id].json files (found ${dealFiles.length})`);
 
 // Sample store detail test
 const sampleStore = JSON.parse(fs.readFileSync(path.join(publicStoresDir, storeFiles[0]), 'utf-8'));
@@ -83,7 +91,7 @@ const billingWithStores = billingData.stores.filter(b => b.linked_store);
 assert(billingWithStores.length > 0, `Billing businesses with linked stores exist (found ${billingWithStores.length})`);
 
 // 4. MiniSearch Performance Benchmark
-console.log('\n⚡ 4. Testing MiniSearch Speed Across 10,668+ items:');
+console.log('\n⚡ 4. Testing MiniSearch Speed Across Billing items:');
 
 function normalizeHebrew(text) {
   if (!text) return '';
@@ -122,7 +130,7 @@ const docs = billingData.stores.map(b => ({
 const indexStart = performance.now();
 miniSearch.addAll(docs);
 const indexElapsed = (performance.now() - indexStart).toFixed(1);
-console.log(`  ⚡ MiniSearch index of 10,668 items built in ${indexElapsed}ms`);
+console.log(`  ⚡ MiniSearch index of ${docs.length} items built in ${indexElapsed}ms`);
 
 const testQueries = ['ורדינון', 'סופר', 'קפה', 'פיצה', 'נעליים', 'בגדים', 'מלון', 'אופטיקה', 'פוקס', 'ספורט'];
 const searchTimes = [];
@@ -137,7 +145,7 @@ for (const query of testQueries) {
 const avgTime = (searchTimes.reduce((a, b) => a + b, 0) / searchTimes.length).toFixed(2);
 const maxTime = Math.max(...searchTimes).toFixed(2);
 
-console.log(`  ⏱️ Average query latency across 10,668 items: ${avgTime}ms (Max: ${maxTime}ms)`);
+console.log(`  ⏱️ Average query latency across ${docs.length} items: ${avgTime}ms (Max: ${maxTime}ms)`);
 assert(Number(avgTime) < 12.0, `Average search latency is under 12ms (actual: ${avgTime}ms)`);
 
 // 5. Memory Footprint Test

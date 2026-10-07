@@ -1,6 +1,10 @@
-const fs = require('fs');
-const path = require('path');
-const JSDOM = require('jsdom').JSDOM;
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { JSDOM } from 'jsdom';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const htmlSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf-8');
 const storesData = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'stores.json'), 'utf-8'));
@@ -10,13 +14,18 @@ const billingData = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data'
 async function setupEnv() {
   const dom = new JSDOM(htmlSource, {
     url: 'https://elonuziel.github.io/Behatsdaa-site-ai-mesh/',
-    runScripts: 'dangerously'
+    runScripts: 'dangerously',
+    beforeParse(window) {
+      window.tailwind = { config: {} };
+    }
   });
   const { window } = dom;
   global.window = window;
   global.document = window.document;
   global.localStorage = window.localStorage;
-  global.navigator = window.navigator;
+  try {
+    Object.defineProperty(global, 'navigator', { value: window.navigator, configurable: true, writable: true });
+  } catch (e) {}
   window.lucide = { createIcons: () => {} };
   global.lucide = window.lucide;
   window.matchMedia = window.matchMedia || (() => ({ matches: false, addListener: () => {}, removeListener: () => {} }));

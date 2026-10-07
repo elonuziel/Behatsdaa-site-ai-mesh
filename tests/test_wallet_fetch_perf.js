@@ -1,4 +1,4 @@
-const { performance } = require('perf_hooks');
+import { performance } from 'perf_hooks';
 
 // Simulated wallets data (5 wallets as on Behatsdaa)
 const mockWallets = [
