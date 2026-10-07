@@ -58,6 +58,12 @@ const allBillingBadge = document.getElementById('all-billing-badge');
 const allJumpBillingBtn = document.getElementById('all-jump-billing-btn');
 const allJumpBillingText = document.getElementById('all-jump-billing-text');
 const allBillingGrid = document.getElementById('all-billing-grid');
+const allStoresTableView = document.getElementById('all-stores-table-view');
+const allStoresTableTbody = document.getElementById('all-stores-table-tbody');
+const allDealsTableView = document.getElementById('all-deals-table-view');
+const allDealsTableTbody = document.getElementById('all-deals-table-tbody');
+const allBillingTableView = document.getElementById('all-billing-table-view');
+const allBillingTableTbody = document.getElementById('all-billing-table-tbody');
 const allBillingEmpty = document.getElementById('all-billing-empty');
 const allNoResults = document.getElementById('all-no-results');
 const allClearFiltersBtn = document.getElementById('all-clear-filters-btn');
@@ -257,9 +263,20 @@ function renderAllTab() {
       ? `הצג את כל ${stores.length.toLocaleString('he-IL')} הרשתות התואמות` 
       : `הצג את כל ${stores.length.toLocaleString('he-IL')} הרשתות`;
   }
-  if (allStoresGrid) {
-    allStoresGrid.innerHTML = '';
-    topStores.forEach(s => allStoresGrid.appendChild(createStoreCardElement(s)));
+  if (state.currentView === 'grid') {
+    if (allStoresGrid) {
+      allStoresGrid.innerHTML = '';
+      topStores.forEach(s => allStoresGrid.appendChild(createStoreCardElement(s)));
+      allStoresGrid.classList.remove('hidden');
+    }
+    if (allStoresTableView) allStoresTableView.classList.add('hidden');
+  } else {
+    if (allStoresTableTbody) {
+      allStoresTableTbody.innerHTML = '';
+      topStores.forEach(s => allStoresTableTbody.appendChild(createStoreTableRow(s)));
+    }
+    if (allStoresTableView) allStoresTableView.classList.remove('hidden');
+    if (allStoresGrid) allStoresGrid.classList.add('hidden');
   }
   if (allStoresEmpty) allStoresEmpty.classList.toggle('hidden', stores.length > 0);
 
@@ -271,13 +288,28 @@ function renderAllTab() {
       ? `הצג את כל ${deals.length.toLocaleString('he-IL')} המבצעים התואמים` 
       : `הצג את כל ${deals.length.toLocaleString('he-IL')} המבצעים`;
   }
-  if (allDealsGrid) {
-    allDealsGrid.innerHTML = '';
-    if (!state.dealsLoaded) {
-      allDealsGrid.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-slate-400">טוען מבצעים ושוברים...</div>';
-    } else {
-      topDeals.forEach(d => allDealsGrid.appendChild(createDealCardElement(d)));
+  if (state.currentView === 'grid') {
+    if (allDealsGrid) {
+      allDealsGrid.innerHTML = '';
+      if (!state.dealsLoaded) {
+        allDealsGrid.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-slate-400">טוען מבצעים ושוברים...</div>';
+      } else {
+        topDeals.forEach(d => allDealsGrid.appendChild(createDealCardElement(d)));
+      }
+      allDealsGrid.classList.remove('hidden');
     }
+    if (allDealsTableView) allDealsTableView.classList.add('hidden');
+  } else {
+    if (allDealsTableTbody) {
+      allDealsTableTbody.innerHTML = '';
+      if (!state.dealsLoaded) {
+        allDealsTableTbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-xs text-slate-400">טוען מבצעים ושוברים...</td></tr>';
+      } else {
+        topDeals.forEach(d => allDealsTableTbody.appendChild(createDealTableRow(d)));
+      }
+    }
+    if (allDealsTableView) allDealsTableView.classList.remove('hidden');
+    if (allDealsGrid) allDealsGrid.classList.add('hidden');
   }
   if (allDealsEmpty) allDealsEmpty.classList.toggle('hidden', !state.dealsLoaded || deals.length > 0);
 
@@ -289,13 +321,28 @@ function renderAllTab() {
       ? `הצג את כל ${billing.length.toLocaleString('he-IL')} העסקים התואמים` 
       : `הצג את כל ${billing.length.toLocaleString('he-IL')} העסקים`;
   }
-  if (allBillingGrid) {
-    allBillingGrid.innerHTML = '';
-    if (!state.billingLoaded) {
-      allBillingGrid.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-slate-400">טוען הנחות במעמד החיוב (10,600+ עסקים)...</div>';
-    } else {
-      topBilling.forEach(b => allBillingGrid.appendChild(createBillingCardElement(b)));
+  if (state.currentView === 'grid') {
+    if (allBillingGrid) {
+      allBillingGrid.innerHTML = '';
+      if (!state.billingLoaded) {
+        allBillingGrid.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-slate-400">טוען הנחות במעמד החיוב (10,600+ עסקים)...</div>';
+      } else {
+        topBilling.forEach(b => allBillingGrid.appendChild(createBillingCardElement(b)));
+      }
+      allBillingGrid.classList.remove('hidden');
     }
+    if (allBillingTableView) allBillingTableView.classList.add('hidden');
+  } else {
+    if (allBillingTableTbody) {
+      allBillingTableTbody.innerHTML = '';
+      if (!state.billingLoaded) {
+        allBillingTableTbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-xs text-slate-400">טוען הנחות במעמד החיוב (10,600+ עסקים)...</td></tr>';
+      } else {
+        topBilling.forEach(b => allBillingTableTbody.appendChild(createBillingTableRow(b)));
+      }
+    }
+    if (allBillingTableView) allBillingTableView.classList.remove('hidden');
+    if (allBillingGrid) allBillingGrid.classList.add('hidden');
   }
   if (allBillingEmpty) allBillingEmpty.classList.toggle('hidden', !state.billingLoaded || billing.length > 0);
 
@@ -649,7 +696,7 @@ function switchTab(tab, options = {}) {
   if (billingTabSection) billingTabSection.classList.add('hidden');
 
   if (viewModeToggleWrapper) {
-    viewModeToggleWrapper.classList.toggle('hidden', tab === 'all');
+    viewModeToggleWrapper.classList.remove('hidden');
   }
 
   if (tab === 'all') {
@@ -1382,7 +1429,7 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  const storeCard = e.target.closest('.store-card, #table-tbody tr');
+  const storeCard = e.target.closest('.store-card, #table-tbody tr, #all-stores-table-tbody tr');
   if (storeCard) {
     const storeId = storeCard.dataset.storeId;
     const store = state.allStores.find(s => s.id === storeId);
@@ -1390,7 +1437,7 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  const dealCard = e.target.closest('.deal-card, #deals-table-tbody tr');
+  const dealCard = e.target.closest('.deal-card, #deals-table-tbody tr, #all-deals-table-tbody tr');
   if (dealCard) {
     const dealId = dealCard.dataset.dealId;
     const deal = state.allDeals.find(d => String(d.id) === String(dealId));
@@ -1398,7 +1445,7 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  const billingCard = e.target.closest('.billing-card, #billing-table-tbody tr');
+  const billingCard = e.target.closest('.billing-card, #billing-table-tbody tr, #all-billing-table-tbody tr');
   if (billingCard) {
     const billingId = billingCard.dataset.billingId;
     const billingStore = state.allBillingStores.find(b => String(b.id) === String(billingId));
