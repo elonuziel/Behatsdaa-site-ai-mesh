@@ -247,6 +247,23 @@
 
         <div id="all-stores-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         </div>
+        <div id="all-stores-table-view" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-right text-sm">
+              <thead class="bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 text-xs uppercase border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th scope="col" class="py-3 px-4">שם הרשת</th>
+                  <th scope="col" class="py-3 px-4">קטגוריה</th>
+                  <th scope="col" class="py-3 px-4 text-center">הנחה מרבית</th>
+                  <th scope="col" class="py-3 px-4">כרטיסים ומבצעים</th>
+                  <th scope="col" class="py-3 px-4 text-center">פעולות</th>
+                </tr>
+              </thead>
+              <tbody id="all-stores-table-tbody" class="divide-y divide-slate-100 dark:divide-slate-700/60">
+              </tbody>
+            </table>
+          </div>
+        </div>
         <div id="all-stores-empty" class="hidden p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/60 text-center text-xs text-slate-500 dark:text-slate-400">
           לא נמצאו רשתות תואמות לחיפוש זה
         </div>
@@ -275,6 +292,23 @@
 
         <div id="all-deals-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         </div>
+        <div id="all-deals-table-view" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-right text-sm">
+              <thead class="bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 text-xs uppercase border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th scope="col" class="py-3 px-4">שם המבצע והספק</th>
+                  <th scope="col" class="py-3 px-4">קטגוריה ומיקום</th>
+                  <th scope="col" class="py-3 px-4 text-center">מחיר בהצדעה</th>
+                  <th scope="col" class="py-3 px-4">קישורים נוספים</th>
+                  <th scope="col" class="py-3 px-4 text-center">פעולות</th>
+                </tr>
+              </thead>
+              <tbody id="all-deals-table-tbody" class="divide-y divide-slate-100 dark:divide-slate-700/60">
+              </tbody>
+            </table>
+          </div>
+        </div>
         <div id="all-deals-empty" class="hidden p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/60 text-center text-xs text-slate-500 dark:text-slate-400">
           לא נמצאו מבצעים או שוברים תואמים לחיפוש זה
         </div>
@@ -302,6 +336,23 @@
         </div>
 
         <div id="all-billing-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        </div>
+        <div id="all-billing-table-view" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-right text-sm">
+              <thead class="bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 text-xs uppercase border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th scope="col" class="py-3 px-4">שם בית העסק</th>
+                  <th scope="col" class="py-3 px-4">עיר / מיקום</th>
+                  <th scope="col" class="py-3 px-4">קטגוריה</th>
+                  <th scope="col" class="py-3 px-4 text-center">הנחה במעמד החיוב</th>
+                  <th scope="col" class="py-3 px-4 text-center">פעולות</th>
+                </tr>
+              </thead>
+              <tbody id="all-billing-table-tbody" class="divide-y divide-slate-100 dark:divide-slate-700/60">
+              </tbody>
+            </table>
+          </div>
         </div>
         <div id="all-billing-empty" class="hidden p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/60 text-center text-xs text-slate-500 dark:text-slate-400">
           לא נמצאו עסקים תואמים לחיפוש זה

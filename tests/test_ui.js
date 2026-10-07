@@ -156,13 +156,54 @@ async function runTests() {
   await new Promise(r => setTimeout(r, 50));
   assert.ok(allNoResults.classList.contains('hidden'), 'All Results no-results should be hidden after clearing filters');
 
+  // Test view mode toggle (cards vs table) in Tab All
+  const viewGridBtn = document.getElementById('view-grid-btn');
+  const viewTableBtn = document.getElementById('view-table-btn');
+  const allStoresGrid = document.getElementById('all-stores-grid');
+  const allStoresTableView = document.getElementById('all-stores-table-view');
+  const allDealsGrid = document.getElementById('all-deals-grid');
+  const allDealsTableView = document.getElementById('all-deals-table-view');
+  const allBillingGrid = document.getElementById('all-billing-grid');
+  const allBillingTableView = document.getElementById('all-billing-table-view');
+
+  // Switch to table view
+  viewTableBtn.click();
+  await new Promise(r => setTimeout(r, 50));
+  assert.ok(allStoresGrid.classList.contains('hidden'), 'All stores grid should be hidden in table view');
+  assert.ok(!allStoresTableView.classList.contains('hidden'), 'All stores table view should be visible');
+  assert.ok(allDealsGrid.classList.contains('hidden'), 'All deals grid should be hidden in table view');
+  assert.ok(!allDealsTableView.classList.contains('hidden'), 'All deals table view should be visible');
+  assert.ok(allBillingGrid.classList.contains('hidden'), 'All billing grid should be hidden in table view');
+  assert.ok(!allBillingTableView.classList.contains('hidden'), 'All billing table view should be visible');
+
+  const allStoreTableRows = document.querySelectorAll('#all-stores-table-tbody tr');
+  const allDealTableRows = document.querySelectorAll('#all-deals-table-tbody tr');
+  const allBillingTableRows = document.querySelectorAll('#all-billing-table-tbody tr');
+  assert.strictEqual(allStoreTableRows.length, 4, '4 store table rows rendered in All section table view');
+  assert.strictEqual(allDealTableRows.length, 4, '4 deal table rows rendered in All section table view');
+  assert.strictEqual(allBillingTableRows.length, 4, '4 billing table rows rendered in All section table view');
+
+  // Test opening modal from table row in All tab
+  allStoreTableRows[0].click();
+  await new Promise(r => setTimeout(r, 50));
+  const storeModal = document.getElementById('store-modal');
+  assert.ok(!storeModal.classList.contains('hidden'), 'Store modal should open when clicking store table row in All tab');
+  document.getElementById('modal-close-btn').click();
+  await new Promise(r => setTimeout(r, 50));
+
+  // Switch back to grid view
+  viewGridBtn.click();
+  await new Promise(r => setTimeout(r, 50));
+  assert.ok(!allStoresGrid.classList.contains('hidden'), 'All stores grid should be visible in grid view');
+  assert.ok(allStoresTableView.classList.contains('hidden'), 'All stores table view should be hidden in grid view');
+
   // Test jump button to Stores tab
   const allJumpStoresBtn = document.getElementById('all-jump-stores-btn');
   allJumpStoresBtn.click();
   await new Promise(r => setTimeout(r, 50));
   assert.ok(!storesSection.classList.contains('hidden'), 'Stores section should be visible after clicking jump button');
   assert.ok(allSection.classList.contains('hidden'), 'All section should be hidden after jumping to Stores');
-  console.log('  -> PASS (All Results 3-section layout, live search, no-results state, and tab jump validated)');
+  console.log('  -> PASS (All Results 3-section layout, live search, view mode toggle (cards/table), no-results state, and tab jump validated)');
 
   // --- Test 2: Store Counts and Card Rendering ---
   console.log('[Test 2] Verifying store count and cards rendering...');
