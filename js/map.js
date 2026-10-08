@@ -4,11 +4,12 @@
  */
 
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
-import { MarkerClusterer } from '@googlemaps/markerclusterer';
+import * as markerClustererPkg from '@googlemaps/markerclusterer';
+const MarkerClusterer = markerClustererPkg?.MarkerClusterer || markerClustererPkg?.default?.MarkerClusterer || markerClustererPkg?.default;
 import { getStoreCoordinates } from './israel_cities.js';
 
 // Configuration
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyDgwgC8GjCKP9_vGTluGFiECIq15Nz9BeQ';
+const GOOGLE_MAPS_API_KEY = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_MAPS_API_KEY) || (typeof process !== 'undefined' && process.env?.VITE_GOOGLE_MAPS_API_KEY) || 'AIzaSyDgwgC8GjCKP9_vGTluGFiECIq15Nz9BeQ';
 const MAP_ID = 'DEMO_MAP_ID';
 const ATTRIBUTION_ID = 'gmp_mcp_codeassist_v1_aistudio';
 
@@ -46,6 +47,9 @@ export async function initBillingMap(containerElement, options = {}) {
   try {
     const { Map, InfoWindow } = await importLibrary('maps');
     const { AdvancedMarkerElement, PinElement } = await importLibrary('marker');
+    const { LatLngBounds } = await importLibrary('core');
+
+    const controlPos = window.google?.maps?.ControlPosition?.LEFT_BOTTOM ?? 9;
 
     mapInstance = new Map(containerElement, {
       center: { lat: 31.85, lng: 34.85 }, // Center of central Israel
@@ -58,7 +62,7 @@ export async function initBillingMap(containerElement, options = {}) {
       gestureHandling: 'greedy',
       zoomControl: true,
       zoomControlOptions: {
-        position: google.maps.ControlPosition.LEFT_BOTTOM
+        position: controlPos
       }
     });
 
@@ -66,10 +70,16 @@ export async function initBillingMap(containerElement, options = {}) {
       disableAutoPan: false
     });
 
-    markerClustererInstance = new MarkerClusterer({
-      map: mapInstance,
-      markers: []
-    });
+    if (typeof MarkerClusterer === 'function') {
+      try {
+        markerClustererInstance = new MarkerClusterer({
+          map: mapInstance,
+          markers: []
+        });
+      } catch (clusterErr) {
+        console.warn('MarkerClusterer init skipped:', clusterErr);
+      }
+    }
 
     isMapInitialized = true;
     isMapLoading = false;
@@ -88,10 +98,15 @@ export async function updateMapMarkers(stores, options = {}) {
   if (!mapInstance || !isMapInitialized) return;
 
   const { AdvancedMarkerElement, PinElement } = await importLibrary('marker');
+  const { LatLngBounds } = await importLibrary('core');
 
   // Clear existing markers & cluster
   if (markerClustererInstance) {
-    markerClustererInstance.clearMarkers();
+    try {
+      markerClustererInstance.clearMarkers();
+    } catch (e) {
+      console.warn('Clusterer clear error:', e);
+    }
   }
   currentMarkers.forEach(m => {
     m.map = null;
@@ -108,7 +123,7 @@ export async function updateMapMarkers(stores, options = {}) {
   });
 
   const storesToPlot = physicalStores.slice(0, 600);
-  const bounds = new google.maps.LatLngBounds();
+  const bounds = new LatLngBounds();
   let hasValidCoords = false;
 
   const markers = [];
@@ -192,7 +207,14 @@ export async function updateMapMarkers(stores, options = {}) {
 
   currentMarkers = markers;
   if (markerClustererInstance) {
-    markerClustererInstance.addMarkers(markers);
+    try {
+      markerClustererInstance.addMarkers(markers);
+    } catch (e) {
+      console.warn('MarkerClusterer addMarkers error, falling back to direct map markers:', e);
+      markers.forEach(m => { m.map = mapInstance; });
+    }
+  } else {
+    markers.forEach(m => { m.map = mapInstance; });
   }
 
   // Smoothly fit bounds if requested or if search changed

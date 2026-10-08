@@ -1432,15 +1432,31 @@ async function openOrToggleBillingMap() {
   if (isHidden) {
     billingMapWrapper.classList.remove('hidden');
     if (billingToggleMapText) billingToggleMapText.textContent = 'הסתר מפה';
+    if (billingToggleMapBtn) {
+      billingToggleMapBtn.classList.remove('bg-purple-50', 'hover:bg-purple-100', 'text-purple-700', 'border-purple-200/80', 'dark:bg-purple-950/60', 'dark:text-purple-300');
+      billingToggleMapBtn.classList.add('bg-purple-600', 'hover:bg-purple-700', 'text-white', 'border-purple-600', 'shadow-md');
+    }
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
       window.lucide.createIcons({ root: billingMapWrapper });
     }
 
+    // Smooth scroll down to map so user sees it immediately
+    setTimeout(() => {
+      billingMapWrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+
+    if (!state.billingLoaded) {
+      await startLoadBilling();
+    }
     const filtered = getFilteredBillingStores();
     await updateBillingMap(filtered);
   } else {
     billingMapWrapper.classList.add('hidden');
     if (billingToggleMapText) billingToggleMapText.textContent = 'הצג מפת עסקים';
+    if (billingToggleMapBtn) {
+      billingToggleMapBtn.classList.add('bg-purple-50', 'hover:bg-purple-100', 'text-purple-700', 'border-purple-200/80', 'dark:bg-purple-950/60', 'dark:text-purple-300');
+      billingToggleMapBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700', 'text-white', 'border-purple-600', 'shadow-md');
+    }
   }
 }
 
@@ -1467,8 +1483,39 @@ async function updateBillingMap(stores) {
     }
   } catch (err) {
     console.warn('Map update warning:', err);
+    if (billingMapCanvas) {
+      const isAuthOrReferrer = String(err).includes('Referer') || String(err).includes('ApiNotActivated') || String(err).includes('InvalidKey');
+      billingMapCanvas.innerHTML = `
+        <div class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-50 dark:bg-slate-900 z-20 space-y-3">
+          <div class="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          </div>
+          <div class="max-w-md space-y-1">
+            <h4 class="text-sm font-bold text-slate-800 dark:text-slate-100">שגיאה בטעינת Google Maps</h4>
+            <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              ${isAuthOrReferrer 
+                ? 'מפתח ה-API של Google Maps חסום בדומיין הנוכחי (הגבלת HTTP Referrer) או שטרם הופעל Maps JavaScript API בפרויקט.' 
+                : (err?.message || 'לא ניתן היה להתחבר ל-Google Maps. אנא ודא שמפתח ה-API תקין.')}
+            </p>
+          </div>
+          <button type="button" id="billing-map-retry-btn" class="px-4 py-2 text-xs font-semibold rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition cursor-pointer shadow-xs">
+            נסה שוב
+          </button>
+        </div>
+      `;
+      document.getElementById('billing-map-retry-btn')?.addEventListener('click', () => {
+        billingMapCanvas.innerHTML = `
+          <div id="billing-map-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs z-10 space-y-2">
+            <div class="w-8 h-8 border-3 border-purple-200 dark:border-purple-900 border-t-purple-600 rounded-full animate-spin"></div>
+            <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">טוען מפת Google Maps...</p>
+          </div>
+        `;
+        updateBillingMap(stores);
+      });
+    }
   } finally {
-    if (billingMapLoading) billingMapLoading.classList.add('hidden');
+    const spinner = document.getElementById('billing-map-loading');
+    if (spinner) spinner.classList.add('hidden');
   }
 }
 
@@ -1480,6 +1527,10 @@ if (billingMapCloseBtn) {
   billingMapCloseBtn.addEventListener('click', () => {
     if (billingMapWrapper) billingMapWrapper.classList.add('hidden');
     if (billingToggleMapText) billingToggleMapText.textContent = 'הצג מפת עסקים';
+    if (billingToggleMapBtn) {
+      billingToggleMapBtn.classList.add('bg-purple-50', 'hover:bg-purple-100', 'text-purple-700', 'border-purple-200/80', 'dark:bg-purple-950/60', 'dark:text-purple-300');
+      billingToggleMapBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700', 'text-white', 'border-purple-600', 'shadow-md');
+    }
   });
 }
 
