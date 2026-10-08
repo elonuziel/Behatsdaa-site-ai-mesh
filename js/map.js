@@ -4,8 +4,7 @@
  */
 
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
-import * as markerClustererPkg from '@googlemaps/markerclusterer';
-const MarkerClusterer = markerClustererPkg?.MarkerClusterer || markerClustererPkg?.default?.MarkerClusterer || markerClustererPkg?.default;
+import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { getStoreCoordinates } from './israel_cities.js';
 
 // Configuration
@@ -70,8 +69,26 @@ export async function initBillingMap(containerElement, options = {}) {
 
   try {
     const { Map, InfoWindow } = await importLibrary('maps');
-    const { AdvancedMarkerElement, PinElement } = await importLibrary('marker');
+    const { AdvancedMarkerElement } = await importLibrary('marker');
     const { LatLngBounds } = await importLibrary('core');
+
+    // Ensure AdvancedMarkerElement delegates addListener calls (e.g., from MarkerClusterer)
+    // to addEventListener to avoid deprecation warnings in Google Maps API
+    if (AdvancedMarkerElement && AdvancedMarkerElement.prototype) {
+      const origAddListener = AdvancedMarkerElement.prototype.addListener;
+      AdvancedMarkerElement.prototype.addListener = function (eventName, handler) {
+        if (typeof this.addEventListener === 'function') {
+          const gmpEvent = eventName.startsWith('gmp-') ? eventName : (eventName === 'click' ? 'gmp-click' : eventName);
+          this.addEventListener(gmpEvent, handler);
+          return {
+            remove: () => this.removeEventListener(gmpEvent, handler)
+          };
+        }
+        if (typeof origAddListener === 'function') {
+          return origAddListener.call(this, eventName, handler);
+        }
+      };
+    }
 
     const controlPos = window.google?.maps?.ControlPosition?.LEFT_BOTTOM ?? 9;
 
@@ -144,7 +161,7 @@ export async function initBillingMap(containerElement, options = {}) {
 export async function updateMapMarkers(stores, options = {}) {
   if (!mapInstance || !isMapInitialized) return;
 
-  const { AdvancedMarkerElement, PinElement } = await importLibrary('marker');
+  const { AdvancedMarkerElement } = await importLibrary('marker');
   const { LatLngBounds } = await importLibrary('core');
 
   // Clear existing markers & cluster
@@ -182,18 +199,20 @@ export async function updateMapMarkers(stores, options = {}) {
     bounds.extend({ lat: coords.lat, lng: coords.lng });
     hasValidCoords = true;
 
-    // Pin with discount badge styling using modern PinElement properties
-    const pin = new PinElement({
-      glyphText: `${store.discount || 5}%`,
-      glyphColor: '#ffffff',
-      background: '#9333ea', // Purple theme for billing discounts
-      borderColor: '#7e22ce'
-    });
+    // Custom HTML discount badge marker - zero deprecation warnings and superior visual appearance
+    const badgeEl = document.createElement('div');
+    badgeEl.className = 'group relative flex flex-col items-center cursor-pointer select-none';
+    badgeEl.innerHTML = `
+      <div class="px-2 py-0.5 rounded-full text-[11px] font-black text-white shadow-md bg-purple-600 border border-purple-400 group-hover:bg-purple-700 group-hover:scale-110 transition-transform duration-150 flex items-center justify-center min-w-[32px] tracking-tight whitespace-nowrap">
+        <span>${store.discount || 5}%</span>
+      </div>
+      <div class="w-1.5 h-1.5 bg-purple-600 rotate-45 -mt-0.5 border-r border-b border-purple-400 group-hover:bg-purple-700"></div>
+    `;
 
     const marker = new AdvancedMarkerElement({
       position: { lat: coords.lat, lng: coords.lng },
       title: `${store.name} (${store.discount}%)`,
-      content: pin
+      content: badgeEl
     });
 
     // Marker click event opens rich InfoWindow (using modern gmp-click event)
@@ -330,7 +349,7 @@ export async function centerOnUserLocation(statusCallback) {
 
       if (!mapInstance) return;
 
-      const { AdvancedMarkerElement, PinElement } = await importLibrary('marker');
+      const { AdvancedMarkerElement } = await importLibrary('marker');
 
       // Create or update user location pin
       if (!userLocationMarker) {
