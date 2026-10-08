@@ -5,7 +5,7 @@
 
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
-import { getStoreCoordinates } from './israel_cities.js';
+import { getStoreCoordinates, loadGeocodedLocations } from './israel_cities.js';
 
 // Configuration
 const GOOGLE_MAPS_API_KEY = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_MAPS_API_KEY) || (typeof process !== 'undefined' && process.env?.VITE_GOOGLE_MAPS_API_KEY) || 'AIzaSyDgwgC8GjCKP9_vGTluGFiECIq15Nz9BeQ';
@@ -93,9 +93,20 @@ export async function initBillingMap(containerElement, options = {}) {
 
   mapInitPromise = (async () => {
     try {
-      const { Map, InfoWindow } = await importLibrary('maps');
-      const { AdvancedMarkerElement } = await importLibrary('marker');
-      const { LatLngBounds } = await importLibrary('core');
+      // Load Google Maps libraries and pre-geocoded locations in parallel with preview timeout guard
+      const timeoutGuard = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('פסק זמן בהתחברות לשירות המפות של Google. אנא נסה שוב.')), 14000);
+      });
+
+      const [{ Map, InfoWindow }, { AdvancedMarkerElement }] = await Promise.race([
+        Promise.all([
+          importLibrary('maps'),
+          importLibrary('marker'),
+          importLibrary('core'),
+          loadGeocodedLocations().catch(() => ({}))
+        ]),
+        timeoutGuard
+      ]);
 
       // Ensure AdvancedMarkerElement delegates addListener calls (e.g., from MarkerClusterer)
       // to addEventListener to avoid deprecation warnings in Google Maps API
@@ -188,6 +199,94 @@ export async function initBillingMap(containerElement, options = {}) {
   })();
 
   return mapInitPromise;
+}
+
+// Client-side on-demand geocoding cache and throttled queue
+const clientGeoCache = new Map();
+try {
+  const saved = localStorage.getItem('behatsdaa_client_geocache');
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    for (const [k, v] of Object.entries(parsed)) {
+      clientGeoCache.set(k, v);
+    }
+  }
+} catch (e) {}
+
+let geocodeQueue = [];
+let isGeocodingQueueProcessing = false;
+
+async function processGeocodeQueue() {
+  if (isGeocodingQueueProcessing || geocodeQueue.length === 0) return;
+  isGeocodingQueueProcessing = true;
+
+  while (geocodeQueue.length > 0) {
+    const { store, marker } = geocodeQueue.shift();
+    if (!store || !marker || !store.city || !store.address) continue;
+
+    const cacheKey = `${store.city}|${store.address}`.trim();
+    if (clientGeoCache.has(cacheKey)) {
+      const c = clientGeoCache.get(cacheKey);
+      if (c && c.lat && c.lng) {
+        store.lat = c.lat;
+        store.lng = c.lng;
+        marker.position = { lat: c.lat, lng: c.lng };
+      }
+      continue;
+    }
+
+    try {
+      const cleanAddr = store.address.replace(/[\(\),].*$/, '').replace(/["']/g, '').trim();
+      const query = `${cleanAddr} ${store.city} ישראל`;
+      const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=1`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.features?.[0]?.geometry?.coordinates) {
+          const coords = data.features[0].geometry.coordinates;
+          const lng = coords[0];
+          const lat = coords[1];
+          if (lat > 29.3 && lat < 33.5 && lng > 34.1 && lng < 35.9) {
+            clientGeoCache.set(cacheKey, { lat, lng });
+            store.lat = lat;
+            store.lng = lng;
+            marker.position = { lat, lng };
+            try {
+              const obj = {};
+              clientGeoCache.forEach((v, k) => { obj[k] = v; });
+              localStorage.setItem('behatsdaa_client_geocache', JSON.stringify(obj));
+            } catch (e) {}
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore background geocode errors
+    }
+
+    // Gentle 150ms delay between requests to be polite
+    await new Promise(r => setTimeout(r, 150));
+  }
+
+  isGeocodingQueueProcessing = false;
+}
+
+function queueOnDemandGeocode(store, marker) {
+  if (!store || !marker || !store.address || !store.city) return;
+  const cacheKey = `${store.city}|${store.address}`.trim();
+  if (clientGeoCache.has(cacheKey)) {
+    const c = clientGeoCache.get(cacheKey);
+    if (c && c.lat && c.lng) {
+      store.lat = c.lat;
+      store.lng = c.lng;
+      marker.position = { lat: c.lat, lng: c.lng };
+      return;
+    }
+  }
+
+  if (geocodeQueue.length < 40) {
+    geocodeQueue.push({ store, marker });
+    processGeocodeQueue();
+  }
 }
 
 /**
@@ -334,6 +433,11 @@ export async function updateMapMarkers(stores, options = {}) {
     }
 
     markers.push(marker);
+
+    // If marker is at city fallback but has a specific address, queue it for precise background geocoding
+    if (!coords.isExact && store.address && store.city) {
+      queueOnDemandGeocode(store, marker);
+    }
   });
 
   currentMarkers = markers;

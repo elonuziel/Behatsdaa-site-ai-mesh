@@ -230,17 +230,78 @@ export const ISRAEL_CITIES_COORDS = {
   'עמנואל': { lat: 32.1500, lng: 35.1500 }
 };
 
+// Cache for pre-geocoded coordinates
+let geocodedLocationsMap = null;
+let geocodedLocationsPromise = null;
+
 /**
- * Returns deterministic latitude and longitude for any store.
- * Uses city coordinate + small deterministic pseudo-random offset based on store ID
- * so multiple stores in the same city are spread out realistically across streets
- * rather than overlapping on a single point.
+ * Loads pre-geocoded store locations dictionary
+ */
+export async function loadGeocodedLocations() {
+  if (geocodedLocationsMap) return geocodedLocationsMap;
+  if (geocodedLocationsPromise) return geocodedLocationsPromise;
+
+  geocodedLocationsPromise = (async () => {
+    try {
+      const res = await fetch('data/geocoded_locations.json');
+      if (res.ok) {
+        geocodedLocationsMap = await res.json();
+      }
+    } catch (e) {
+      console.warn('Could not load geocoded_locations.json:', e);
+    }
+    return geocodedLocationsMap || {};
+  })();
+
+  return geocodedLocationsPromise;
+}
+
+export function setGeocodedLocations(map) {
+  geocodedLocationsMap = map;
+}
+
+/**
+ * Returns precise latitude and longitude for any store.
+ * 1. Uses exact store lat/lng if available on store record.
+ * 2. Uses exact pre-geocoded address coordinates from geocoded dictionary.
+ * 3. Falls back to true city center with minimal micro-offset (less than 20m)
+ *    so stores in the same city are never placed onto false random streets.
  */
 export function getStoreCoordinates(store) {
   if (!store || !store.city) return null;
   const rawCity = store.city.trim();
   if (rawCity.toLowerCase() === 'online' || rawCity.includes('אונליין')) return null;
 
+  // 1. Direct coordinates on store record
+  if (store.lat && store.lng) {
+    const lat = Number(store.lat);
+    const lng = Number(store.lng);
+    if (!isNaN(lat) && !isNaN(lng) && lat > 29.3 && lat < 33.5 && lng > 34.1 && lng < 35.9) {
+      return {
+        lat,
+        lng,
+        cityLat: lat,
+        cityLng: lng,
+        isExact: true
+      };
+    }
+  }
+
+  // 2. Exact coordinates from geocoded database by store ID
+  if (geocodedLocationsMap && store.id) {
+    const g = geocodedLocationsMap[String(store.id)];
+    if (g && g.lat && g.lng) {
+      return {
+        lat: Number(g.lat),
+        lng: Number(g.lng),
+        cityLat: Number(g.lat),
+        cityLng: Number(g.lng),
+        isExact: true
+      };
+    }
+  }
+
+  // 3. Fallback to city coordinates
   let base = ISRAEL_CITIES_COORDS[rawCity];
   if (!base) {
     // Try fuzzy match
@@ -258,19 +319,20 @@ export function getStoreCoordinates(store) {
     base = { lat: 32.0853, lng: 34.7818 }; // Tel Aviv area fallback
   }
 
-  // Deterministic jitter based on store ID
+  // Tiny deterministic micro-offset (within 10-25 meters) so multiple stores at city center
+  // don't overlap completely on the exact same pixel, but never wander into wrong streets
   const idNum = Number(store.id) || 1;
   const angle = ((idNum * 137.5) % 360) * (Math.PI / 180);
-  // Radius ~ 100m to 1.2km (0.001 to 0.01 degrees)
-  const radius = 0.002 + ((idNum * 31) % 100) * 0.00008;
+  const microRadius = 0.00012 + ((idNum * 17) % 30) * 0.000004;
 
-  const latOffset = Math.sin(angle) * radius;
-  const lngOffset = Math.cos(angle) * radius * 1.15;
+  const latOffset = Math.sin(angle) * microRadius;
+  const lngOffset = Math.cos(angle) * microRadius * 1.15;
 
   return {
     lat: base.lat + latOffset,
     lng: base.lng + lngOffset,
     cityLat: base.lat,
-    cityLng: base.lng
+    cityLng: base.lng,
+    isExact: false
   };
 }

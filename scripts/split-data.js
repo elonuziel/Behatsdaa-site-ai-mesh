@@ -418,18 +418,40 @@ const searchIndexJson = JSON.stringify(searchIndexPayload);
 fs.writeFileSync(path.join(publicDataDir, 'search-index.json'), searchIndexJson);
 const searchIndexSizeKB = (Buffer.byteLength(searchIndexJson, 'utf-8') / 1024).toFixed(1);
 
+// Check and incorporate geocoded locations
+const geocodedFile = path.join(dataDir, 'geocoded_locations.json');
+let geocodedLocations = {};
+if (fs.existsSync(geocodedFile)) {
+  try {
+    geocodedLocations = JSON.parse(fs.readFileSync(geocodedFile, 'utf-8'));
+    fs.copyFileSync(geocodedFile, path.join(publicDataDir, 'geocoded_locations.json'));
+    console.log(`  📍 Loaded ${Object.keys(geocodedLocations).length} pre-geocoded store coordinates.`);
+  } catch (err) {
+    console.warn('  ⚠️ Failed reading geocoded_locations.json:', err.message);
+  }
+}
+
 // Dedicated billing index (loaded on-demand when accessing billing)
-const billingIndexStores = allBilling.map(b => ({
-  id: b.id,
-  name: b.name,
-  slug: b.slug,
-  city: b.city || 'online',
-  category: b.category || 'כללי',
-  discount: b.discount || 0,
-  address: b.address || '',
-  store_id: b.linked_store ? b.linked_store.id : null,
-  deals_count: (b.linked_deals || []).length
-}));
+const billingIndexStores = allBilling.map(b => {
+  const geo = geocodedLocations[String(b.id)];
+  if (geo && geo.lat && geo.lng) {
+    b.lat = geo.lat;
+    b.lng = geo.lng;
+  }
+  return {
+    id: b.id,
+    name: b.name,
+    slug: b.slug,
+    city: b.city || 'online',
+    category: b.category || 'כללי',
+    discount: b.discount || 0,
+    address: b.address || '',
+    lat: b.lat || null,
+    lng: b.lng || null,
+    store_id: b.linked_store ? b.linked_store.id : null,
+    deals_count: (b.linked_deals || []).length
+  };
+});
 
 const billingIndexPayload = {
   metadata: {
