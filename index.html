@@ -79,6 +79,11 @@
           <span class="hidden md:inline">מצב תצוגה</span>
         </button>
 
+        <button id="unhide-billing-toggle-btn" title="הצג/הסתר לשונית הנחות במעמד החיוב" class="flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 shadow-2xs transition text-xs font-semibold cursor-pointer">
+          <i data-lucide="eye" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+          <span id="unhide-billing-toggle-text" class="hidden sm:inline">הצג מעמד החיוב</span>
+        </button>
+
         <!-- GitHub Repo Link -->
         <a href="https://github.com/elonuziel/Behatsdaa-site-ai-mesh" id="repo-link" target="_blank" rel="noopener noreferrer" title="מאגר GitHub הרשמי" aria-label="מאגר GitHub הרשמי" class="flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition text-xs font-medium">
           <svg class="w-4 h-4 fill-current flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
@@ -117,7 +122,7 @@
           <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-400 text-amber-950 uppercase tracking-wider">מתחלף</span>
         </button>
 
-        <button id="tab-billing-btn" class="main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <button id="tab-billing-btn" class="main-tab-btn hidden items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
           <i data-lucide="credit-card" class="w-4 h-4"></i>
           <span>הנחות במעמד החיוב</span>
           <span id="tab-billing-count" class="text-xs px-2 py-0.5 rounded-full bg-purple-600 text-white font-semibold">0</span>
@@ -190,7 +195,7 @@
               <span>מבצעים:</span>
               <strong id="all-quick-deals-count">0</strong>
             </button>
-            <button type="button" id="all-quick-billing-btn" class="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 shadow-2xs" title="עבור ללשונית הנחות במעמד החיוב">
+            <button type="button" id="all-quick-billing-btn" class="hidden px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 shadow-2xs" title="עבור ללשונית הנחות במעמד החיוב">
               <i data-lucide="credit-card" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"></i>
               <span>במעמד חיוב:</span>
               <strong id="all-quick-billing-count">0</strong>
@@ -224,6 +229,24 @@
       <div id="all-tab-spinner" class="hidden text-center py-20 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8 space-y-3">
         <div class="w-10 h-10 border-4 border-indigo-200 dark:border-indigo-900 border-t-indigo-600 rounded-full animate-spin mx-auto"></div>
         <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">טוען נתונים מכל הלשוניות...</p>
+      </div>
+
+      <div id="all-billing-passive-notice" class="p-3.5 rounded-2xl bg-purple-50/80 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800/60 flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold flex-shrink-0">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-slate-900 dark:text-white">הטבת מעמד החיוב (Max) - בונוס אוטומטי סביל</h4>
+            <p class="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+              הנחה אוטומטית בדף החשבון בתשלום באשראי בהצדעה ב-10,000+ עסקים. הלשונית המלאה מוסתרת כברירת מחדל לשמירה על מהירות האתר.
+            </p>
+          </div>
+        </div>
+        <button id="all-unhide-billing-btn" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold transition cursor-pointer text-xs shadow-2xs whitespace-nowrap">
+          <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+          <span>הצג לשונית מעמד החיוב ומפה</span>
+        </button>
       </div>
 
       <!-- Section 1: Stores -->
@@ -317,7 +340,7 @@
       </section>
 
       <!-- Section 3: Billing -->
-      <section id="all-section-billing" class="space-y-3 pt-2">
+      <section id="all-section-billing" class="hidden space-y-3 pt-2">
         <div class="flex items-center justify-between flex-wrap gap-2 pb-1.5 border-b border-slate-200 dark:border-slate-800">
           <div class="flex items-center gap-2.5">
             <div class="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/80 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold shadow-2xs border border-purple-200 dark:border-purple-800/60">
@@ -1415,6 +1438,35 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <div id="billing-hidden-warning-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs hidden transition-opacity">
+    <div class="modal-content bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 text-right relative">
+      <button id="billing-warning-close-btn" class="absolute top-4 left-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-300 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="info" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-base text-slate-900 dark:text-white">לשונית מעמד החיוב מוסתרת</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">הנחה פסיבית אוטומטית בתשלום</p>
+        </div>
+      </div>
+      <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-purple-50/60 dark:bg-purple-950/30 p-3 rounded-xl border border-purple-100 dark:border-purple-900/50">
+        לשונית "הנחות במעמד החיוב" והמפה מוסתרות כברירת מחדל לשמירה על טעינה מהירה וקלילה. ההנחה מוחלת באופן אוטומטי בעת תשלום בכרטיס האשראי של בהצדעה בחנות.
+      </p>
+      <div class="pt-2 flex items-center justify-end gap-2">
+        <button id="billing-warning-dismiss-btn" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-medium transition">
+          הבנתי, סגור
+        </button>
+        <button id="billing-warning-unhide-btn" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-xs transition flex items-center gap-1.5">
+          <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+          <span>הצג לשונית ועבור לעסק</span>
+        </button>
+      </div>
     </div>
   </div>
 

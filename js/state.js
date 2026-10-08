@@ -57,10 +57,13 @@ export const state = {
   storesLoaded: false,
   dealsLoaded: false,
   billingLoaded: false,
+
+  // Billing Tab Visibility (Hidden by default for max performance)
+  isBillingUnhidden: false,
 };
 
 if (window.location.hash === '#deals') state.currentTab = 'deals';
-else if (window.location.hash === '#billing') state.currentTab = 'billing';
+else if (window.location.hash === '#billing') state.currentTab = 'all';
 else if (window.location.hash === '#stores') state.currentTab = 'stores';
 else if (window.location.hash === '#all') state.currentTab = 'all';
 else state.currentTab = 'all';
