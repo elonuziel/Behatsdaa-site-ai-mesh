@@ -123,6 +123,33 @@ async function runTests() {
   assert.ok(dealsSection.classList.contains('hidden'), 'Deals section should be hidden initially');
   assert.ok(initialBillingSection.classList.contains('hidden'), 'Billing section should be hidden initially');
 
+  // Verify billing tab D, quick stat button, and section are hidden by default
+  const tabBillingBtnEl = document.getElementById('tab-billing-btn');
+  const allSectionBillingEl = document.getElementById('all-section-billing');
+  const allQuickBillingBtnEl = document.getElementById('all-quick-billing-btn');
+  const allBillingPassiveNoticeEl = document.getElementById('all-billing-passive-notice');
+  assert.ok(tabBillingBtnEl.classList.contains('hidden'), 'tab-billing-btn should be hidden by default');
+  assert.ok(!tabBillingBtnEl.classList.contains('flex'), 'tab-billing-btn should not have flex by default');
+  assert.ok(allSectionBillingEl.classList.contains('hidden'), 'all-section-billing should be hidden by default');
+  assert.ok(allQuickBillingBtnEl.classList.contains('hidden'), 'all-quick-billing-btn should be hidden by default');
+  assert.ok(!allBillingPassiveNoticeEl.classList.contains('hidden'), 'all-billing-passive-notice should be visible by default');
+
+  // Verify unhide toggle button reveals and hides billing tab D
+  const unhideToggleBtn = document.getElementById('unhide-billing-toggle-btn');
+  if (unhideToggleBtn) {
+    unhideToggleBtn.click();
+    await new Promise(r => setTimeout(r, 50));
+    assert.ok(!tabBillingBtnEl.classList.contains('hidden'), 'tab-billing-btn should be visible after unhide');
+    assert.ok(tabBillingBtnEl.classList.contains('flex'), 'tab-billing-btn should have flex after unhide');
+    assert.ok(!allSectionBillingEl.classList.contains('hidden'), 'all-section-billing should be visible after unhide');
+
+    unhideToggleBtn.click();
+    await new Promise(r => setTimeout(r, 50));
+    assert.ok(tabBillingBtnEl.classList.contains('hidden'), 'tab-billing-btn should be hidden after re-hide');
+    assert.ok(!tabBillingBtnEl.classList.contains('flex'), 'tab-billing-btn should not have flex after re-hide');
+    assert.ok(allSectionBillingEl.classList.contains('hidden'), 'all-section-billing should be hidden after re-hide');
+  }
+
   // Verify all 3 sections are rendered simultaneously in Tab All
   const allStoreCards = document.querySelectorAll('#all-stores-grid .store-card');
   const allDealCards = document.querySelectorAll('#all-deals-grid .deal-card');

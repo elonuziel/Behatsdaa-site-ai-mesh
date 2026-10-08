@@ -59,7 +59,7 @@ export const state = {
   billingLoaded: false,
 
   // Billing Tab Visibility (Hidden by default for max performance)
-  isBillingUnhidden: false,
+  isBillingUnhidden: (typeof localStorage !== 'undefined' && localStorage.getItem('behatsdaa_billing_unhidden') === 'true') || false,
 };
 
 if (window.location.hash === '#deals') state.currentTab = 'deals';

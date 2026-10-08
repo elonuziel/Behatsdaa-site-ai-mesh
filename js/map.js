@@ -4,7 +4,8 @@
  */
 
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
-import { MarkerClusterer } from '@googlemaps/markerclusterer';
+import * as markerClustererPkg from '@googlemaps/markerclusterer';
+const MarkerClusterer = markerClustererPkg.MarkerClusterer || (markerClustererPkg['default'] && markerClustererPkg['default'].MarkerClusterer) || markerClustererPkg['default'];
 import { getStoreCoordinates, loadGeocodedLocations } from './israel_cities.js';
 
 // Configuration
