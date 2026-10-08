@@ -479,7 +479,7 @@ export function openBillingModal(store, elements, callbacks) {
   }
 
   elements.billingModal.classList.remove('hidden');
-  if (window.lucide) lucide.createIcons();
+  if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
 }
 
 export function closeBillingModal(billingModal) {

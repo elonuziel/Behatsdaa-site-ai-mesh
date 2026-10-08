@@ -444,7 +444,7 @@ function populateDealModal(deal, elements, callbacks) {
 
   elements.dealModalBuyLink.href = deal.url || `https://www.behatsdaa.org.il/category/productPage/${deal.id}`;
   elements.dealModal.classList.remove('hidden');
-  if (window.lucide) lucide.createIcons();
+  if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
 }
 
 export function openDealModal(deal, elements, callbacks) {

@@ -346,8 +346,8 @@ function renderAllTab() {
   }
   if (allBillingEmpty) allBillingEmpty.classList.toggle('hidden', !state.billingLoaded || billing.length > 0);
 
-  if (window.lucide) {
-    lucide.createIcons({ root: allTabSection });
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons({ root: allTabSection });
   }
 }
 
@@ -394,9 +394,9 @@ function renderStores() {
     storesLoadMoreContainer.classList.toggle('hidden', state.storesVisibleCount >= filtered.length);
   }
 
-  if (window.lucide) {
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
     const root = state.currentView === 'grid' ? cardsView : tableView;
-    if (root) lucide.createIcons({ root });
+    if (root) window.lucide.createIcons({ root });
   }
 }
 
@@ -446,9 +446,9 @@ function renderDeals() {
     dealsLoadMoreContainer.classList.toggle('hidden', state.dealsVisibleCount >= filtered.length);
   }
 
-  if (window.lucide) {
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
     const root = state.currentView === 'grid' ? dealsGrid : dealsTableView;
-    if (root) lucide.createIcons({ root });
+    if (root) window.lucide.createIcons({ root });
   }
 }
 
@@ -498,9 +498,9 @@ function renderBillingStores() {
     billingLoadMoreContainer.classList.toggle('hidden', state.billingVisibleCount >= filtered.length);
   }
 
-  if (window.lucide) {
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
     const root = state.currentView === 'grid' ? billingGrid : billingTableView;
-    if (root) lucide.createIcons({ root });
+    if (root) window.lucide.createIcons({ root });
   }
 }
 
@@ -682,7 +682,10 @@ function switchTab(tab, options = {}) {
     }
   }
 
-  window.location.hash = tab === 'deals' ? 'deals' : (tab === 'billing' ? 'billing' : (tab === 'stores' ? 'stores' : 'all'));
+  const targetHash = tab === 'deals' ? '#deals' : (tab === 'billing' ? '#billing' : (tab === 'stores' ? '#stores' : '#all'));
+  if (window.location.hash !== targetHash) {
+    window.location.hash = targetHash;
+  }
 
   const inactiveClass = 'main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800';
   if (tabAllBtn) tabAllBtn.className = inactiveClass;
@@ -978,47 +981,67 @@ if (allClearFiltersBtn) {
   });
 }
 
+function handleJumpToTab(tab) {
+  switchTab(tab, { preserveSearch: true });
+  if (typeof window.scrollTo === 'function') {
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
+  }
+}
+
 if (allJumpStoresBtn) {
-  allJumpStoresBtn.addEventListener('click', () => {
-    switchTab('stores', { preserveSearch: true });
-    storesTabSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  allJumpStoresBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleJumpToTab('stores');
   });
 }
 
 if (allJumpDealsBtn) {
-  allJumpDealsBtn.addEventListener('click', () => {
-    switchTab('deals', { preserveSearch: true });
-    dealsTabSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  allJumpDealsBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleJumpToTab('deals');
   });
 }
 
 if (allJumpBillingBtn) {
-  allJumpBillingBtn.addEventListener('click', () => {
-    switchTab('billing', { preserveSearch: true });
-    if (billingTabSection) billingTabSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  allJumpBillingBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleJumpToTab('billing');
   });
 }
 
 if (allQuickStoresBtn) {
-  allQuickStoresBtn.addEventListener('click', () => {
-    switchTab('stores', { preserveSearch: true });
+  allQuickStoresBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleJumpToTab('stores');
   });
 }
 
 if (allQuickDealsBtn) {
-  allQuickDealsBtn.addEventListener('click', () => {
-    switchTab('deals', { preserveSearch: true });
+  allQuickDealsBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleJumpToTab('deals');
   });
 }
 
 if (allQuickBillingBtn) {
-  allQuickBillingBtn.addEventListener('click', () => {
-    switchTab('billing', { preserveSearch: true });
+  allQuickBillingBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleJumpToTab('billing');
   });
 }
 
 if (allWalletsGuideBtn) {
-  allWalletsGuideBtn.addEventListener('click', openWalletsModal);
+  allWalletsGuideBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openWalletsModal();
+  });
 }
 
 searchInput.addEventListener('input', (e) => {
@@ -1282,25 +1305,34 @@ function renderWalletsModalCards(walletsInfo) {
     `;
   }).join('');
 
-  if (window.lucide) lucide.createIcons();
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
 }
 
 async function openWalletsModal() {
   if (!walletsModal) return;
   walletsModal.classList.remove('hidden');
-  if (window.lucide) lucide.createIcons();
+  document.body.style.overflow = 'hidden';
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
 
   if (!state.walletsInfo) {
+    if (walletsModalCardsGrid && walletsModalCardsGrid.children.length === 0) {
+      walletsModalCardsGrid.innerHTML = '<div class="col-span-full py-6 text-center text-xs text-slate-400">טוען נתוני כרטיסים ותקרות...</div>';
+    }
     await fetchWalletsInfo();
   }
 
-  if (state.walletsInfo && walletsModalCardsGrid && walletsModalCardsGrid.children.length === 0) {
+  if (state.walletsInfo && walletsModalCardsGrid) {
     renderWalletsModalCards(state.walletsInfo);
   }
 }
 
 function closeWalletsModal() {
   if (walletsModal) walletsModal.classList.add('hidden');
+  document.body.style.overflow = '';
 }
 
 if (walletsGuideBtn) walletsGuideBtn.addEventListener('click', openWalletsModal);
@@ -1374,6 +1406,39 @@ if (billingLoadMoreBtn) {
 
 // Global Event Delegation
 document.addEventListener('click', (e) => {
+  // Section jump buttons & quick stats buttons delegation
+  const jumpStoresBtn = e.target.closest('#all-jump-stores-btn, [data-action="jump-stores"], #all-quick-stores-btn');
+  if (jumpStoresBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    handleJumpToTab('stores');
+    return;
+  }
+
+  const jumpDealsBtn = e.target.closest('#all-jump-deals-btn, [data-action="jump-deals"], #all-quick-deals-btn');
+  if (jumpDealsBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    handleJumpToTab('deals');
+    return;
+  }
+
+  const jumpBillingBtn = e.target.closest('#all-jump-billing-btn, [data-action="jump-billing"], #all-quick-billing-btn');
+  if (jumpBillingBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    handleJumpToTab('billing');
+    return;
+  }
+
+  // Wallets guide modal buttons delegation
+  const walletsBtn = e.target.closest('#all-wallets-guide-btn, [data-action="open-wallets-guide"], #wallets-guide-btn, #store-modal-wallets-info-btn');
+  if (walletsBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    openWalletsModal();
+    return;
+  }
   const dealBadge = e.target.closest('[data-action="view-linked-deal"]');
   if (dealBadge) {
     e.stopPropagation();
@@ -1465,6 +1530,8 @@ document.addEventListener('keydown', (e) => {
 
 // Initialize
 initTheme();
-if (window.lucide) lucide.createIcons();
+if (window.lucide && typeof window.lucide.createIcons === 'function') {
+  window.lucide.createIcons();
+}
 switchTab(state.currentTab);
 loadAllData();

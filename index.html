@@ -81,7 +81,9 @@
 
         <!-- GitHub Repo Link -->
         <a href="https://github.com/elonuziel/Behatsdaa-site-ai-mesh" id="repo-link" target="_blank" rel="noopener noreferrer" title="מאגר GitHub הרשמי" aria-label="מאגר GitHub הרשמי" class="flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition text-xs font-medium">
-          <i data-lucide="github" class="w-4 h-4"></i>
+          <svg class="w-4 h-4 fill-current flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+          </svg>
           <span class="hidden md:inline">קוד פתוח</span>
         </a>
       </div>
@@ -209,7 +211,7 @@
             </span>
           </div>
           <div class="flex items-center gap-3">
-            <button id="all-wallets-guide-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 font-semibold transition cursor-pointer shadow-xs">
+            <button id="all-wallets-guide-btn" type="button" data-action="open-wallets-guide" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 font-semibold transition cursor-pointer shadow-xs">
               <i data-lucide="wallet" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
               <span>מדריך תקרות טעינה וכללי כרטיסים</span>
             </button>
@@ -239,7 +241,7 @@
               <p class="text-xs text-slate-500 dark:text-slate-400">הנחות בטעינת כרטיסי מועדון בהצדעה ברשתות נבחרות</p>
             </div>
           </div>
-          <button id="all-jump-stores-btn" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 text-xs font-semibold transition cursor-pointer shadow-xs">
+          <button id="all-jump-stores-btn" type="button" data-action="jump-stores" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 text-xs font-semibold transition cursor-pointer shadow-xs">
             <span id="all-jump-stores-text">הצג את כל הרשתות</span>
             <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
           </button>
@@ -284,7 +286,7 @@
               <p class="text-xs text-slate-500 dark:text-slate-400">שוברים, אטרקציות וקופונים בהנחות עמוקות באתר</p>
             </div>
           </div>
-          <button id="all-jump-deals-btn" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 text-xs font-semibold transition cursor-pointer shadow-xs">
+          <button id="all-jump-deals-btn" type="button" data-action="jump-deals" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 text-xs font-semibold transition cursor-pointer shadow-xs">
             <span id="all-jump-deals-text">הצג את כל המבצעים</span>
             <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
           </button>
@@ -329,7 +331,7 @@
               <p class="text-xs text-slate-500 dark:text-slate-400">הנחה אוטומטית בדף החשבון בתשלום בכרטיס האשראי של בהצדעה</p>
             </div>
           </div>
-          <button id="all-jump-billing-btn" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 text-xs font-semibold transition cursor-pointer shadow-xs">
+          <button id="all-jump-billing-btn" type="button" data-action="jump-billing" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 text-xs font-semibold transition cursor-pointer shadow-xs">
             <span id="all-jump-billing-text">הצג את כל העסקים</span>
             <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
           </button>
@@ -588,8 +590,8 @@
           <!-- Max Price Presets (MD: 2 cols) -->
           <div class="md:col-span-2">
             <div class="relative">
-              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                <i data-lucide="shekel" class="w-4 h-4"></i>
+              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 font-bold text-xs">
+                <span>₪</span>
               </div>
               <select id="deals-price-filter-select" class="w-full pr-9 pl-8 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer">
                 <option value="all">כל המחירים</option>
@@ -1288,50 +1290,35 @@
   <!-- Footer -->
   <footer class="mt-12 border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-500 dark:text-slate-400 space-y-3">
     <div class="flex flex-wrap items-center justify-center gap-3">
-      <a href="https://www.behatsdaa.org.il/" target="_blank" class="hover:text-blue-600 dark:hover:text-blue-400 inline-flex items-center gap-1">
+      <a href="https://www.behatsdaa.org.il/" target="_blank" rel="noopener noreferrer" class="hover:text-blue-600 dark:hover:text-blue-400 inline-flex items-center gap-1">
         <span>אתר בהצדעה הרשמי</span>
         <i data-lucide="external-link" class="w-3 h-3"></i>
       </a>
       <span>•</span>
-      <a href="https://be-plus.co.il/" target="_blank" class="hover:text-purple-600 dark:hover:text-purple-400 inline-flex items-center gap-1">
+      <a href="https://be-plus.co.il/" target="_blank" rel="noopener noreferrer" class="hover:text-purple-600 dark:hover:text-purple-400 inline-flex items-center gap-1">
         <span>פורטל Be-Plus (מעמד החיוב)</span>
         <i data-lucide="external-link" class="w-3 h-3"></i>
       </a>
       <span>•</span>
-      <a href="data/stores.csv" download class="hover:text-blue-600 dark:hover:text-blue-400 inline-flex items-center gap-1">
-        <i data-lucide="download" class="w-3 h-3"></i>
-        <span>רשתות (CSV)</span>
+      <a href="data/stores.csv" download="behatsdaa-stores.csv" class="hover:text-blue-600 dark:hover:text-blue-400 inline-flex items-center gap-1 font-medium bg-blue-50/60 dark:bg-blue-950/30 px-2.5 py-1 rounded-lg border border-blue-200/60 dark:border-blue-900/40">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        <span>הורדת רשתות (CSV)</span>
       </a>
       <span>•</span>
-      <a href="data/stores.json" target="_blank" class="hover:text-blue-600 dark:hover:text-blue-400 inline-flex items-center gap-1">
-        <i data-lucide="file-code" class="w-3 h-3"></i>
-        <span>רשתות (JSON)</span>
+      <a href="data/deals.csv" download="behatsdaa-deals.csv" class="hover:text-emerald-600 dark:hover:text-emerald-400 inline-flex items-center gap-1 font-medium bg-emerald-50/60 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg border border-emerald-200/60 dark:border-emerald-900/40">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        <span>הורדת מבצעים ושוברים (CSV)</span>
       </a>
       <span>•</span>
-      <a href="data/deals.csv" download class="hover:text-emerald-600 dark:hover:text-emerald-400 inline-flex items-center gap-1 font-medium">
-        <i data-lucide="download" class="w-3 h-3"></i>
-        <span>מבצעים ושוברים (CSV)</span>
-      </a>
-      <span>•</span>
-      <a href="data/deals.json" target="_blank" class="hover:text-emerald-600 dark:hover:text-emerald-400 inline-flex items-center gap-1 font-medium">
-        <i data-lucide="file-code" class="w-3 h-3"></i>
-        <span>מבצעים ושוברים (JSON)</span>
-      </a>
-      <span>•</span>
-      <a href="data/billing_stores.csv" download class="hover:text-purple-600 dark:hover:text-purple-400 inline-flex items-center gap-1 font-medium">
-        <i data-lucide="download" class="w-3 h-3"></i>
-        <span>מעמד החיוב (CSV)</span>
-      </a>
-      <span>•</span>
-      <a href="data/billing_stores.json" target="_blank" class="hover:text-purple-600 dark:hover:text-purple-400 inline-flex items-center gap-1 font-medium">
-        <i data-lucide="file-code" class="w-3 h-3"></i>
-        <span>מעמד החיוב (JSON)</span>
+      <a href="data/billing_stores.csv" download="behatsdaa-billing-stores.csv" class="hover:text-purple-600 dark:hover:text-purple-400 inline-flex items-center gap-1 font-medium bg-purple-50/60 dark:bg-purple-950/30 px-2.5 py-1 rounded-lg border border-purple-200/60 dark:border-purple-900/40">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        <span>הורדת מעמד החיוב (CSV)</span>
       </a>
     </div>
     <p>אתר זה נועד לסייע למשרתי מילואים וזכאי בהצדעה באיתור מהיר של חנויות, כרטיסים נטענים, מבצעים שווים והנחות במעמד החיוב.</p>
   </footer>
 
   <!-- App Script -->
-  <script type="module" src="app.js?v=3.0"></script>
+  <script type="module" src="app.js?v=3.1"></script>
 </body>
 </html>

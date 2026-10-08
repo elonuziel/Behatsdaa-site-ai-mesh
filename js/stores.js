@@ -370,7 +370,7 @@ function populateStoreModal(store, elements, callbacks) {
 
   elements.modalConditions.textContent = store.conditions || 'לא צוינו תנאים מיוחדים מעבר לתקנון הכללי של המועדון.';
   elements.storeModal.classList.remove('hidden');
-  if (window.lucide) lucide.createIcons();
+  if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
 }
 
 export function openStoreModal(store, elements, callbacks) {
