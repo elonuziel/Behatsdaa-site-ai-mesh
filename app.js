@@ -1574,7 +1574,7 @@ function showBillingMapError(err) {
 function scrollToBillingStore(store) {
   if (!store || !store.id) return;
 
-  // If map is currently maximized, minimize it so the user sees the store cards/table
+  // 1. If map is currently maximized, minimize it so the user sees the store cards/table
   if (billingMapWrapper && billingMapWrapper.classList.contains('fixed')) {
     toggleMapMaximize(billingMapWrapper);
     if (billingMapMaximizeText) billingMapMaximizeText.textContent = 'הגדל מפה';
@@ -1586,28 +1586,69 @@ function scrollToBillingStore(store) {
     }
   }
 
-  // Ensure store is rendered even if it's beyond the current visible pagination slice
-  const filtered = getFilteredBillingStores();
-  const storeIndex = filtered.findIndex(s => String(s.id) === String(store.id));
+  // 2. Ensure user is on the billing tab
+  if (state.currentTab !== 'billing') {
+    switchTab('billing');
+  }
+
+  // 3. Ensure the store is not hidden by an active category or search filter
+  let filtered = getFilteredBillingStores();
+  let storeIndex = filtered.findIndex(s => String(s.id) === String(store.id));
+
+  let needsReRender = false;
+  if (storeIndex === -1) {
+    // If filtered out by search, clear search
+    if (state.billingSearchQuery) {
+      state.billingSearchQuery = '';
+      if (billingSearchInput) billingSearchInput.value = '';
+      if (clearBillingSearchBtn) clearBillingSearchBtn.classList.add('hidden');
+      needsReRender = true;
+    }
+    // If filtered out by category, reset to 'all'
+    if (state.currentBillingCategory !== 'all' && (store.category || 'כללי') !== state.currentBillingCategory) {
+      state.currentBillingCategory = 'all';
+      if (billingCategoryChipsContainer) updateBillingCategoryChips(billingCategoryChipsContainer);
+      needsReRender = true;
+    }
+    // If filtered out by city, match the store's city
+    if (state.currentBillingCity !== 'all' && store.city && state.currentBillingCity !== store.city) {
+      state.currentBillingCity = store.city;
+      if (billingCitySelect) billingCitySelect.value = store.city;
+      needsReRender = true;
+    }
+
+    filtered = getFilteredBillingStores();
+    storeIndex = filtered.findIndex(s => String(s.id) === String(store.id));
+  }
+
+  // 4. Expand visible count to show the store if beyond current page
   if (storeIndex !== -1 && storeIndex >= state.billingVisibleCount) {
-    state.billingVisibleCount = Math.min(filtered.length, storeIndex + 12);
+    state.billingVisibleCount = Math.min(filtered.length, storeIndex + 16);
+    needsReRender = true;
+  }
+
+  if (needsReRender) {
     renderBillingStores();
   }
 
-  // Find store card or row
-  setTimeout(() => {
+  // 5. Scroll smoothly to store card or table row and highlight with glow
+  const attemptScroll = (retries = 3) => {
     const selector = `[data-billing-id="${store.id}"]`;
     const el = document.querySelector(selector);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-      // Highlight animation with purple glow
-      el.classList.add('ring-4', 'ring-purple-500', 'ring-offset-2', 'shadow-2xl', 'scale-[1.02]', 'transition-all', 'duration-300', 'z-10');
+      // Highlight animation with vivid purple glow ring
+      el.classList.add('ring-4', 'ring-purple-600', 'ring-offset-2', 'shadow-2xl', 'scale-[1.03]', 'transition-all', 'duration-300', 'z-20');
       setTimeout(() => {
-        el.classList.remove('ring-4', 'ring-purple-500', 'ring-offset-2', 'shadow-2xl', 'scale-[1.02]', 'z-10');
-      }, 2500);
+        el.classList.remove('ring-4', 'ring-purple-600', 'ring-offset-2', 'shadow-2xl', 'scale-[1.03]', 'z-20');
+      }, 3000);
+    } else if (retries > 0) {
+      setTimeout(() => attemptScroll(retries - 1), 80);
     }
-  }, 60);
+  };
+
+  setTimeout(() => attemptScroll(3), 60);
 }
 
 async function updateBillingMap(stores) {

@@ -325,12 +325,57 @@ export async function updateMapMarkers(stores, options = {}) {
   let hasValidCoords = false;
 
   const markers = [];
+  let topZIndexCounter = 3000;
+  let activeBadgeElement = null;
+
+  // Group stores by identical/near-identical location so stores in the same building (e.g. malls, towers)
+  // never completely cover one another.
+  const locationGroups = new Map();
+  const storesWithCoords = [];
 
   storesToPlot.forEach(store => {
     const coords = getStoreCoordinates(store);
     if (!coords) return;
 
-    bounds.extend({ lat: coords.lat, lng: coords.lng });
+    // Use precise coordinate key rounded to ~10m
+    const coordKey = `${coords.lat.toFixed(5)}_${coords.lng.toFixed(5)}`;
+    if (!locationGroups.has(coordKey)) {
+      locationGroups.set(coordKey, []);
+    }
+    const group = locationGroups.get(coordKey);
+    const indexInGroup = group.length;
+    group.push(store);
+
+    storesWithCoords.push({
+      store,
+      coords,
+      coordKey,
+      indexInGroup
+    });
+  });
+
+  storesWithCoords.forEach(({ store, coords, coordKey, indexInGroup }) => {
+    const group = locationGroups.get(coordKey);
+    const groupCount = group ? group.length : 1;
+
+    let markerLat = coords.lat;
+    let markerLng = coords.lng;
+
+    // Fan-out/offset identical building coordinates slightly so both badges are visible side-by-side
+    if (groupCount > 1) {
+      if (groupCount === 2) {
+        const offset = indexInGroup === 0 ? -0.00018 : 0.00018;
+        markerLng += offset * 1.15;
+        markerLat += (indexInGroup === 0 ? -0.00004 : 0.00004);
+      } else {
+        const angle = (indexInGroup / groupCount) * 2 * Math.PI;
+        const radius = 0.00022; // ~20 meters
+        markerLat += Math.sin(angle) * radius * 0.75;
+        markerLng += Math.cos(angle) * radius * 1.15;
+      }
+    }
+
+    bounds.extend({ lat: markerLat, lng: markerLng });
     hasValidCoords = true;
 
     // Format exact address cleanly
@@ -347,10 +392,10 @@ export async function updateMapMarkers(stores, options = {}) {
 
     // Custom HTML pin marker showing Store Name, Exact Address & Discount %
     const badgeEl = document.createElement('div');
-    badgeEl.className = 'group relative flex flex-col items-center cursor-pointer select-none transition-all duration-150 hover:z-50 hover:scale-105 active:scale-95';
+    badgeEl.className = 'group relative flex flex-col items-center cursor-pointer select-none transition-transform duration-150 hover:scale-105 active:scale-95';
     badgeEl.setAttribute('dir', 'rtl');
     badgeEl.innerHTML = `
-      <div class="flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs text-slate-800 dark:text-slate-100 px-2 py-1 rounded-xl shadow-md border border-purple-300 dark:border-purple-700 hover:border-purple-500 hover:shadow-lg max-w-[210px] text-right font-sans transition-all">
+      <div class="pin-card-wrapper flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs text-slate-800 dark:text-slate-100 px-2 py-1 rounded-xl shadow-md border border-purple-300 dark:border-purple-700 hover:border-purple-500 hover:shadow-lg max-w-[210px] text-right font-sans transition-all">
         <div class="flex-shrink-0 bg-purple-600 text-white font-black text-[11px] px-1.5 py-0.5 rounded-lg tracking-tight shadow-xs flex items-center justify-center">
           <span>${escapeHtml(String(store.discount || 5))}%</span>
         </div>
@@ -363,13 +408,31 @@ export async function updateMapMarkers(stores, options = {}) {
     `;
 
     const marker = new AdvancedMarkerElement({
-      position: { lat: coords.lat, lng: coords.lng },
+      position: { lat: markerLat, lng: markerLng },
       title: `${store.name}${exactAddress ? ' - ' + exactAddress : ''} (${store.discount || 5}%)`,
-      content: badgeEl
+      content: badgeEl,
+      zIndex: 100 + indexInGroup
     });
 
-    // Marker click event opens rich InfoWindow and triggers scroll to store in store list
-    const onMarkerClick = () => {
+    const activateMarkerAndSelect = () => {
+      // 1. Immediately bring to the very top above all other markers
+      marker.zIndex = ++topZIndexCounter;
+      badgeEl.style.zIndex = String(topZIndexCounter);
+
+      // Highlight active pin
+      if (activeBadgeElement && activeBadgeElement !== badgeEl) {
+        const prevCard = activeBadgeElement.querySelector('.pin-card-wrapper');
+        if (prevCard) {
+          prevCard.classList.remove('ring-2', 'ring-purple-600', 'border-purple-600', 'shadow-2xl', 'bg-purple-50', 'dark:bg-purple-950/70');
+        }
+      }
+      activeBadgeElement = badgeEl;
+      const currentCard = badgeEl.querySelector('.pin-card-wrapper');
+      if (currentCard) {
+        currentCard.classList.add('ring-2', 'ring-purple-600', 'border-purple-600', 'shadow-2xl', 'bg-purple-50', 'dark:bg-purple-950/70');
+      }
+
+      // 2. Open rich InfoWindow
       const addressText = exactAddress || store.city || '';
       const navUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((store.name || '') + ' ' + (addressText || ''))}`;
 
@@ -420,16 +483,38 @@ export async function updateMapMarkers(stores, options = {}) {
         }
       }, 50);
 
-      // Trigger scroll to store in store list
+      // 3. Scroll to store in store list below map
       if (onMarkerClickCallback) {
         onMarkerClickCallback(store);
       }
     };
 
+    // Bring marker to top on hover
+    badgeEl.addEventListener('mouseenter', () => {
+      marker.zIndex = ++topZIndexCounter;
+      badgeEl.style.zIndex = String(topZIndexCounter);
+    });
+
+    // Handle clicks directly on the DOM element and through Google Maps event
+    let lastActionTime = 0;
+    const onTrigger = (e) => {
+      if (e) {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+      }
+      const now = Date.now();
+      if (now - lastActionTime < 180) return;
+      lastActionTime = now;
+      activateMarkerAndSelect();
+    };
+
+    badgeEl.addEventListener('click', onTrigger);
+    badgeEl.addEventListener('pointerup', onTrigger);
+
     if (typeof marker.addEventListener === 'function') {
-      marker.addEventListener('gmp-click', onMarkerClick);
+      marker.addEventListener('gmp-click', onTrigger);
     } else if (typeof marker.addListener === 'function') {
-      marker.addListener('click', onMarkerClick);
+      marker.addListener('click', onTrigger);
     }
 
     markers.push(marker);
