@@ -849,11 +849,15 @@ const billingModalCallbacks = {
   }
 };
 
+let billingLoadingPromise = null;
+
 // Data Loading Initialization
 function startLoadBilling() {
-  if (state.billingLoaded || state._loadingBilling) return Promise.resolve();
+  if (state.billingLoaded) return Promise.resolve();
+  if (billingLoadingPromise) return billingLoadingPromise;
+
   state._loadingBilling = true;
-  return loadBilling(() => {
+  billingLoadingPromise = loadBilling(() => {
     if (totalBillingCountEl) totalBillingCountEl.textContent = state.allBillingStores.length.toLocaleString('he-IL');
     if (tabBillingCount) tabBillingCount.textContent = state.allBillingStores.length.toLocaleString('he-IL');
 
@@ -875,7 +879,12 @@ function startLoadBilling() {
     }
 
     onDatasetsLoaded();
+  }).finally(() => {
+    state._loadingBilling = false;
+    billingLoadingPromise = null;
   });
+
+  return billingLoadingPromise;
 }
 
 async function loadAllData() {
@@ -1562,6 +1571,45 @@ function showBillingMapError(err) {
   }
 }
 
+function scrollToBillingStore(store) {
+  if (!store || !store.id) return;
+
+  // If map is currently maximized, minimize it so the user sees the store cards/table
+  if (billingMapWrapper && billingMapWrapper.classList.contains('fixed')) {
+    toggleMapMaximize(billingMapWrapper);
+    if (billingMapMaximizeText) billingMapMaximizeText.textContent = 'הגדל מפה';
+    if (billingMapMaximizeIcon) {
+      billingMapMaximizeIcon.setAttribute('data-lucide', 'maximize-2');
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons({ root: billingMapMaximizeBtn });
+      }
+    }
+  }
+
+  // Ensure store is rendered even if it's beyond the current visible pagination slice
+  const filtered = getFilteredBillingStores();
+  const storeIndex = filtered.findIndex(s => String(s.id) === String(store.id));
+  if (storeIndex !== -1 && storeIndex >= state.billingVisibleCount) {
+    state.billingVisibleCount = Math.min(filtered.length, storeIndex + 12);
+    renderBillingStores();
+  }
+
+  // Find store card or row
+  setTimeout(() => {
+    const selector = `[data-billing-id="${store.id}"]`;
+    const el = document.querySelector(selector);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // Highlight animation with purple glow
+      el.classList.add('ring-4', 'ring-purple-500', 'ring-offset-2', 'shadow-2xl', 'scale-[1.02]', 'transition-all', 'duration-300', 'z-10');
+      setTimeout(() => {
+        el.classList.remove('ring-4', 'ring-purple-500', 'ring-offset-2', 'shadow-2xl', 'scale-[1.02]', 'z-10');
+      }, 2500);
+    }
+  }, 60);
+}
+
 async function updateBillingMap(stores) {
   if (!billingMapCanvas) return;
   if (billingMapLoading) billingMapLoading.classList.remove('hidden');
@@ -1572,6 +1620,9 @@ async function updateBillingMap(stores) {
   try {
     if (!isMapReady()) {
       await initBillingMap(billingMapCanvas, {
+        onMarkerClick: (store) => {
+          scrollToBillingStore(store);
+        },
         onStoreSelect: (store) => {
           openBillingModal(store, billingModalElements, billingModalCallbacks);
         },
@@ -1593,6 +1644,15 @@ async function updateBillingMap(stores) {
         }
       });
     }
+
+    setMapCallbacks({
+      onMarkerClick: (store) => {
+        scrollToBillingStore(store);
+      },
+      onStoreSelect: (store) => {
+        openBillingModal(store, billingModalElements, billingModalCallbacks);
+      }
+    });
 
     // Apply 'Only Show High Discounts' toggle if enabled
     let storesToMap = stores || [];
@@ -1711,11 +1771,12 @@ if (billingMapRecenterBtn) {
 
 // Retry Google Maps loading
 if (billingMapRetryBtn) {
-  billingMapRetryBtn.addEventListener('click', () => {
+  billingMapRetryBtn.addEventListener('click', async () => {
     if (billingMapErrorOverlay) billingMapErrorOverlay.classList.add('hidden');
     if (billingMapLoading) billingMapLoading.classList.remove('hidden');
+    if (!state.billingLoaded) await startLoadBilling();
     const filtered = getFilteredBillingStores();
-    updateBillingMap(filtered);
+    await updateBillingMap(filtered);
   });
 }
 

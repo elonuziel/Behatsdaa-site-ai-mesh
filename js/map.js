@@ -19,13 +19,24 @@ let currentMarkers = [];
 let infoWindowInstance = null;
 let userLocationMarker = null;
 let isMapInitialized = false;
-let isMapLoading = false;
+let mapInitPromise = null;
 let isMaximized = false;
 let onStoreSelectCallback = null;
+let onMarkerClickCallback = null;
 let onBoundsChangeCallback = null;
 let onMapErrorCallback = null;
 let latestValidBounds = null;
 let idleListener = null;
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 // Global auth failure handler for Google Maps Platform
 if (typeof window !== 'undefined') {
@@ -51,6 +62,7 @@ setOptions({
  */
 export function setMapCallbacks(callbacks = {}) {
   if (callbacks.onStoreSelect !== undefined) onStoreSelectCallback = callbacks.onStoreSelect;
+  if (callbacks.onMarkerClick !== undefined) onMarkerClickCallback = callbacks.onMarkerClick;
   if (callbacks.onBoundsChange !== undefined) onBoundsChangeCallback = callbacks.onBoundsChange;
   if (callbacks.onError !== undefined) onMapErrorCallback = callbacks.onError;
 }
@@ -59,100 +71,123 @@ export function setMapCallbacks(callbacks = {}) {
  * Initialize Google Maps instance lazily into target container
  */
 export async function initBillingMap(containerElement, options = {}) {
-  if (isMapInitialized && mapInstance) return mapInstance;
-  if (isMapLoading) return null;
-
-  isMapLoading = true;
   if (options.onStoreSelect) onStoreSelectCallback = options.onStoreSelect;
+  if (options.onMarkerClick) onMarkerClickCallback = options.onMarkerClick;
   if (options.onBoundsChange) onBoundsChangeCallback = options.onBoundsChange;
   if (options.onError) onMapErrorCallback = options.onError;
 
-  try {
-    const { Map, InfoWindow } = await importLibrary('maps');
-    const { AdvancedMarkerElement } = await importLibrary('marker');
-    const { LatLngBounds } = await importLibrary('core');
-
-    // Ensure AdvancedMarkerElement delegates addListener calls (e.g., from MarkerClusterer)
-    // to addEventListener to avoid deprecation warnings in Google Maps API
-    if (AdvancedMarkerElement && AdvancedMarkerElement.prototype) {
-      const origAddListener = AdvancedMarkerElement.prototype.addListener;
-      AdvancedMarkerElement.prototype.addListener = function (eventName, handler) {
-        if (typeof this.addEventListener === 'function') {
-          const gmpEvent = eventName.startsWith('gmp-') ? eventName : (eventName === 'click' ? 'gmp-click' : eventName);
-          this.addEventListener(gmpEvent, handler);
-          return {
-            remove: () => this.removeEventListener(gmpEvent, handler)
-          };
-        }
-        if (typeof origAddListener === 'function') {
-          return origAddListener.call(this, eventName, handler);
-        }
-      };
-    }
-
-    const controlPos = window.google?.maps?.ControlPosition?.LEFT_BOTTOM ?? 9;
-
-    mapInstance = new Map(containerElement, {
-      center: { lat: 31.85, lng: 34.85 }, // Center of central Israel
-      zoom: 10,
-      mapId: MAP_ID,
-      internalUsageAttributionIds: [ATTRIBUTION_ID],
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: false,
-      gestureHandling: 'greedy',
-      zoomControl: true,
-      zoomControlOptions: {
-        position: controlPos
+  if (isMapInitialized && mapInstance) {
+    // If container was previously hidden or resized, trigger resize event
+    setTimeout(() => {
+      if (mapInstance && window.google?.maps?.event) {
+        google.maps.event.trigger(mapInstance, 'resize');
       }
-    });
-
-    infoWindowInstance = new InfoWindow({
-      disableAutoPan: false
-    });
-
-    if (typeof MarkerClusterer === 'function') {
-      try {
-        markerClustererInstance = new MarkerClusterer({
-          map: mapInstance,
-          markers: []
-        });
-      } catch (clusterErr) {
-        console.warn('MarkerClusterer init skipped:', clusterErr);
-      }
-    }
-
-    // Attach idle listener to report visible markers in current map viewport
-    if (idleListener) google.maps.event.removeListener(idleListener);
-    idleListener = google.maps.event.addListener(mapInstance, 'idle', () => {
-      if (!mapInstance || !onBoundsChangeCallback) return;
-      const bounds = mapInstance.getBounds();
-      if (!bounds) return;
-
-      let inViewCount = 0;
-      for (let i = 0; i < currentMarkers.length; i++) {
-        const pos = currentMarkers[i].position;
-        if (pos && bounds.contains(pos)) {
-          inViewCount++;
-        }
-      }
-
-      onBoundsChangeCallback({
-        inViewCount,
-        totalMarkers: currentMarkers.length,
-        hasActiveMarkers: currentMarkers.length > 0
-      });
-    });
-
-    isMapInitialized = true;
-    isMapLoading = false;
+    }, 60);
     return mapInstance;
-  } catch (err) {
-    isMapLoading = false;
-    console.error('Failed to initialize Google Maps:', err);
-    if (onMapErrorCallback) onMapErrorCallback(err);
-    throw err;
   }
+
+  // Return existing in-flight promise to avoid duplicate initialization race conditions
+  if (mapInitPromise) {
+    return mapInitPromise;
+  }
+
+  mapInitPromise = (async () => {
+    try {
+      const { Map, InfoWindow } = await importLibrary('maps');
+      const { AdvancedMarkerElement } = await importLibrary('marker');
+      const { LatLngBounds } = await importLibrary('core');
+
+      // Ensure AdvancedMarkerElement delegates addListener calls (e.g., from MarkerClusterer)
+      // to addEventListener to avoid deprecation warnings in Google Maps API
+      if (AdvancedMarkerElement && AdvancedMarkerElement.prototype) {
+        const origAddListener = AdvancedMarkerElement.prototype.addListener;
+        AdvancedMarkerElement.prototype.addListener = function (eventName, handler) {
+          if (typeof this.addEventListener === 'function') {
+            const gmpEvent = eventName.startsWith('gmp-') ? eventName : (eventName === 'click' ? 'gmp-click' : eventName);
+            this.addEventListener(gmpEvent, handler);
+            return {
+              remove: () => this.removeEventListener(gmpEvent, handler)
+            };
+          }
+          if (typeof origAddListener === 'function') {
+            return origAddListener.call(this, eventName, handler);
+          }
+        };
+      }
+
+      const controlPos = window.google?.maps?.ControlPosition?.LEFT_BOTTOM ?? 9;
+
+      mapInstance = new Map(containerElement, {
+        center: { lat: 31.85, lng: 34.85 }, // Center of central Israel
+        zoom: 10,
+        mapId: MAP_ID,
+        internalUsageAttributionIds: [ATTRIBUTION_ID],
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        gestureHandling: 'greedy',
+        zoomControl: true,
+        zoomControlOptions: {
+          position: controlPos
+        }
+      });
+
+      infoWindowInstance = new InfoWindow({
+        disableAutoPan: false
+      });
+
+      if (typeof MarkerClusterer === 'function') {
+        try {
+          markerClustererInstance = new MarkerClusterer({
+            map: mapInstance,
+            markers: []
+          });
+        } catch (clusterErr) {
+          console.warn('MarkerClusterer init skipped:', clusterErr);
+        }
+      }
+
+      // Attach idle listener to report visible markers in current map viewport
+      if (idleListener) google.maps.event.removeListener(idleListener);
+      idleListener = google.maps.event.addListener(mapInstance, 'idle', () => {
+        if (!mapInstance || !onBoundsChangeCallback) return;
+        const bounds = mapInstance.getBounds();
+        if (!bounds) return;
+
+        let inViewCount = 0;
+        for (let i = 0; i < currentMarkers.length; i++) {
+          const pos = currentMarkers[i].position;
+          if (pos && bounds.contains(pos)) {
+            inViewCount++;
+          }
+        }
+
+        onBoundsChangeCallback({
+          inViewCount,
+          totalMarkers: currentMarkers.length,
+          hasActiveMarkers: currentMarkers.length > 0
+        });
+      });
+
+      // Trigger resize after layout paint
+      setTimeout(() => {
+        if (mapInstance && window.google?.maps?.event) {
+          google.maps.event.trigger(mapInstance, 'resize');
+        }
+      }, 100);
+
+      isMapInitialized = true;
+      return mapInstance;
+    } catch (err) {
+      console.error('Failed to initialize Google Maps:', err);
+      if (onMapErrorCallback) onMapErrorCallback(err);
+      throw err;
+    } finally {
+      mapInitPromise = null;
+    }
+  })();
+
+  return mapInitPromise;
 }
 
 /**
@@ -199,44 +234,63 @@ export async function updateMapMarkers(stores, options = {}) {
     bounds.extend({ lat: coords.lat, lng: coords.lng });
     hasValidCoords = true;
 
-    // Custom HTML discount badge marker - zero deprecation warnings and superior visual appearance
+    // Format exact address cleanly
+    let exactAddress = '';
+    if (store.address && store.city) {
+      if (store.address.includes(store.city)) {
+        exactAddress = store.address;
+      } else {
+        exactAddress = `${store.address}, ${store.city}`;
+      }
+    } else {
+      exactAddress = store.address || store.city || '';
+    }
+
+    // Custom HTML pin marker showing Store Name, Exact Address & Discount %
     const badgeEl = document.createElement('div');
-    badgeEl.className = 'group relative flex flex-col items-center cursor-pointer select-none';
+    badgeEl.className = 'group relative flex flex-col items-center cursor-pointer select-none transition-all duration-150 hover:z-50 hover:scale-105 active:scale-95';
+    badgeEl.setAttribute('dir', 'rtl');
     badgeEl.innerHTML = `
-      <div class="px-2 py-0.5 rounded-full text-[11px] font-black text-white shadow-md bg-purple-600 border border-purple-400 group-hover:bg-purple-700 group-hover:scale-110 transition-transform duration-150 flex items-center justify-center min-w-[32px] tracking-tight whitespace-nowrap">
-        <span>${store.discount || 5}%</span>
+      <div class="flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs text-slate-800 dark:text-slate-100 px-2 py-1 rounded-xl shadow-md border border-purple-300 dark:border-purple-700 hover:border-purple-500 hover:shadow-lg max-w-[210px] text-right font-sans transition-all">
+        <div class="flex-shrink-0 bg-purple-600 text-white font-black text-[11px] px-1.5 py-0.5 rounded-lg tracking-tight shadow-xs flex items-center justify-center">
+          <span>${escapeHtml(String(store.discount || 5))}%</span>
+        </div>
+        <div class="flex flex-col min-w-0 leading-tight">
+          <span class="text-xs font-bold text-slate-900 dark:text-white truncate block max-w-[135px]">${escapeHtml(store.name || '')}</span>
+          ${exactAddress ? `<span class="text-[10px] text-slate-500 dark:text-slate-400 truncate block max-w-[135px] font-medium">${escapeHtml(exactAddress)}</span>` : ''}
+        </div>
       </div>
-      <div class="w-1.5 h-1.5 bg-purple-600 rotate-45 -mt-0.5 border-r border-b border-purple-400 group-hover:bg-purple-700"></div>
+      <div class="w-2 h-2 bg-white/95 dark:bg-slate-900/95 border-r border-b border-purple-300 dark:border-purple-700 rotate-45 -mt-1 shadow-xs group-hover:border-purple-500"></div>
     `;
 
     const marker = new AdvancedMarkerElement({
       position: { lat: coords.lat, lng: coords.lng },
-      title: `${store.name} (${store.discount}%)`,
+      title: `${store.name}${exactAddress ? ' - ' + exactAddress : ''} (${store.discount || 5}%)`,
       content: badgeEl
     });
 
-    // Marker click event opens rich InfoWindow (using modern gmp-click event)
+    // Marker click event opens rich InfoWindow and triggers scroll to store in store list
     const onMarkerClick = () => {
-      const addressText = store.address ? `${store.address}, ${store.city}` : store.city;
+      const addressText = exactAddress || store.city || '';
       const navUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((store.name || '') + ' ' + (addressText || ''))}`;
 
       const contentString = `
         <div dir="rtl" class="p-3 text-right max-w-xs font-sans text-slate-800">
           <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-            <h4 class="font-bold text-sm text-slate-900 leading-tight">${store.name}</h4>
+            <h4 class="font-bold text-sm text-slate-900 leading-tight">${escapeHtml(store.name || '')}</h4>
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black bg-purple-100 text-purple-900 border border-purple-200">
-              ${store.discount}% במעמד החיוב
+              ${escapeHtml(String(store.discount || 5))}% במעמד החיוב
             </span>
           </div>
           <div class="mt-2 space-y-1 text-xs text-slate-600">
             <div class="flex items-center gap-1.5">
               <span class="font-medium text-slate-400">כתובת:</span>
-              <span class="font-semibold text-slate-800">${addressText}</span>
+              <span class="font-semibold text-slate-800">${escapeHtml(addressText)}</span>
             </div>
             ${store.category ? `
             <div class="flex items-center gap-1.5">
               <span class="font-medium text-slate-400">קטגוריה:</span>
-              <span>${store.category}</span>
+              <span>${escapeHtml(store.category)}</span>
             </div>` : ''}
           </div>
           <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
@@ -257,7 +311,7 @@ export async function updateMapMarkers(stores, options = {}) {
         map: mapInstance
       });
 
-      // Hook click on InfoWindow button
+      // Hook click on InfoWindow button for detailed modal
       setTimeout(() => {
         const btn = document.getElementById('info-window-view-btn');
         if (btn && onStoreSelectCallback) {
@@ -266,6 +320,11 @@ export async function updateMapMarkers(stores, options = {}) {
           });
         }
       }, 50);
+
+      // Trigger scroll to store in store list
+      if (onMarkerClickCallback) {
+        onMarkerClickCallback(store);
+      }
     };
 
     if (typeof marker.addEventListener === 'function') {
