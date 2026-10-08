@@ -169,6 +169,21 @@ Deployment is automated via GitHub Actions ([`.github/workflows/deploy.yml`](.gi
 
 ---
 
+## 🔐 Crucial Security Note for Client-Side Google Maps Keys
+
+Because Google Maps runs in the browser, any frontend API key is inherently visible in browser network traffic. To protect your quota and prevent unauthorized usage:
+
+1. Go to **Google Cloud Console** $\rightarrow$ **APIs & Services** $\rightarrow$ **Credentials**.
+2. Click on your key.
+3. Under **Application restrictions**, select **Websites (HTTP referrers)** and add:
+   - `https://<your-username>.github.io/*`
+   - `http://localhost:*/*` (for local development)
+4. Under **API restrictions**, select **Restrict key** and enable only:
+   - **Maps JavaScript API**
+   - **Places API**
+
+---
+
 ## 🛠️ Deal Extraction (`extract_behatsdaa_deals.js`)
 
 To refresh rotating deals from the live Behatsdaa portal:

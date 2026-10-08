@@ -797,7 +797,7 @@
           </div>
         </div>
 
-        <!-- Row 3: Status Summary -->
+        <!-- Row 3: Status Summary & Map Toggle -->
         <div class="flex flex-wrap items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1 gap-2">
           <div class="flex items-center gap-3">
             <span>נמצאו <strong id="matching-billing-count" class="text-purple-600 dark:text-purple-400 font-semibold">0</strong> עסקים מתוך <span id="total-billing-count">0</span></span>
@@ -810,15 +810,66 @@
           </div>
 
           <div class="flex items-center gap-3">
+            <!-- Map Toggle Button -->
+            <button id="billing-toggle-map-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 font-semibold transition cursor-pointer shadow-2xs">
+              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"></i>
+              <span id="billing-toggle-map-text">הצג מפת עסקים</span>
+            </button>
+
             <span>עודכן לאחרונה: <span id="billing-last-updated-date" class="font-medium text-slate-700 dark:text-slate-300">בטעינה...</span></span>
             <div class="flex items-center gap-1 border-r border-slate-200 dark:border-slate-700 pr-3">
-              <a href="data/billing_stores.csv" download="billing_stores.csv" class="hover:text-purple-600 dark:hover:text-purple-400 transition" title="הורד CSV של הנחות במעמד החיוב">CSV</a>
-              <span>•</span>
-              <a href="data/billing_stores.json" download="billing_stores.json" class="hover:text-purple-600 dark:hover:text-purple-400 transition" title="הורד JSON של הנחות במעמד החיוב">JSON</a>
+              <a href="data/billing_stores.csv" download="behatsdaa-billing-stores.csv" class="hover:text-purple-600 dark:hover:text-purple-400 transition font-medium" title="הורד CSV של הנחות במעמד החיוב">הורד CSV</a>
             </div>
           </div>
         </div>
 
+      </section>
+
+      <!-- Google Maps Interactive Explorer (Collapsible) -->
+      <section id="billing-map-wrapper" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden relative transition-all duration-300">
+        <!-- Map Header & Controls -->
+        <div class="p-3 bg-slate-50 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-950/80 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+              <i data-lucide="map-pin" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>מפת בתי עסק במעמד החיוב (Max)</span>
+                <span id="billing-map-count-badge" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">0 עסקים מוצגים</span>
+              </h3>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">העסקים מקובצים לפי אזורים • לחץ על מקבץ או סיכה לצפייה בפרטים ובאחוזי ההנחה</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Locate Me Button -->
+            <button id="billing-map-locate-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 text-xs font-semibold transition cursor-pointer shadow-2xs" title="מרכז את המפה סביב המיקום הנוכחי שלך">
+              <i data-lucide="crosshair" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
+              <span id="billing-map-locate-text">המיקום שלי</span>
+            </button>
+
+            <!-- Maximize / Minimize Button -->
+            <button id="billing-map-maximize-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-semibold transition cursor-pointer shadow-2xs" title="הגדל / הקטן מפה למסך מלא">
+              <i data-lucide="maximize-2" id="billing-map-maximize-icon" class="w-3.5 h-3.5 text-slate-600 dark:text-slate-300"></i>
+              <span id="billing-map-maximize-text">הגדל מפה</span>
+            </button>
+
+            <!-- Close Map Button -->
+            <button id="billing-map-close-btn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer" title="הסתר מפה">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Google Maps Canvas -->
+        <div id="billing-map-canvas" class="w-full h-[460px] bg-slate-100 dark:bg-slate-900 relative">
+          <!-- Loading placeholder -->
+          <div id="billing-map-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs z-10 space-y-2">
+            <div class="w-8 h-8 border-3 border-purple-200 dark:border-purple-900 border-t-purple-600 rounded-full animate-spin"></div>
+            <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">טוען מפת Google Maps...</p>
+          </div>
+        </div>
       </section>
 
       <!-- Billing Tab Spinner (shown if tab is opened while background fetch is running) -->

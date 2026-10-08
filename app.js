@@ -9,6 +9,7 @@ import { loadStores, loadDeals, loadBilling, crossLinkAllDatasets, fetchWalletsI
 import { populateCardsFilter, updateCategoryChips, getFilteredStores, createStoreCardElement, createStoreTableRow, openStoreModal, closeStoreModal } from './js/stores.js';
 import { populateDealsTagsFilter, updateDealsCategoryChips, getFilteredDeals, createDealCardElement, createDealTableRow, openDealModal, closeDealModal } from './js/deals.js';
 import { populateBillingCitiesFilter, updateBillingCategoryChips, getFilteredBillingStores, createBillingCardElement, createBillingTableRow, openBillingModal, closeBillingModal } from './js/billing.js';
+import { initBillingMap, updateMapMarkers, centerOnUserLocation, toggleMapMaximize, isMapReady } from './js/map.js';
 
 // DOM Elements - Navigation Tabs
 const tabAllBtn = document.getElementById('tab-all-btn');
@@ -196,6 +197,20 @@ const noBillingResults = document.getElementById('no-billing-results');
 const clearBillingFiltersBtn = document.getElementById('clear-billing-filters-btn');
 const billingLoadMoreContainer = document.getElementById('billing-load-more-container');
 const billingLoadMoreBtn = document.getElementById('billing-load-more-btn');
+
+// DOM Elements - Billing Google Maps
+const billingToggleMapBtn = document.getElementById('billing-toggle-map-btn');
+const billingToggleMapText = document.getElementById('billing-toggle-map-text');
+const billingMapWrapper = document.getElementById('billing-map-wrapper');
+const billingMapCanvas = document.getElementById('billing-map-canvas');
+const billingMapLoading = document.getElementById('billing-map-loading');
+const billingMapCountBadge = document.getElementById('billing-map-count-badge');
+const billingMapLocateBtn = document.getElementById('billing-map-locate-btn');
+const billingMapLocateText = document.getElementById('billing-map-locate-text');
+const billingMapMaximizeBtn = document.getElementById('billing-map-maximize-btn');
+const billingMapMaximizeIcon = document.getElementById('billing-map-maximize-icon');
+const billingMapMaximizeText = document.getElementById('billing-map-maximize-text');
+const billingMapCloseBtn = document.getElementById('billing-map-close-btn');
 
 // DOM Elements - Billing Modal
 const billingModalElements = {
@@ -496,6 +511,11 @@ function renderBillingStores() {
 
   if (billingLoadMoreContainer) {
     billingLoadMoreContainer.classList.toggle('hidden', state.billingVisibleCount >= filtered.length);
+  }
+
+  // Update map if it's currently open
+  if (billingMapWrapper && !billingMapWrapper.classList.contains('hidden')) {
+    updateBillingMap(filtered);
   }
 
   if (window.lucide && typeof window.lucide.createIcons === 'function') {
@@ -1401,6 +1421,95 @@ if (billingLoadMoreBtn) {
   billingLoadMoreBtn.addEventListener('click', () => {
     state.billingVisibleCount += state.BILLING_PAGE_SIZE;
     renderBillingStores();
+  });
+}
+
+// Google Maps Handlers
+async function openOrToggleBillingMap() {
+  if (!billingMapWrapper) return;
+  const isHidden = billingMapWrapper.classList.contains('hidden');
+
+  if (isHidden) {
+    billingMapWrapper.classList.remove('hidden');
+    if (billingToggleMapText) billingToggleMapText.textContent = 'הסתר מפה';
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons({ root: billingMapWrapper });
+    }
+
+    const filtered = getFilteredBillingStores();
+    await updateBillingMap(filtered);
+  } else {
+    billingMapWrapper.classList.add('hidden');
+    if (billingToggleMapText) billingToggleMapText.textContent = 'הצג מפת עסקים';
+  }
+}
+
+async function updateBillingMap(stores) {
+  if (!billingMapCanvas) return;
+  if (billingMapLoading) billingMapLoading.classList.remove('hidden');
+
+  try {
+    if (!isMapReady()) {
+      await initBillingMap(billingMapCanvas, {
+        onStoreSelect: (store) => {
+          openBillingModal(store, billingModalElements, billingModalCallbacks);
+        }
+      });
+    }
+
+    await updateMapMarkers(stores);
+    if (billingMapCountBadge) {
+      const physicalCount = stores.filter(s => {
+        const c = (s.city || '').toLowerCase();
+        return c && c !== 'online' && !c.includes('אונליין');
+      }).length;
+      billingMapCountBadge.textContent = `${Math.min(physicalCount, 600).toLocaleString('he-IL')} מתוך ${physicalCount.toLocaleString('he-IL')} עסקים מוצגים במפה`;
+    }
+  } catch (err) {
+    console.warn('Map update warning:', err);
+  } finally {
+    if (billingMapLoading) billingMapLoading.classList.add('hidden');
+  }
+}
+
+if (billingToggleMapBtn) {
+  billingToggleMapBtn.addEventListener('click', openOrToggleBillingMap);
+}
+
+if (billingMapCloseBtn) {
+  billingMapCloseBtn.addEventListener('click', () => {
+    if (billingMapWrapper) billingMapWrapper.classList.add('hidden');
+    if (billingToggleMapText) billingToggleMapText.textContent = 'הצג מפת עסקים';
+  });
+}
+
+if (billingMapLocateBtn) {
+  billingMapLocateBtn.addEventListener('click', () => {
+    centerOnUserLocation((status) => {
+      if (status.loading && billingMapLocateText) {
+        billingMapLocateText.textContent = 'מאתר...';
+      } else if (status.success && billingMapLocateText) {
+        billingMapLocateText.textContent = 'המיקום אותר!';
+        setTimeout(() => { if (billingMapLocateText) billingMapLocateText.textContent = 'המיקום שלי'; }, 3000);
+      } else if (status.error) {
+        if (billingMapLocateText) billingMapLocateText.textContent = 'המיקום שלי';
+      }
+    });
+  });
+}
+
+if (billingMapMaximizeBtn) {
+  billingMapMaximizeBtn.addEventListener('click', () => {
+    const isMax = toggleMapMaximize(billingMapWrapper);
+    if (billingMapMaximizeText) {
+      billingMapMaximizeText.textContent = isMax ? 'הקטן מפה' : 'הגדל מפה';
+    }
+    if (billingMapMaximizeIcon) {
+      billingMapMaximizeIcon.setAttribute('data-lucide', isMax ? 'minimize-2' : 'maximize-2');
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons({ root: billingMapMaximizeBtn });
+      }
+    }
   });
 }
 
