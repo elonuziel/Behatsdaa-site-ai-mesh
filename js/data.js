@@ -395,7 +395,9 @@ export async function loadBilling(onBillingLoaded) {
 
   state.allBillingStores = state.billingData.stores || [];
   state.allBillingStores.forEach(s => {
-    s._nameNorm = normalizeHebrew(s.name || '');
+    const rawName = s.name || '';
+    const splitCamel = rawName.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+    s._nameNorm = `${normalizeHebrew(rawName)} ${normalizeHebrew(splitCamel)}`.trim();
     s._cityNorm = normalizeHebrew(s.city || '');
     s._catNorm = normalizeHebrew(`${s.category || ''} ${s.subcategory || ''}`);
     s._addressNorm = normalizeHebrew(s.address || '');

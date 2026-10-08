@@ -371,6 +371,37 @@ function renderAllTab() {
   if (allSectionDeals) allSectionDeals.classList.toggle('hidden', isAllZero);
   if (allSectionBilling) allSectionBilling.classList.toggle('hidden', isAllZero || !state.isBillingUnhidden);
 
+  // Update dynamic notice for billing results if tab is hidden
+  const allBillingPassiveTitle = document.getElementById('all-billing-passive-title');
+  const allBillingPassiveDesc = document.getElementById('all-billing-passive-desc');
+  const allUnhideBillingBtnText = document.getElementById('all-unhide-billing-btn-text');
+
+  if (allBillingPassiveNotice && !state.isBillingUnhidden) {
+    if (query && billing.length > 0) {
+      allBillingPassiveNotice.classList.remove('hidden');
+      if (allBillingPassiveTitle) {
+        allBillingPassiveTitle.textContent = `נמצאו ${billing.length.toLocaleString('he-IL')} עסקים בהנחת מעמד החיוב עבור "${query}"`;
+      }
+      if (allBillingPassiveDesc) {
+        const topNames = billing.slice(0, 3).map(b => b.name).join(', ');
+        allBillingPassiveDesc.textContent = `כולל: ${topNames}${billing.length > 3 ? ' ועוד...' : ''}. ההנחה מוחלת אוטומטית בעת תשלום בכרטיס האשראי של בהצדעה.`;
+      }
+      if (allUnhideBillingBtnText) {
+        allUnhideBillingBtnText.textContent = `הצג ${billing.length.toLocaleString('he-IL')} תוצאות מעמד החיוב`;
+      }
+    } else {
+      if (allBillingPassiveTitle) {
+        allBillingPassiveTitle.textContent = 'הטבת מעמד החיוב (Max) - בונוס אוטומטי סביל';
+      }
+      if (allBillingPassiveDesc) {
+        allBillingPassiveDesc.textContent = 'הנחה אוטומטית בדף החשבון בתשלום באשראי בהצדעה ב-10,000+ עסקים. הלשונית המלאה מוסתרת כברירת מחדל לשמירה על מהירות האתר.';
+      }
+      if (allUnhideBillingBtnText) {
+        allUnhideBillingBtnText.textContent = 'הצג לשונית מעמד החיוב ומפה';
+      }
+    }
+  }
+
   if (isAllZero) return;
 
   // Render Stores Section (Top 4)

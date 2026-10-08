@@ -476,6 +476,17 @@ async function runTests() {
   filteredBilling = document.querySelectorAll('#billing-grid .billing-card');
   const resetBillingExpected = Math.min(billingData.stores.length, 30);
   assert.strictEqual(filteredBilling.length, resetBillingExpected, `Expected ${resetBillingExpected} billing stores restored after clear`);
+
+  // Verify searching 'sim' finds GlobaleSIM
+  billingSearchInput.value = 'sim';
+  billingSearchInput.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 180));
+  const simMatches = Array.from(document.querySelectorAll('#billing-grid .billing-card'));
+  const hasGlobaleSim = simMatches.some(card => card.textContent.includes('GlobaleSIM'));
+  assert.ok(hasGlobaleSim, 'Searching "sim" in billing must include GlobaleSIM');
+
+  clearBillingSearchBtn.click();
+  await new Promise(r => setTimeout(r, 50));
   console.log('  -> PASS (Billing live search filter works correctly)');
 
   // --- Test 13: Billing City Dropdown Filter ---

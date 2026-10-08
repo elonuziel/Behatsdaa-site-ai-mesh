@@ -15,22 +15,46 @@ let dealsMiniSearch = null;
 let billingMiniSearch = null;
 
 export function tokenizeHebrew(text) {
-  const norm = normalizeHebrew(text);
-  if (!norm) return [];
-  const words = norm.split(/\s+/).filter(Boolean);
-  const tokens = [];
-  for (const w of words) {
-    tokens.push(w);
+  if (!text) return [];
+  const str = String(text);
+
+  // 1. Expand CamelCase / mixed-case words (e.g. GlobaleSIM -> Globale SIM, BeSIM -> Be SIM, iPhone -> i Phone)
+  const expandedStr = str
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+
+  const norm = normalizeHebrew(expandedStr);
+  const origNorm = normalizeHebrew(str);
+  if (!norm && !origNorm) return [];
+
+  const rawWords = `${origNorm} ${norm}`.split(/\s+/).filter(Boolean);
+  const tokens = new Set();
+
+  for (const w of rawWords) {
+    tokens.add(w);
+
+    // Sub-word eSIM / SIM detection across compound words (e.g. globalesim, besim)
+    if (/e-?sim/.test(w) || w.includes('esim')) {
+      tokens.add('esim');
+      tokens.add('sim');
+      tokens.add(normalizeHebrew('איסים'));
+      tokens.add(normalizeHebrew('סים'));
+    } else if (w.includes('sim')) {
+      tokens.add('sim');
+      tokens.add(normalizeHebrew('סים'));
+    }
+
     // Strip common Hebrew proclitic prefixes (ה, ב, ל, כ, מ, ש, ו) if remaining word is >= 4 chars
     if (w.length >= 4 && /^[והבלכמש]/.test(w)) {
-      tokens.push(w.slice(1));
+      tokens.add(w.slice(1));
       // Double prefix, e.g. "ובאהבה", "ומהאהבה"
       if (w.length >= 5 && /^[ו][הבלכמש]/.test(w)) {
-        tokens.push(w.slice(2));
+        tokens.add(w.slice(2));
       }
     }
   }
-  return tokens;
+
+  return Array.from(tokens);
 }
 
 export function initStoresSearch(stores) {
@@ -51,11 +75,11 @@ export function initStoresSearch(stores) {
     id: s.id,
     name: s.name,
     slug: s.slug || s.id,
-    nameNorm: normalizeHebrew(s.name),
-    catNorm: normalizeHebrew(s.category),
-    cardsNorm: (s.cards || []).map(c => `${normalizeHebrew(c.card_name)} ${c.discount}`).join(' '),
-    descNorm: normalizeHebrew(`${s.conditions || ''} ${s.terms || ''}`),
-    tokens: normalizeHebrew(`${s.name} ${s.category}`)
+    nameNorm: s.name,
+    catNorm: s.category || '',
+    cardsNorm: (s.cards || []).map(c => `${c.card_name || ''} ${c.discount || ''}`).join(' '),
+    descNorm: `${s.conditions || ''} ${s.terms || ''}`,
+    tokens: `${s.name} ${s.category || ''}`
   }));
 
   storesMiniSearch.addAll(docs);
@@ -105,13 +129,13 @@ export function initDealsSearch(deals) {
     id: String(d.id),
     title: d.title,
     slug: d.slug || d.id,
-    titleNorm: normalizeHebrew(d.title),
-    suppNorm: normalizeHebrew(d.supplier),
-    catNorm: normalizeHebrew(d.category),
-    tagNorm: normalizeHebrew((d.tags || []).join(' ')),
-    descNorm: normalizeHebrew(d.description || ''),
-    termsNorm: normalizeHebrew(d.terms_of_use || ''),
-    tokens: normalizeHebrew(`${d.title} ${d.supplier} ${d.category}`)
+    titleNorm: d.title,
+    suppNorm: d.supplier || '',
+    catNorm: d.category || '',
+    tagNorm: (d.tags || []).join(' '),
+    descNorm: d.description || '',
+    termsNorm: d.terms_of_use || '',
+    tokens: `${d.title} ${d.supplier || ''} ${d.category || ''}`
   }));
 
   dealsMiniSearch.addAll(docs);
@@ -161,12 +185,12 @@ export function initBillingSearch(billingStores) {
     id: String(b.id),
     name: b.name,
     slug: b.slug || b.id,
-    nameNorm: normalizeHebrew(b.name),
-    cityNorm: normalizeHebrew(b.city),
-    catNorm: normalizeHebrew(`${b.category || ''} ${b.subcategory || ''}`),
-    addrNorm: normalizeHebrew(b.address),
-    descNorm: normalizeHebrew(b.description || ''),
-    tokens: normalizeHebrew(`${b.name} ${b.city} ${b.category}`)
+    nameNorm: b.name,
+    cityNorm: b.city || '',
+    catNorm: `${b.category || ''} ${b.subcategory || ''}`,
+    addrNorm: b.address || '',
+    descNorm: b.description || '',
+    tokens: `${b.name} ${b.city || ''} ${b.category || ''}`
   }));
 
   billingMiniSearch.addAll(docs);
