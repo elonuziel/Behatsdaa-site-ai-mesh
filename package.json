@@ -7,6 +7,7 @@
     "start": "node server.js",
     "process-data": "node scripts/split-data.js",
     "update-data": "node scripts/split-data.js",
+    "geocode": "node scripts/geocode-stores.js",
     "test": "node scripts/split-data.js && node tests/test_data_integrity.js",
     "build": "node scripts/split-data.js && vite build",
     "preview": "vite preview --port 3000 --host 0.0.0.0",
