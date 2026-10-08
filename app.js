@@ -16,6 +16,14 @@ const tabAllBtn = document.getElementById('tab-all-btn');
 const tabStoresBtn = document.getElementById('tab-stores-btn');
 const tabDealsBtn = document.getElementById('tab-deals-btn');
 const tabBillingBtn = document.getElementById('tab-billing-btn');
+const unhideBillingToggleBtn = document.getElementById('unhide-billing-toggle-btn');
+const unhideBillingToggleText = document.getElementById('unhide-billing-toggle-text');
+const allUnhideBillingBtn = document.getElementById('all-unhide-billing-btn');
+const allBillingPassiveNotice = document.getElementById('all-billing-passive-notice');
+const billingHiddenWarningModal = document.getElementById('billing-hidden-warning-modal');
+const billingWarningCloseBtn = document.getElementById('billing-warning-close-btn');
+const billingWarningDismissBtn = document.getElementById('billing-warning-dismiss-btn');
+const billingWarningUnhideBtn = document.getElementById('billing-warning-unhide-btn');
 const tabAllCount = document.getElementById('tab-all-count');
 const tabStoresCount = document.getElementById('tab-stores-count');
 const tabDealsCount = document.getElementById('tab-deals-count');
@@ -251,6 +259,86 @@ const billingModalElements = {
 };
 
 // Rendering Functions
+function setBillingUnhidden(unhidden) {
+  state.isBillingUnhidden = unhidden;
+
+  if (unhidden) {
+    if (tabBillingBtn) {
+      tabBillingBtn.classList.remove('hidden');
+      tabBillingBtn.classList.add('flex');
+    }
+    if (allQuickBillingBtn) {
+      allQuickBillingBtn.classList.remove('hidden');
+      allQuickBillingBtn.classList.add('flex');
+    }
+    if (allSectionBilling) {
+      allSectionBilling.classList.remove('hidden');
+    }
+    if (allBillingPassiveNotice) {
+      allBillingPassiveNotice.classList.add('hidden');
+    }
+    if (unhideBillingToggleText) {
+      unhideBillingToggleText.textContent = 'הסתר מעמד החיוב';
+    }
+    if (unhideBillingToggleBtn) {
+      unhideBillingToggleBtn.classList.remove('bg-purple-50', 'text-purple-700', 'border-purple-200');
+      unhideBillingToggleBtn.classList.add('bg-purple-600', 'text-white', 'border-purple-600');
+    }
+    if (state.currentTab === 'all') {
+      renderAllTab();
+    }
+  } else {
+    if (tabBillingBtn) {
+      tabBillingBtn.classList.add('hidden');
+      tabBillingBtn.classList.remove('flex');
+    }
+    if (allQuickBillingBtn) {
+      allQuickBillingBtn.classList.add('hidden');
+      allQuickBillingBtn.classList.remove('flex');
+    }
+    if (allSectionBilling) {
+      allSectionBilling.classList.add('hidden');
+    }
+    if (allBillingPassiveNotice) {
+      allBillingPassiveNotice.classList.remove('hidden');
+    }
+    if (unhideBillingToggleText) {
+      unhideBillingToggleText.textContent = 'הצג מעמד החיוב';
+    }
+    if (unhideBillingToggleBtn) {
+      unhideBillingToggleBtn.classList.add('bg-purple-50', 'text-purple-700', 'border-purple-200');
+      unhideBillingToggleBtn.classList.remove('bg-purple-600', 'text-white', 'border-purple-600');
+    }
+    if (state.currentTab === 'billing') {
+      switchTab('all');
+    } else if (state.currentTab === 'all') {
+      renderAllTab();
+    }
+  }
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
+}
+
+let pendingWarningStore = null;
+
+function showBillingHiddenWarning(targetStore = null) {
+  pendingWarningStore = targetStore;
+  if (billingHiddenWarningModal) {
+    billingHiddenWarningModal.classList.remove('hidden');
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons({ root: billingHiddenWarningModal });
+    }
+  }
+}
+
+function closeBillingHiddenWarning() {
+  if (billingHiddenWarningModal) {
+    billingHiddenWarningModal.classList.add('hidden');
+  }
+}
+
 function renderAllTab() {
   if (!allTabSection) return;
 
@@ -279,7 +367,7 @@ function renderAllTab() {
   if (allNoResults) allNoResults.classList.toggle('hidden', !isAllZero);
   if (allSectionStores) allSectionStores.classList.toggle('hidden', isAllZero);
   if (allSectionDeals) allSectionDeals.classList.toggle('hidden', isAllZero);
-  if (allSectionBilling) allSectionBilling.classList.toggle('hidden', isAllZero);
+  if (allSectionBilling) allSectionBilling.classList.toggle('hidden', isAllZero || !state.isBillingUnhidden);
 
   if (isAllZero) return;
 
@@ -698,6 +786,9 @@ function setTabSearchQuery(tab, query) {
     if (clearDealsSearchBtn) clearDealsSearchBtn.classList.toggle('hidden', !term);
     state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
   } else if (tab === 'billing') {
+    if (!state.isBillingUnhidden) {
+      setBillingUnhidden(true);
+    }
     state.billingSearchQuery = term;
     if (billingSearchInput) billingSearchInput.value = term;
     if (clearBillingSearchBtn) clearBillingSearchBtn.classList.toggle('hidden', !term);
@@ -758,6 +849,9 @@ function switchTab(tab, options = {}) {
       renderDeals();
     }
   } else if (tab === 'billing') {
+    if (!state.isBillingUnhidden) {
+      setBillingUnhidden(true);
+    }
     if (tabBillingBtn) {
       tabBillingBtn.className = 'main-tab-btn flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs bg-purple-600 text-white dark:bg-purple-600 dark:text-white';
     }
@@ -804,6 +898,10 @@ const storeModalCallbacks = {
     switchTab('deals', { preserveSearch: true });
   },
   onViewBilling: (store) => {
+    if (!state.isBillingUnhidden) {
+      showBillingHiddenWarning(store);
+      return;
+    }
     billingSearchInput.value = store.name;
     state.billingSearchQuery = store.name;
     clearBillingSearchBtn.classList.remove('hidden');
@@ -823,6 +921,10 @@ const dealModalCallbacks = {
     setTimeout(() => openStoreModal(matchedStore, storeModalElements, storeModalCallbacks), 100);
   },
   onViewBilling: (deal) => {
+    if (!state.isBillingUnhidden) {
+      showBillingHiddenWarning({ name: deal.supplier });
+      return;
+    }
     billingSearchInput.value = deal.supplier;
     state.billingSearchQuery = deal.supplier;
     clearBillingSearchBtn.classList.remove('hidden');
@@ -1941,6 +2043,10 @@ document.addEventListener('click', (e) => {
   if (billingBadge) {
     e.stopPropagation();
     const storeName = decodeURIComponent(billingBadge.dataset.storeName || '');
+    if (!state.isBillingUnhidden) {
+      showBillingHiddenWarning({ name: storeName });
+      return;
+    }
     if (storeName) {
       if (billingSearchInput) {
         billingSearchInput.value = storeName;
@@ -1997,3 +2103,45 @@ if (window.lucide && typeof window.lucide.createIcons === 'function') {
 }
 switchTab(state.currentTab);
 loadAllData();
+
+// Unhide / Hide Billing Event Listeners
+if (unhideBillingToggleBtn) {
+  unhideBillingToggleBtn.addEventListener('click', () => {
+    setBillingUnhidden(!state.isBillingUnhidden);
+  });
+}
+if (allUnhideBillingBtn) {
+  allUnhideBillingBtn.addEventListener('click', () => {
+    setBillingUnhidden(true);
+    switchTab('billing');
+  });
+}
+if (billingWarningCloseBtn) billingWarningCloseBtn.addEventListener('click', closeBillingHiddenWarning);
+if (billingWarningDismissBtn) billingWarningDismissBtn.addEventListener('click', closeBillingHiddenWarning);
+if (billingHiddenWarningModal) {
+  billingHiddenWarningModal.addEventListener('click', (e) => {
+    if (e.target === billingHiddenWarningModal) closeBillingHiddenWarning();
+  });
+}
+if (billingWarningUnhideBtn) {
+  billingWarningUnhideBtn.addEventListener('click', () => {
+    closeBillingHiddenWarning();
+    setBillingUnhidden(true);
+    const targetStore = pendingWarningStore;
+    pendingWarningStore = null;
+    if (targetStore && targetStore.name) {
+      if (billingSearchInput) {
+        billingSearchInput.value = targetStore.name;
+        state.billingSearchQuery = targetStore.name;
+        if (clearBillingSearchBtn) clearBillingSearchBtn.classList.remove('hidden');
+      }
+      state.currentBillingCity = 'all';
+      if (billingCitySelect) billingCitySelect.value = 'all';
+      state.currentBillingCategory = 'all';
+      if (billingCategoryChipsContainer) updateBillingCategoryChips(billingCategoryChipsContainer);
+      switchTab('billing', { preserveSearch: true });
+    } else {
+      switchTab('billing');
+    }
+  });
+}
