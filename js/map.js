@@ -231,6 +231,9 @@ export async function updateMapMarkers(stores, options = {}) {
         google.maps.event.removeListener(listener);
       });
     }
+  } else if (!stores || stores.length === 0) {
+    mapInstance.setCenter({ lat: 31.85, lng: 34.85 });
+    mapInstance.setZoom(9);
   }
 }
 

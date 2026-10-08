@@ -489,6 +489,10 @@ function renderBillingStores() {
     if (noBillingResults) noBillingResults.classList.remove('hidden');
     if (billingTableView) billingTableView.classList.add('hidden');
     if (billingLoadMoreContainer) billingLoadMoreContainer.classList.add('hidden');
+    // Clear map markers dynamically when 0 matches
+    if (billingMapWrapper && !billingMapWrapper.classList.contains('hidden')) {
+      debouncedUpdateBillingMap([]);
+    }
     return;
   }
 
@@ -513,9 +517,9 @@ function renderBillingStores() {
     billingLoadMoreContainer.classList.toggle('hidden', state.billingVisibleCount >= filtered.length);
   }
 
-  // Update map if it's currently open
+  // Update map dynamically based on active filtered results
   if (billingMapWrapper && !billingMapWrapper.classList.contains('hidden')) {
-    updateBillingMap(filtered);
+    debouncedUpdateBillingMap(filtered);
   }
 
   if (window.lucide && typeof window.lucide.createIcons === 'function') {
@@ -1460,6 +1464,14 @@ async function openOrToggleBillingMap() {
   }
 }
 
+let updateBillingMapTimeout = null;
+function debouncedUpdateBillingMap(stores, delay = 120) {
+  if (updateBillingMapTimeout) clearTimeout(updateBillingMapTimeout);
+  updateBillingMapTimeout = setTimeout(() => {
+    updateBillingMap(stores);
+  }, delay);
+}
+
 async function updateBillingMap(stores) {
   if (!billingMapCanvas) return;
   if (billingMapLoading) billingMapLoading.classList.remove('hidden');
@@ -1475,11 +1487,24 @@ async function updateBillingMap(stores) {
 
     await updateMapMarkers(stores);
     if (billingMapCountBadge) {
-      const physicalCount = stores.filter(s => {
+      const physicalCount = stores ? stores.filter(s => {
         const c = (s.city || '').toLowerCase();
         return c && c !== 'online' && !c.includes('אונליין');
-      }).length;
-      billingMapCountBadge.textContent = `${Math.min(physicalCount, 600).toLocaleString('he-IL')} מתוך ${physicalCount.toLocaleString('he-IL')} עסקים מוצגים במפה`;
+      }).length : 0;
+
+      if (physicalCount === 0) {
+        billingMapCountBadge.textContent = '0 עסקים תואמים לסינון במפה';
+      } else {
+        const displayed = Math.min(physicalCount, 600);
+        let badgeText = `${displayed.toLocaleString('he-IL')} מתוך ${physicalCount.toLocaleString('he-IL')} עסקים מוצגים`;
+        if (state.currentBillingCategory !== 'all') {
+          badgeText += ` • ${state.currentBillingCategory}`;
+        }
+        if (state.billingSearchQuery) {
+          badgeText += ` • "${state.billingSearchQuery}"`;
+        }
+        billingMapCountBadge.textContent = badgeText;
+      }
     }
   } catch (err) {
     console.warn('Map update warning:', err);
