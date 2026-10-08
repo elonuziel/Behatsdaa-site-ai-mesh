@@ -826,7 +826,7 @@
       </section>
 
       <!-- Google Maps Interactive Explorer (Collapsible) -->
-      <section id="billing-map-wrapper" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden relative transition-all duration-300">
+      <section id="billing-map-wrapper" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden relative transition-all duration-300 flex flex-col">
         <!-- Map Header & Controls -->
         <div class="p-3 bg-slate-50 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2.5">
           <div class="flex items-center gap-2">
@@ -862,12 +862,92 @@
           </div>
         </div>
 
-        <!-- Google Maps Canvas -->
-        <div id="billing-map-canvas" class="w-full h-[460px] bg-slate-100 dark:bg-slate-900 relative">
+        <!-- Map Interactive Toolbar: Category Filter & High Discounts Toggle -->
+        <div class="px-3.5 py-2 bg-purple-50/70 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex items-center gap-3 flex-wrap">
+            <!-- Filter by Category Dropdown -->
+            <div class="flex items-center gap-1.5">
+              <label for="billing-map-category-filter" class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1">
+                <i data-lucide="filter" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"></i>
+                <span>סינון לפי קטגוריה:</span>
+              </label>
+              <select id="billing-map-category-filter" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-lg px-2.5 py-1 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-hidden transition cursor-pointer font-medium shadow-2xs">
+                <option value="all">כל הקטגוריות</option>
+              </select>
+            </div>
+
+            <!-- Only Show High Discounts Toggle -->
+            <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 transition shadow-2xs select-none">
+              <input type="checkbox" id="billing-map-high-discount-toggle" class="rounded text-purple-600 focus:ring-purple-500 w-3.5 h-3.5 cursor-pointer accent-purple-600">
+              <span class="flex items-center gap-1.5">
+                <span>הנחות גבוהות בלבד (≥7%)</span>
+                <span class="text-[10px] bg-purple-600 text-white font-bold px-1.5 py-0.2 rounded-full">VIP</span>
+              </span>
+            </label>
+          </div>
+
+          <!-- Active search indicator / reset button in map toolbar -->
+          <div id="billing-map-active-filters-info" class="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+            <span id="billing-map-filter-summary"></span>
+            <button type="button" id="billing-map-clear-toolbar-filters-btn" class="hidden text-purple-600 dark:text-purple-400 hover:underline font-semibold cursor-pointer">
+              איפוס סינון מפה
+            </button>
+          </div>
+        </div>
+
+        <!-- Google Maps Canvas & Overlays Container -->
+        <div id="billing-map-viewport" class="w-full flex-1 min-h-[460px] relative overflow-hidden bg-slate-100 dark:bg-slate-900">
+          <!-- Google Maps Canvas -->
+          <div id="billing-map-canvas" class="w-full h-full min-h-[460px]"></div>
+
           <!-- Loading placeholder -->
-          <div id="billing-map-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs z-10 space-y-2">
+          <div id="billing-map-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-white/85 dark:bg-slate-900/85 backdrop-blur-xs z-20 space-y-2">
             <div class="w-8 h-8 border-3 border-purple-200 dark:border-purple-900 border-t-purple-600 rounded-full animate-spin"></div>
             <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">טוען מפת Google Maps...</p>
+          </div>
+
+          <!-- Empty State Overlay (0 Matching Stores) -->
+          <div id="billing-map-empty-overlay" class="hidden absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/92 dark:bg-slate-900/92 backdrop-blur-xs p-6 text-center space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+              <i data-lucide="map-pin-off" class="w-6 h-6"></i>
+            </div>
+            <div class="max-w-md space-y-1">
+              <h4 class="text-sm font-bold text-slate-800 dark:text-slate-100">לא נמצאו בתי עסק במפה</h4>
+              <p id="billing-map-empty-text" class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                לא נמצאו בתי עסק פיזיים התואמים לסינון הנוכחי. נסה לבחור קטגוריה אחרת או להסיר את סינון ההנחות הגבוהות.
+              </p>
+            </div>
+            <button type="button" id="billing-map-reset-filters-btn" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition cursor-pointer shadow-xs">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              <span>אפס סינונים והצג הכל</span>
+            </button>
+          </div>
+
+          <!-- Error State Overlay (Google Maps API failure / key error) -->
+          <div id="billing-map-error-overlay" class="hidden absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-50/95 dark:bg-slate-900/95 p-6 text-center space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+              <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <div class="max-w-md space-y-1">
+              <h4 id="billing-map-error-title" class="text-sm font-bold text-slate-800 dark:text-slate-100">שגיאה בטעינת Google Maps</h4>
+              <p id="billing-map-error-desc" class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                לא ניתן היה לטעון את שירות המפות של Google Maps. אנא ודא שמפתח ה-API תקין ומוגדר כראוי.
+              </p>
+            </div>
+            <button type="button" id="billing-map-retry-btn" class="px-4 py-2 text-xs font-semibold rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition cursor-pointer shadow-xs">
+              נסה שוב
+            </button>
+          </div>
+
+          <!-- Current Map Viewport Empty Banner (user panned into area with no stores) -->
+          <div id="billing-map-bounds-empty-banner" class="hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-slate-900/90 dark:bg-slate-800/95 text-white text-xs px-3.5 py-2 rounded-xl shadow-lg backdrop-blur-xs flex items-center gap-2.5 border border-slate-700">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="map-pin-off" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>לא נמצאו בתי עסק באזור המפה הנוכחי</span>
+            </span>
+            <button type="button" id="billing-map-recenter-btn" class="font-bold text-purple-400 hover:text-purple-300 underline cursor-pointer">
+              הצג את כל העסקים
+            </button>
           </div>
         </div>
       </section>

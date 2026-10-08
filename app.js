@@ -9,7 +9,7 @@ import { loadStores, loadDeals, loadBilling, crossLinkAllDatasets, fetchWalletsI
 import { populateCardsFilter, updateCategoryChips, getFilteredStores, createStoreCardElement, createStoreTableRow, openStoreModal, closeStoreModal } from './js/stores.js';
 import { populateDealsTagsFilter, updateDealsCategoryChips, getFilteredDeals, createDealCardElement, createDealTableRow, openDealModal, closeDealModal } from './js/deals.js';
 import { populateBillingCitiesFilter, updateBillingCategoryChips, getFilteredBillingStores, createBillingCardElement, createBillingTableRow, openBillingModal, closeBillingModal } from './js/billing.js';
-import { initBillingMap, updateMapMarkers, centerOnUserLocation, toggleMapMaximize, isMapReady } from './js/map.js';
+import { initBillingMap, updateMapMarkers, centerOnUserLocation, toggleMapMaximize, isMapReady, recenterMapToAllMarkers, setMapCallbacks } from './js/map.js';
 
 // DOM Elements - Navigation Tabs
 const tabAllBtn = document.getElementById('tab-all-btn');
@@ -211,6 +211,19 @@ const billingMapMaximizeBtn = document.getElementById('billing-map-maximize-btn'
 const billingMapMaximizeIcon = document.getElementById('billing-map-maximize-icon');
 const billingMapMaximizeText = document.getElementById('billing-map-maximize-text');
 const billingMapCloseBtn = document.getElementById('billing-map-close-btn');
+const billingMapCategoryFilter = document.getElementById('billing-map-category-filter');
+const billingMapHighDiscountToggle = document.getElementById('billing-map-high-discount-toggle');
+const billingMapEmptyOverlay = document.getElementById('billing-map-empty-overlay');
+const billingMapEmptyText = document.getElementById('billing-map-empty-text');
+const billingMapResetFiltersBtn = document.getElementById('billing-map-reset-filters-btn');
+const billingMapErrorOverlay = document.getElementById('billing-map-error-overlay');
+const billingMapErrorTitle = document.getElementById('billing-map-error-title');
+const billingMapErrorDesc = document.getElementById('billing-map-error-desc');
+const billingMapRetryBtn = document.getElementById('billing-map-retry-btn');
+const billingMapBoundsEmptyBanner = document.getElementById('billing-map-bounds-empty-banner');
+const billingMapRecenterBtn = document.getElementById('billing-map-recenter-btn');
+const billingMapFilterSummary = document.getElementById('billing-map-filter-summary');
+const billingMapClearToolbarFiltersBtn = document.getElementById('billing-map-clear-toolbar-filters-btn');
 
 // DOM Elements - Billing Modal
 const billingModalElements = {
@@ -1429,6 +1442,60 @@ if (billingLoadMoreBtn) {
 }
 
 // Google Maps Handlers
+function populateBillingMapCategories() {
+  if (!billingMapCategoryFilter || !state.allBillingStores || state.allBillingStores.length === 0) return;
+  const currentVal = state.currentBillingCategory || 'all';
+
+  const catCounts = {};
+  state.allBillingStores.forEach(s => {
+    const cat = s.category || 'כללי';
+    catCounts[cat] = (catCounts[cat] || 0) + 1;
+  });
+
+  const sortedCats = Object.keys(catCounts).sort((a, b) => catCounts[b] - catCounts[a]);
+
+  billingMapCategoryFilter.innerHTML = '<option value="all">כל הקטגוריות</option>';
+  sortedCats.forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = `${cat} (${catCounts[cat]})`;
+    billingMapCategoryFilter.appendChild(opt);
+  });
+
+  billingMapCategoryFilter.value = currentVal;
+}
+
+function updateBillingMapToolbarSummary() {
+  if (!billingMapFilterSummary) return;
+  const parts = [];
+  if (state.currentBillingCategory !== 'all') parts.push(state.currentBillingCategory);
+  if (billingMapHighDiscountToggle && billingMapHighDiscountToggle.checked) parts.push('הנחות גבוהות (≥7%)');
+  if (state.billingSearchQuery) parts.push(`"${state.billingSearchQuery}"`);
+  if (state.currentBillingCity !== 'all') parts.push(state.currentBillingCity === 'online' ? 'Online' : state.currentBillingCity);
+
+  if (parts.length > 0) {
+    billingMapFilterSummary.textContent = `מסונן לפי: ${parts.join(' • ')}`;
+    if (billingMapClearToolbarFiltersBtn) billingMapClearToolbarFiltersBtn.classList.remove('hidden');
+  } else {
+    billingMapFilterSummary.textContent = '';
+    if (billingMapClearToolbarFiltersBtn) billingMapClearToolbarFiltersBtn.classList.add('hidden');
+  }
+}
+
+function resetAllBillingMapFilters() {
+  state.billingSearchQuery = '';
+  if (billingSearchInput) billingSearchInput.value = '';
+  if (clearBillingSearchBtn) clearBillingSearchBtn.classList.add('hidden');
+  state.currentBillingCategory = 'all';
+  if (billingMapCategoryFilter) billingMapCategoryFilter.value = 'all';
+  if (billingMapHighDiscountToggle) billingMapHighDiscountToggle.checked = false;
+  state.currentBillingCity = 'all';
+  if (billingCitySelect) billingCitySelect.value = 'all';
+  if (billingCategoryChipsContainer) updateBillingCategoryChips(billingCategoryChipsContainer);
+  renderBilling();
+  updateBillingMapToolbarSummary();
+}
+
 async function openOrToggleBillingMap() {
   if (!billingMapWrapper) return;
   const isHidden = billingMapWrapper.classList.contains('hidden');
@@ -1444,14 +1511,18 @@ async function openOrToggleBillingMap() {
       window.lucide.createIcons({ root: billingMapWrapper });
     }
 
+    if (!state.billingLoaded) {
+      await startLoadBilling();
+    }
+
+    populateBillingMapCategories();
+    updateBillingMapToolbarSummary();
+
     // Smooth scroll down to map so user sees it immediately
     setTimeout(() => {
       billingMapWrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 50);
 
-    if (!state.billingLoaded) {
-      await startLoadBilling();
-    }
     const filtered = getFilteredBillingStores();
     await updateBillingMap(filtered);
   } else {
@@ -1472,76 +1543,180 @@ function debouncedUpdateBillingMap(stores, delay = 120) {
   }, delay);
 }
 
+function showBillingMapError(err) {
+  if (!billingMapErrorOverlay) return;
+  billingMapErrorOverlay.classList.remove('hidden');
+  if (billingMapEmptyOverlay) billingMapEmptyOverlay.classList.add('hidden');
+  if (billingMapBoundsEmptyBanner) billingMapBoundsEmptyBanner.classList.add('hidden');
+
+  const errStr = String(err || '');
+  const isAuthOrReferrer = errStr.includes('Referer') || errStr.includes('ApiNotActivated') || errStr.includes('InvalidKey') || errStr.includes('gm_authFailure');
+
+  if (billingMapErrorTitle) {
+    billingMapErrorTitle.textContent = isAuthOrReferrer ? 'שגיאת הרשאה / מפתח ב-Google Maps' : 'שגיאה בטעינת Google Maps';
+  }
+  if (billingMapErrorDesc) {
+    billingMapErrorDesc.textContent = isAuthOrReferrer
+      ? 'מפתח ה-API של Google Maps חסום בדומיין הנוכחי (הגבלת HTTP Referrer) או שטרם הופעל Maps JavaScript API בפרויקט.'
+      : (err?.message || 'לא ניתן היה להתחבר ל-Google Maps. אנא ודא שמפתח ה-API תקין ושהרשת מחוברת.');
+  }
+}
+
 async function updateBillingMap(stores) {
   if (!billingMapCanvas) return;
   if (billingMapLoading) billingMapLoading.classList.remove('hidden');
+  if (billingMapErrorOverlay) billingMapErrorOverlay.classList.add('hidden');
+
+  updateBillingMapToolbarSummary();
 
   try {
     if (!isMapReady()) {
       await initBillingMap(billingMapCanvas, {
         onStoreSelect: (store) => {
           openBillingModal(store, billingModalElements, billingModalCallbacks);
+        },
+        onBoundsChange: ({ inViewCount, totalMarkers, hasActiveMarkers }) => {
+          if (billingMapBoundsEmptyBanner) {
+            // Show banner if markers exist globally, but user moved map to empty area
+            if (hasActiveMarkers && totalMarkers > 0 && inViewCount === 0) {
+              billingMapBoundsEmptyBanner.classList.remove('hidden');
+              if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons({ root: billingMapBoundsEmptyBanner });
+              }
+            } else {
+              billingMapBoundsEmptyBanner.classList.add('hidden');
+            }
+          }
+        },
+        onError: (err) => {
+          showBillingMapError(err);
         }
       });
     }
 
-    await updateMapMarkers(stores);
-    if (billingMapCountBadge) {
-      const physicalCount = stores ? stores.filter(s => {
-        const c = (s.city || '').toLowerCase();
-        return c && c !== 'online' && !c.includes('אונליין');
-      }).length : 0;
+    // Apply 'Only Show High Discounts' toggle if enabled
+    let storesToMap = stores || [];
+    const onlyHighDiscounts = billingMapHighDiscountToggle && billingMapHighDiscountToggle.checked;
+    if (onlyHighDiscounts) {
+      storesToMap = storesToMap.filter(s => (s.discount || 0) >= 7);
+    }
 
-      if (physicalCount === 0) {
-        billingMapCountBadge.textContent = '0 עסקים תואמים לסינון במפה';
-      } else {
-        const displayed = Math.min(physicalCount, 600);
-        let badgeText = `${displayed.toLocaleString('he-IL')} מתוך ${physicalCount.toLocaleString('he-IL')} עסקים מוצגים`;
-        if (state.currentBillingCategory !== 'all') {
-          badgeText += ` • ${state.currentBillingCategory}`;
+    const physicalStores = storesToMap.filter(s => {
+      const c = (s.city || '').toLowerCase();
+      return c && c !== 'online' && !c.includes('אונליין');
+    });
+
+    if (physicalStores.length === 0) {
+      // Show user-friendly empty state overlay
+      if (billingMapEmptyOverlay) {
+        billingMapEmptyOverlay.classList.remove('hidden');
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          window.lucide.createIcons({ root: billingMapEmptyOverlay });
         }
-        if (state.billingSearchQuery) {
-          badgeText += ` • "${state.billingSearchQuery}"`;
+        if (billingMapEmptyText) {
+          const activeFilters = [];
+          if (state.billingSearchQuery) activeFilters.push(`חיפוש "${state.billingSearchQuery}"`);
+          if (state.currentBillingCategory !== 'all') activeFilters.push(`קטגוריה "${state.currentBillingCategory}"`);
+          if (onlyHighDiscounts) activeFilters.push('הנחות גבוהות (≥7%)');
+          if (state.currentBillingCity !== 'all') activeFilters.push(`עיר "${state.currentBillingCity}"`);
+
+          if (activeFilters.length > 0) {
+            billingMapEmptyText.textContent = `לא נמצאו בתי עסק פיזיים התואמים לסינון: ${activeFilters.join(' • ')}. באפשרותך לאפס את הסינונים או להסיר את סינון ההנחות הגבוהות.`;
+          } else {
+            billingMapEmptyText.textContent = 'לא נמצאו בתי עסק פיזיים להצגה במפה.';
+          }
         }
-        billingMapCountBadge.textContent = badgeText;
       }
+      if (billingMapBoundsEmptyBanner) billingMapBoundsEmptyBanner.classList.add('hidden');
+      await updateMapMarkers([]);
+
+      if (billingMapCountBadge) {
+        billingMapCountBadge.textContent = '0 עסקים תואמים לסינון במפה';
+      }
+      return;
+    }
+
+    // Hide empty state overlay when results are present
+    if (billingMapEmptyOverlay) billingMapEmptyOverlay.classList.add('hidden');
+
+    await updateMapMarkers(storesToMap);
+
+    if (billingMapCountBadge) {
+      const displayed = Math.min(physicalStores.length, 600);
+      let badgeText = `${displayed.toLocaleString('he-IL')} מתוך ${physicalStores.length.toLocaleString('he-IL')} עסקים מוצגים`;
+      if (onlyHighDiscounts) {
+        badgeText += ' • הנחות גבוהות (7%+)';
+      }
+      if (state.currentBillingCategory !== 'all') {
+        badgeText += ` • ${state.currentBillingCategory}`;
+      }
+      if (state.billingSearchQuery) {
+        badgeText += ` • "${state.billingSearchQuery}"`;
+      }
+      billingMapCountBadge.textContent = badgeText;
     }
   } catch (err) {
     console.warn('Map update warning:', err);
-    if (billingMapCanvas) {
-      const isAuthOrReferrer = String(err).includes('Referer') || String(err).includes('ApiNotActivated') || String(err).includes('InvalidKey');
-      billingMapCanvas.innerHTML = `
-        <div class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-50 dark:bg-slate-900 z-20 space-y-3">
-          <div class="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-          </div>
-          <div class="max-w-md space-y-1">
-            <h4 class="text-sm font-bold text-slate-800 dark:text-slate-100">שגיאה בטעינת Google Maps</h4>
-            <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              ${isAuthOrReferrer 
-                ? 'מפתח ה-API של Google Maps חסום בדומיין הנוכחי (הגבלת HTTP Referrer) או שטרם הופעל Maps JavaScript API בפרויקט.' 
-                : (err?.message || 'לא ניתן היה להתחבר ל-Google Maps. אנא ודא שמפתח ה-API תקין.')}
-            </p>
-          </div>
-          <button type="button" id="billing-map-retry-btn" class="px-4 py-2 text-xs font-semibold rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition cursor-pointer shadow-xs">
-            נסה שוב
-          </button>
-        </div>
-      `;
-      document.getElementById('billing-map-retry-btn')?.addEventListener('click', () => {
-        billingMapCanvas.innerHTML = `
-          <div id="billing-map-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs z-10 space-y-2">
-            <div class="w-8 h-8 border-3 border-purple-200 dark:border-purple-900 border-t-purple-600 rounded-full animate-spin"></div>
-            <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">טוען מפת Google Maps...</p>
-          </div>
-        `;
-        updateBillingMap(stores);
+    showBillingMapError(err);
+  } finally {
+    if (billingMapLoading) billingMapLoading.classList.add('hidden');
+  }
+}
+
+// Map Category Filter change handler
+if (billingMapCategoryFilter) {
+  billingMapCategoryFilter.addEventListener('change', (e) => {
+    state.currentBillingCategory = e.target.value;
+    state.billingVisibleCount = state.BILLING_PAGE_SIZE;
+    if (billingCategoryChipsContainer) {
+      billingCategoryChipsContainer.querySelectorAll('.billing-category-chip').forEach(chip => {
+        const isMatch = chip.dataset.category === state.currentBillingCategory;
+        chip.className = `billing-category-chip px-3.5 py-1.5 rounded-full font-medium transition text-xs flex items-center gap-1.5 whitespace-nowrap ${
+          isMatch
+            ? 'bg-purple-600 text-white shadow-xs'
+            : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
+        }`;
       });
     }
-  } finally {
-    const spinner = document.getElementById('billing-map-loading');
-    if (spinner) spinner.classList.add('hidden');
-  }
+    renderBilling();
+    updateBillingMapToolbarSummary();
+  });
+}
+
+// Map High Discount Toggle change handler
+if (billingMapHighDiscountToggle) {
+  billingMapHighDiscountToggle.addEventListener('change', () => {
+    if (billingMapWrapper && !billingMapWrapper.classList.contains('hidden')) {
+      const filtered = getFilteredBillingStores();
+      updateBillingMap(filtered);
+    }
+  });
+}
+
+// Reset filters from empty map overlay or toolbar
+if (billingMapResetFiltersBtn) {
+  billingMapResetFiltersBtn.addEventListener('click', resetAllBillingMapFilters);
+}
+if (billingMapClearToolbarFiltersBtn) {
+  billingMapClearToolbarFiltersBtn.addEventListener('click', resetAllBillingMapFilters);
+}
+
+// Recenter map on all markers
+if (billingMapRecenterBtn) {
+  billingMapRecenterBtn.addEventListener('click', () => {
+    recenterMapToAllMarkers();
+    if (billingMapBoundsEmptyBanner) billingMapBoundsEmptyBanner.classList.add('hidden');
+  });
+}
+
+// Retry Google Maps loading
+if (billingMapRetryBtn) {
+  billingMapRetryBtn.addEventListener('click', () => {
+    if (billingMapErrorOverlay) billingMapErrorOverlay.classList.add('hidden');
+    if (billingMapLoading) billingMapLoading.classList.remove('hidden');
+    const filtered = getFilteredBillingStores();
+    updateBillingMap(filtered);
+  });
 }
 
 if (billingToggleMapBtn) {

@@ -23,6 +23,19 @@ let isMapInitialized = false;
 let isMapLoading = false;
 let isMaximized = false;
 let onStoreSelectCallback = null;
+let onBoundsChangeCallback = null;
+let onMapErrorCallback = null;
+let latestValidBounds = null;
+let idleListener = null;
+
+// Global auth failure handler for Google Maps Platform
+if (typeof window !== 'undefined') {
+  window.gm_authFailure = () => {
+    console.error('Google Maps Platform authentication failure (gm_authFailure)');
+    const err = new Error('gm_authFailure: מפתח ה-API של Google Maps חסום או שאינו מורשה לדומיין זה.');
+    if (onMapErrorCallback) onMapErrorCallback(err);
+  };
+}
 
 /**
  * Configure API loader once
@@ -35,6 +48,15 @@ setOptions({
 });
 
 /**
+ * Set or update map callbacks
+ */
+export function setMapCallbacks(callbacks = {}) {
+  if (callbacks.onStoreSelect !== undefined) onStoreSelectCallback = callbacks.onStoreSelect;
+  if (callbacks.onBoundsChange !== undefined) onBoundsChangeCallback = callbacks.onBoundsChange;
+  if (callbacks.onError !== undefined) onMapErrorCallback = callbacks.onError;
+}
+
+/**
  * Initialize Google Maps instance lazily into target container
  */
 export async function initBillingMap(containerElement, options = {}) {
@@ -42,7 +64,9 @@ export async function initBillingMap(containerElement, options = {}) {
   if (isMapLoading) return null;
 
   isMapLoading = true;
-  onStoreSelectCallback = options.onStoreSelect || null;
+  if (options.onStoreSelect) onStoreSelectCallback = options.onStoreSelect;
+  if (options.onBoundsChange) onBoundsChangeCallback = options.onBoundsChange;
+  if (options.onError) onMapErrorCallback = options.onError;
 
   try {
     const { Map, InfoWindow } = await importLibrary('maps');
@@ -81,12 +105,35 @@ export async function initBillingMap(containerElement, options = {}) {
       }
     }
 
+    // Attach idle listener to report visible markers in current map viewport
+    if (idleListener) google.maps.event.removeListener(idleListener);
+    idleListener = google.maps.event.addListener(mapInstance, 'idle', () => {
+      if (!mapInstance || !onBoundsChangeCallback) return;
+      const bounds = mapInstance.getBounds();
+      if (!bounds) return;
+
+      let inViewCount = 0;
+      for (let i = 0; i < currentMarkers.length; i++) {
+        const pos = currentMarkers[i].position;
+        if (pos && bounds.contains(pos)) {
+          inViewCount++;
+        }
+      }
+
+      onBoundsChangeCallback({
+        inViewCount,
+        totalMarkers: currentMarkers.length,
+        hasActiveMarkers: currentMarkers.length > 0
+      });
+    });
+
     isMapInitialized = true;
     isMapLoading = false;
     return mapInstance;
   } catch (err) {
     isMapLoading = false;
     console.error('Failed to initialize Google Maps:', err);
+    if (onMapErrorCallback) onMapErrorCallback(err);
     throw err;
   }
 }
@@ -135,9 +182,9 @@ export async function updateMapMarkers(stores, options = {}) {
     bounds.extend({ lat: coords.lat, lng: coords.lng });
     hasValidCoords = true;
 
-    // Pin with discount badge styling
+    // Pin with discount badge styling using modern PinElement properties
     const pin = new PinElement({
-      glyph: `${store.discount || 5}%`,
+      glyphText: `${store.discount || 5}%`,
       glyphColor: '#ffffff',
       background: '#9333ea', // Purple theme for billing discounts
       borderColor: '#7e22ce'
@@ -146,11 +193,11 @@ export async function updateMapMarkers(stores, options = {}) {
     const marker = new AdvancedMarkerElement({
       position: { lat: coords.lat, lng: coords.lng },
       title: `${store.name} (${store.discount}%)`,
-      content: pin.element
+      content: pin
     });
 
-    // Marker click event opens rich InfoWindow
-    marker.addListener('click', () => {
+    // Marker click event opens rich InfoWindow (using modern gmp-click event)
+    const onMarkerClick = () => {
       const addressText = store.address ? `${store.address}, ${store.city}` : store.city;
       const navUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((store.name || '') + ' ' + (addressText || ''))}`;
 
@@ -200,7 +247,13 @@ export async function updateMapMarkers(stores, options = {}) {
           });
         }
       }, 50);
-    });
+    };
+
+    if (typeof marker.addEventListener === 'function') {
+      marker.addEventListener('gmp-click', onMarkerClick);
+    } else if (typeof marker.addListener === 'function') {
+      marker.addListener('click', onMarkerClick);
+    }
 
     markers.push(marker);
   });
@@ -219,6 +272,7 @@ export async function updateMapMarkers(stores, options = {}) {
 
   // Smoothly fit bounds if requested or if search changed
   if (hasValidCoords && (options.autoFit !== false)) {
+    latestValidBounds = bounds;
     if (storesToPlot.length === 1) {
       const c = getStoreCoordinates(storesToPlot[0]);
       mapInstance.setCenter({ lat: c.lat, lng: c.lng });
@@ -232,6 +286,25 @@ export async function updateMapMarkers(stores, options = {}) {
       });
     }
   } else if (!stores || stores.length === 0) {
+    latestValidBounds = null;
+    mapInstance.setCenter({ lat: 31.85, lng: 34.85 });
+    mapInstance.setZoom(9);
+  }
+
+  return {
+    plottedCount: storesToPlot.length,
+    physicalCount: physicalStores.length
+  };
+}
+
+/**
+ * Recenter map to all currently plotted store markers
+ */
+export function recenterMapToAllMarkers() {
+  if (!mapInstance) return;
+  if (latestValidBounds && !latestValidBounds.isEmpty()) {
+    mapInstance.fitBounds(latestValidBounds, { top: 40, right: 40, bottom: 40, left: 40 });
+  } else {
     mapInstance.setCenter({ lat: 31.85, lng: 34.85 });
     mapInstance.setZoom(9);
   }
