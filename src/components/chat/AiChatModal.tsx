@@ -18,6 +18,16 @@ interface AiChatModalProps {
 
 const STARTER_PROMPTS = [
   {
+    icon: '🤖',
+    title: 'הכרת ה-AI והאתר',
+    prompt: 'האם אתה באמת AI, איך אתה עובד ואיך אתה יכול לעזור לי?',
+  },
+  {
+    icon: '💳',
+    title: 'השוואת שיטות תשלום',
+    prompt: 'מה ההבדל בין ארנק נטען 20% להנחה במעמד החיוב באשראי?',
+  },
+  {
     icon: '🍕',
     title: 'אוכל ומסעדות',
     prompt: 'איפה הכי משתלם להזמין פיצה או לאכול במסעדה עם הנחה?',
@@ -31,16 +41,6 @@ const STARTER_PROMPTS = [
     icon: '🛒',
     title: 'סופרמרקט ומזון',
     prompt: 'איזה רשתות סופרמרקט מכבדות כרטיס נטען או הנחה במעמד החיוב?',
-  },
-  {
-    icon: '🏨',
-    title: 'נופש ומלונות',
-    prompt: 'איזה שוברים ומבצעים יש למלונות באילת או לספא מפנק?',
-  },
-  {
-    icon: '💳',
-    title: 'השוואת כרטיסים נטענים',
-    prompt: 'מה ההבדל בין ארנק רשתות בהצדעה 20% לכרטיס נטען UNIQ 15%?',
   },
   {
     icon: '⚡',
@@ -349,7 +349,7 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
               type="text"
               value={inputText}
               onChange={e => setInputText(e.target.value)}
-              placeholder="שאל בשפה חופשית... (למשל: איפה הכי משתלם לקנות נעלי ריצה?)"
+              placeholder="שאל כל שאלה... (למשל: מה ההבדל בין כרטיס נטען למעמד החיוב? או איפה הכי משתלם?)"
               className="w-full pl-12 pr-4 py-3 text-xs sm:text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-2xl border border-transparent focus:border-emerald-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition shadow-inner"
               disabled={isLoading}
             />
@@ -375,7 +375,7 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
           <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400 px-1">
             <span className="flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-emerald-500" />
-              סייר ה-AI מחובר ל-1,041 רשתות ו-1,921 מבצעים
+              סייר ה-AI מחובר ליותר מ-10,000 סניפים, 1,041 רשתות ו-2,670+ מבצעים
             </span>
             <span className="hidden sm:inline">הקש Enter לשליחה</span>
           </div>

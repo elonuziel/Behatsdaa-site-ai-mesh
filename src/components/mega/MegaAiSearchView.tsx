@@ -17,12 +17,13 @@ interface MegaAiSearchViewProps {
 }
 
 const POPULAR_QUESTIONS = [
+  'האם אתה באמת AI ואיך אתה יכול לעזור לי לחסוך?',
+  'מה ההבדל בין כרטיס נטען להנחה במעמד החיוב באשראי?',
   'איפה הכי משתלם להזמין פיצה או לאכול במסעדה?',
   'איפה כדאי לקנות נעלי ריצה או ציוד ספורט?',
   'איזה רשתות סופרמרקט מכבדות כרטיס נטען?',
-  'האם יש מבצעים שווים לחופשה במלונות באילת או ספא?',
-  'מה ההבדל בין ארנק בהצדעה לכרטיס נטען UNIQ?',
-  'אילו קופונים הכי שווים ב-Mastercard Day?'
+  'אילו קופונים הכי שווים ב-Mastercard Day?',
+  'האם יש מבצעים שווים לחופשה במלונות באילת או ספא?'
 ];
 
 export const MegaAiSearchView: React.FC<MegaAiSearchViewProps> = ({
@@ -269,7 +270,7 @@ export const MegaAiSearchView: React.FC<MegaAiSearchViewProps> = ({
               type="text"
               value={inputVal}
               onChange={e => setInputVal(e.target.value)}
-              placeholder="כתוב בשפה חופשית... (למשל: איפה הכי שווה לקנות נעלי ריצה או להזמין סושי?)"
+              placeholder="שאל כל שאלה... (למשל: מה ההבדל בין כרטיס נטען למעמד החיוב? איפה לקנות נעלי ריצה? או איך האתר עובד?)"
               className="w-full pl-12 pr-4 py-3.5 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-2xl border border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:outline-none transition shadow-2xs"
               disabled={isLoading}
             />
