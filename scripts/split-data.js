@@ -412,21 +412,48 @@ allDeals.forEach(d => {
 
 console.log('⚡ [3/6] Generating lightweight search-index.json (< 400KB)...');
 
-// Stores search index (lightweight vital search keys: id, name, slug, discount)
-const searchIndexStores = allStores.map(s => ({
-  id: s.id,
-  name: s.name,
-  slug: s.slug,
-  d: s.max_discount || 0
-}));
+// Stores search index (lightweight vital search keys: id, name, slug, discount, clubs, club-specific discounts)
+const searchIndexStores = allStores.map(s => {
+  const item = {
+    id: s.id,
+    name: s.name,
+    slug: s.slug,
+    d: s.max_discount || 0
+  };
+  if (s.clubs && (s.clubs.length > 1 || s.clubs[0] !== 'behatsdaa')) {
+    item.clubs = s.clubs;
+  }
+  // Compute per-club max discount for dynamic active recalculation & re-ranking
+  const cd = {};
+  if (Array.isArray(s.payment_options)) {
+    for (const opt of s.payment_options) {
+      if (opt.club && opt.rateType === 'percent' && opt.rate > 0) {
+        cd[opt.club] = Math.max(cd[opt.club] || 0, opt.rate);
+      }
+    }
+  }
+  if (Object.keys(cd).length > 1) {
+    item.cd = cd;
+  }
+  return item;
+});
 
-// Deals search index (lightweight vital search keys: id, name, slug, discount)
-const searchIndexDeals = allDeals.map(d => ({
-  id: d.id,
-  name: d.title,
-  slug: d.slug,
-  d: d.discount_percent || 0
-}));
+// Deals search index (lightweight vital search keys: id, name, slug, discount, club, coupon, linked store)
+const searchIndexDeals = allDeals.map(d => {
+  const item = {
+    id: d.id,
+    name: d.title,
+    slug: d.id,
+    d: d.discount_percent || 0
+  };
+  if (d.club && d.club !== 'behatsdaa') {
+    item.club = d.club;
+  }
+  if (d.price) item.p = d.price;
+  if (d.coupon_code) item.cp = d.coupon_code;
+  if (d.linked_store && d.linked_store.slug) item.st = d.linked_store.slug;
+  return item;
+});
 
 const searchIndexPayload = {
   metadata: {
@@ -510,11 +537,14 @@ allStores.forEach(s => {
     name: s.name,
     slug: s.slug,
     category: s.category || 'כללי',
+    clubs: s.clubs || ['behatsdaa'],
     max_discount: s.max_discount || 0,
     logo: s.logo || null,
     website: s.website || null,
     conditions: s.conditions || '',
     cards: s.cards || [],
+    discounts: s.discounts || [],
+    payment_options: s.payment_options || [],
     linked_deals: s.linked_deals || [],
     linkedDeals: s.linked_deals || [],
     linked_billing: s.linked_billing || null,
@@ -544,11 +574,19 @@ allDeals.forEach(d => {
     id: d.id,
     title: d.title,
     slug: d.slug,
+    club: d.club || 'behatsdaa',
     supplier: d.supplier || '',
     category: d.category || 'כללי',
-    price: d.price,
-    original_price: d.original_price || null,
+    price: d.price ?? null,
+    original_price: d.original_price ?? null,
     discount_percent: d.discount_percent || 0,
+    discount_type: d.discount_type || 'percent',
+    discount_value: d.discount_value ?? null,
+    discount_display: d.discount_display ?? null,
+    coupon_code: d.coupon_code || null,
+    validity: d.validity || d.expiration_date || null,
+    min_spend: d.min_spend ?? null,
+    min_spend_display: d.min_spend_display ?? null,
     is_external: Boolean(d.is_external),
     shipping_included: Boolean(d.shipping_included),
     locations: d.locations || '',
@@ -557,7 +595,7 @@ allDeals.forEach(d => {
     tags: d.tags || [],
     description: d.description || '',
     terms_of_use: d.terms_of_use || '',
-    expiration_date: d.expiration_date || null,
+    expiration_date: d.expiration_date || d.validity || null,
     limits: d.limits || null,
     url: d.url || null,
     variants: d.variants || null,
