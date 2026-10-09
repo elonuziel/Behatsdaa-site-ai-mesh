@@ -1405,6 +1405,24 @@ searchAllTabsCheckboxes.forEach(cb => {
   });
 });
 
+// Synchronize all "Smart Search" checkboxes
+const searchSmartToggleCheckboxes = document.querySelectorAll('.search-smart-toggle-checkbox');
+searchSmartToggleCheckboxes.forEach(cb => {
+  cb.checked = state.smartSearchEnabled;
+  cb.addEventListener('change', (e) => {
+    const isChecked = e.target.checked;
+    state.smartSearchEnabled = isChecked;
+    localStorage.setItem('behatsdaa_smart_search', isChecked);
+    searchSmartToggleCheckboxes.forEach(other => {
+      other.checked = isChecked;
+    });
+    
+    // Refresh search results
+    const activeQuery = getTabSearchQuery(state.currentTab);
+    handleSearchChange(activeQuery || '', state.currentTab);
+  });
+});
+
 if (billingCitySelect) {
   billingCitySelect.addEventListener('change', (e) => {
     state.currentBillingCity = e.target.value;

@@ -6,6 +6,7 @@ export const state = {
   // Navigation & Strict Mobile DOM Limits (30 items at a time to prevent memory spikes)
   currentTab: 'all',
   globalSearchAcrossTabs: localStorage.getItem('behatsdaa_global_search') !== 'false',
+  smartSearchEnabled: localStorage.getItem('behatsdaa_smart_search') === 'true',
   STORES_PAGE_SIZE: 30,
   storesVisibleCount: 30,
   DEALS_PAGE_SIZE: 30,

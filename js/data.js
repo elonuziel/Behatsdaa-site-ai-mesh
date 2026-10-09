@@ -4,7 +4,7 @@
 
 import { state } from './state.js';
 import { normalizeHebrew } from './utils.js';
-import { initStoresSearch, initDealsSearch, initBillingSearch } from './search.js';
+import { initStoresSearch, initDealsSearch, initBillingSearch, initSearchLexicon } from './search.js';
 
 // In-Memory LRU Caches for on-demand dynamic details
 const storeDetailCache = new Map();
@@ -318,6 +318,7 @@ export function crossLinkAllDatasets() {
 }
 
 export async function loadStores(onStoresLoaded) {
+  initSearchLexicon();
   try {
     const response = await fetch('data/stores.json');
     if (!response.ok) throw new Error('Failed to load stores.json');

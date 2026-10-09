@@ -13,6 +13,54 @@ import { normalizeHebrew } from './utils.js';
 let storesMiniSearch = null;
 let dealsMiniSearch = null;
 let billingMiniSearch = null;
+let searchLexicon = null;
+
+export async function initSearchLexicon() {
+  if (searchLexicon) return;
+  try {
+    const res = await fetch('data/search_lexicon.json');
+    if (res.ok) {
+      searchLexicon = await res.json();
+    }
+  } catch (err) {
+    console.warn('Failed to load search lexicon:', err);
+  }
+}
+
+function buildSmartQuery(query) {
+  if (!searchLexicon) return query;
+  const terms = query.toLowerCase().split(/\s+/);
+  const expandedTerms = new Set();
+  
+  terms.forEach(term => {
+    expandedTerms.add(term);
+    
+    // Check transliterations
+    if (searchLexicon.transliterations && searchLexicon.transliterations[term]) {
+      expandedTerms.add(searchLexicon.transliterations[term]);
+    }
+    
+    // Check synonyms
+    if (searchLexicon.synonyms && searchLexicon.synonyms[term]) {
+      searchLexicon.synonyms[term].forEach(syn => expandedTerms.add(syn));
+    }
+  });
+  
+  const originalTerms = Array.from(terms);
+  const additionalTerms = Array.from(expandedTerms).filter(t => !originalTerms.includes(t));
+  
+  if (additionalTerms.length === 0) {
+    return query;
+  }
+  
+  return {
+    combineWith: 'OR',
+    queries: [
+      query, // Exact terms get default full boost
+      ...additionalTerms.map(t => ({ queries: [t], boost: 0.5 })) // Synonyms/Transliterations get lower boost
+    ]
+  };
+}
 
 export function tokenizeHebrew(text) {
   if (!text) return [];
@@ -98,7 +146,9 @@ export function searchStores(query, options = {}) {
     } else if (options.inDesc === false) {
       searchOpts.fields = ['nameNorm', 'catNorm', 'cardsNorm', 'tokens'];
     }
-    const results = storesMiniSearch.search(clean, searchOpts);
+    
+    const finalQuery = options.smartSearch ? buildSmartQuery(clean) : clean;
+    const results = storesMiniSearch.search(finalQuery, searchOpts);
     const scoreMap = new Map();
     results.forEach(r => {
       scoreMap.set(r.id, r.score);
@@ -154,7 +204,9 @@ export function searchDeals(query, options = {}) {
     } else if (options.inDesc === false) {
       searchOpts.fields = ['titleNorm', 'suppNorm', 'catNorm', 'tagNorm', 'tokens'];
     }
-    const results = dealsMiniSearch.search(clean, searchOpts);
+    
+    const finalQuery = options.smartSearch ? buildSmartQuery(clean) : clean;
+    const results = dealsMiniSearch.search(finalQuery, searchOpts);
     const scoreMap = new Map();
     results.forEach(r => {
       scoreMap.set(r.id, r.score);
@@ -209,7 +261,9 @@ export function searchBilling(query, options = {}) {
     } else if (options.inDesc === false) {
       searchOpts.fields = ['nameNorm', 'cityNorm', 'catNorm', 'tokens'];
     }
-    const results = billingMiniSearch.search(clean, searchOpts);
+    
+    const finalQuery = options.smartSearch ? buildSmartQuery(clean) : clean;
+    const results = billingMiniSearch.search(finalQuery, searchOpts);
     const scoreMap = new Map();
     results.forEach(r => {
       scoreMap.set(r.id, r.score);

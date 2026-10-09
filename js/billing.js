@@ -95,7 +95,10 @@ export function getFilteredBillingStores() {
 
   let miniMatches = null;
   if (state.billingSearchQuery) {
-    miniMatches = searchBilling(state.billingSearchQuery, { inDesc: !!state.billingSearchInDesc });
+    miniMatches = searchBilling(state.billingSearchQuery, { 
+      inDesc: !!state.billingSearchInDesc,
+      smartSearch: !!state.smartSearchEnabled
+    });
     if (miniMatches && miniMatches.size > 0) {
       result = result.filter(s => miniMatches.has(String(s.id)));
     } else {

@@ -102,7 +102,10 @@ export function getFilteredStores() {
 
   let miniMatches = null;
   if (state.searchQuery) {
-    miniMatches = searchStores(state.searchQuery, { inDesc: !!state.storesSearchInDesc });
+    miniMatches = searchStores(state.searchQuery, { 
+      inDesc: !!state.storesSearchInDesc,
+      smartSearch: !!state.smartSearchEnabled 
+    });
     if (miniMatches && miniMatches.size > 0) {
       result = result.filter(s => miniMatches.has(s.id));
     } else {

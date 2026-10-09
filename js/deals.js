@@ -87,7 +87,10 @@ export function getFilteredDeals() {
 
   let miniMatches = null;
   if (state.dealsSearchQuery) {
-    miniMatches = searchDeals(state.dealsSearchQuery, { inDesc: !!state.dealsSearchInDesc });
+    miniMatches = searchDeals(state.dealsSearchQuery, { 
+      inDesc: !!state.dealsSearchInDesc,
+      smartSearch: !!state.smartSearchEnabled
+    });
     if (miniMatches && miniMatches.size > 0) {
       result = result.filter(d => miniMatches.has(String(d.id)));
     } else {
