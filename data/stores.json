@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "last_updated": "2026-10-09T14:45:57.932Z",
-    "total_stores": 1042,
+    "last_updated": "2026-10-09T15:10:01.335Z",
+    "total_stores": 1041,
     "clubs": [
       "behatsdaa",
       "uniq",
@@ -32480,7 +32480,9 @@
       "slug": "מכללת-גאסט-מיוזיק-מכללת-ג-אסט-מיוזיק",
       "category": "תרבות",
       "clubs": [
-        "behatsdaa"
+        "behatsdaa",
+        "uniq",
+        "mastercard"
       ],
       "max_discount": 20,
       "logo": "https://pics.k4a.co.il/share/NewUploads/BusinessLogo/00a7a3c24c2f46a982fc6fb708948508.png",
@@ -32519,6 +32521,27 @@
           "label": "כרטיס נטען בהצדעה (20%)",
           "description": "הנחה של עד 20% ברשת זו",
           "terms": ""
+        },
+        {
+          "club": "uniq",
+          "type": "billing_discount",
+          "rate": 10,
+          "rateType": "percent",
+          "label": "הנחה במעמד החיוב UNIQ (10%)",
+          "description": "הנחה עד 10%",
+          "terms": "הנחה של 10% ניתנת באופן אוטומטי במעמד החיוב בחשבון האשראי למשלמים בכרטיס UNIQ.",
+          "url": "https://www.uniq-club.co.il/benefit/1664"
+        },
+        {
+          "club": "mastercard",
+          "type": "promo_code",
+          "rate": 15,
+          "rateType": "percent",
+          "label": "קופון Mastercard Day: MASTERCARDAY",
+          "description": "אקסטרה 15% הנחה",
+          "terms": "ההטבה תקפה על כל המותגים באתר היבואן הרישמי גלובל אונליין, וכן בחנויות המותגים המשתתפי בהטבה (תקף בישראל בלבד). תקף בכל 10 בחודש. כולל כפל מבצעים והנחות, למעט כפל הטבת מועדון לקוחות. בכפוף לפירוט התנאים בתקנון המלא. קוד קופון: MASTERCARDAY לתקנון",
+          "code": "MASTERCARDAY",
+          "url": "https://www.globalonline.co.il/brand-stores"
         }
       ]
     },
@@ -39391,6 +39414,7 @@
       "category": "רכישה אונליין",
       "clubs": [
         "behatsdaa",
+        "uniq",
         "mastercard"
       ],
       "max_discount": 50,
@@ -39416,6 +39440,16 @@
           "label": "כרטיס נטען בהצדעה (7%)",
           "description": "הנחה של עד 7% ברשת זו",
           "terms": ""
+        },
+        {
+          "club": "uniq",
+          "type": "billing_discount",
+          "rate": 10,
+          "rateType": "percent",
+          "label": "הנחה במעמד החיוב UNIQ (10%)",
+          "description": "הנחה של 10% בסניפי הרשת ביוון\n",
+          "terms": "הנחה של 10% ניתנת באופן אוטומטי במעמד החיוב בחשבון האשראי למשלמים בכרטיס UNIQ.",
+          "url": "https://www.uniq-club.co.il/benefit/1593"
         },
         {
           "club": "mastercard",
@@ -39585,6 +39619,7 @@
       "category": "מסעדות ובתי קפה",
       "clubs": [
         "behatsdaa",
+        "uniq",
         "mastercard"
       ],
       "max_discount": 50,
@@ -39610,6 +39645,16 @@
           "label": "כרטיס נטען בהצדעה (7%)",
           "description": "הנחה של עד 7% ברשת זו",
           "terms": ""
+        },
+        {
+          "club": "uniq",
+          "type": "billing_discount",
+          "rate": 10,
+          "rateType": "percent",
+          "label": "הנחה במעמד החיוב UNIQ (10%)",
+          "description": "הנחה של 10% בסניפי הרשת ביוון\n",
+          "terms": "הנחה של 10% ניתנת באופן אוטומטי במעמד החיוב בחשבון האשראי למשלמים בכרטיס UNIQ.",
+          "url": "https://www.uniq-club.co.il/benefit/1593"
         },
         {
           "club": "mastercard",
@@ -39676,7 +39721,8 @@
       "slug": "דומינוס-פיצה-אונליין-דומינוס-פיצה-אונליין",
       "category": "רכישה אונליין",
       "clubs": [
-        "behatsdaa"
+        "behatsdaa",
+        "mastercard"
       ],
       "max_discount": 20,
       "logo": "https://pics.k4a.co.il/share/NewUploads/BusinessLogo/fef7e308-e459-4f4f-a713-8c7f47f7d395.png",
@@ -39701,6 +39747,17 @@
           "label": "כרטיס נטען בהצדעה (20%)",
           "description": "הנחה של עד 20% ברשת זו",
           "terms": ""
+        },
+        {
+          "club": "mastercard",
+          "type": "promo_code",
+          "rate": 130,
+          "rateType": "fixed",
+          "label": "קופון Mastercard Day: MDAY130",
+          "description": "מחיר מבצע: ₪130",
+          "terms": "תקף ב10 בחודש בלבד. תקף על הזמנת משלוח בלבד (לא כולל תוספות ודמי משלוח) . בהזנת קוד קופון MDAY130 באתר או באפליקציית דומינו'ס. תקף ב-10 בחודש בלבד. בכפוף לתקנון המלא קוד קופון: MDAY130 לתקנון",
+          "code": "MDAY130",
+          "url": "https://www.dominos.co.il/?deepLinkCouponId=MDAY10"
         }
       ]
     },
@@ -42940,7 +42997,9 @@
       "slug": "גאספר-08-jasper-ג-אספר-08-jasper",
       "category": "מסעדות ובתי קפה",
       "clubs": [
-        "behatsdaa"
+        "behatsdaa",
+        "uniq",
+        "mastercard"
       ],
       "max_discount": 20,
       "logo": "https://pics.k4a.co.il/share/NewUploads/BusinessLogo/25b26258-9052-4fde-a991-ba8c2faac307.png",
@@ -42965,6 +43024,27 @@
           "label": "כרטיס נטען בהצדעה (20%)",
           "description": "הנחה של עד 20% ברשת זו",
           "terms": ""
+        },
+        {
+          "club": "uniq",
+          "type": "billing_discount",
+          "rate": 10,
+          "rateType": "percent",
+          "label": "הנחה במעמד החיוב UNIQ (10%)",
+          "description": "הנחה עד 10%",
+          "terms": "הנחה של 10% ניתנת באופן אוטומטי במעמד החיוב בחשבון האשראי למשלמים בכרטיס UNIQ.",
+          "url": "https://www.uniq-club.co.il/benefit/1664"
+        },
+        {
+          "club": "mastercard",
+          "type": "promo_code",
+          "rate": 15,
+          "rateType": "percent",
+          "label": "קופון Mastercard Day: MASTERCARDAY",
+          "description": "אקסטרה 15% הנחה",
+          "terms": "ההטבה תקפה על כל המותגים באתר היבואן הרישמי גלובל אונליין, וכן בחנויות המותגים המשתתפי בהטבה (תקף בישראל בלבד). תקף בכל 10 בחודש. כולל כפל מבצעים והנחות, למעט כפל הטבת מועדון לקוחות. בכפוף לפירוט התנאים בתקנון המלא. קוד קופון: MASTERCARDAY לתקנון",
+          "code": "MASTERCARDAY",
+          "url": "https://www.globalonline.co.il/brand-stores"
         }
       ]
     },
@@ -44273,36 +44353,6 @@
           "terms": "תקף בין התאריכים 9 לאוקטובר ועד 11 לאוקטובר 2026, באתר ובסניפי עולם הקולנוע והחשמל. *לא כולל סלולר ,קונסולות ומצלמות דיגיטליות. כולל כפל מבצעים, לא כולל כפל קופונים והטבות. . מתן ההטבה וטיב המוצרים ו\\או השירותים באחריות בית העסק בלבד. בכפוף לתקנון המלא. קוד קופון לאתר: MASTERCARDAY קוד קופון לסניפים: MASTERCARDCWC לתקנון",
           "code": "MASTERCARDAY",
           "url": "https://www.cwc.co.il/"
-        }
-      ]
-    },
-    {
-      "id": "mc-דומינוס",
-      "name": "דומינו'ס",
-      "slug": "דומינוס-mc-דומינוס",
-      "category": "קולינריה ומסעדות",
-      "clubs": [
-        "mastercard"
-      ],
-      "max_discount": 0,
-      "logo": "https://www.mastercard.com/content/dam/mccom/eu/israel/mastercard-day/dominos-promo-image_1280x720.jpg",
-      "website": "https://www.dominos.co.il/?deepLinkCouponId=MDAY10",
-      "conditions": "📍 ערוץ: באתר אונליין | 🛵 בהזמנת משלוח בלבד",
-      "cards": [
-        "Mastercard"
-      ],
-      "discounts": [],
-      "payment_options": [
-        {
-          "club": "mastercard",
-          "type": "promo_code",
-          "rate": 130,
-          "rateType": "fixed",
-          "label": "קופון Mastercard Day: MDAY130",
-          "description": "מחיר מבצע: ₪130",
-          "terms": "תקף ב10 בחודש בלבד. תקף על הזמנת משלוח בלבד (לא כולל תוספות ודמי משלוח) . בהזנת קוד קופון MDAY130 באתר או באפליקציית דומינו'ס. תקף ב-10 בחודש בלבד. בכפוף לתקנון המלא קוד קופון: MDAY130 לתקנון",
-          "code": "MDAY130",
-          "url": "https://www.dominos.co.il/?deepLinkCouponId=MDAY10"
         }
       ]
     },

@@ -123,8 +123,11 @@ const BRAND_SYNONYMS = new Map([
   ['10bis', '10bis'],
   ['דומינוס פיצה', 'dominos'],
   ['דומינוס', 'dominos'],
+  ["דומינו'ס", 'dominos'],
+  ["דומינו'ס פיצה", 'dominos'],
   ['dominos', 'dominos'],
   ["domino's pizza", 'dominos'],
+  ['dominos pizza', 'dominos'],
   ['מקדונלדס', 'mcdonalds'],
   ["מקדונלד'ס", 'mcdonalds'],
   ['mcdonalds', 'mcdonalds'],
@@ -256,7 +259,8 @@ function normalizeBrandKey(name) {
   if (!name) return '';
   let s = String(name).toLowerCase().trim();
   s = s.replace(/\b(בע\"מ|בעמ|בע'מ|ltd|ישראל|israel|online|אונליין|סניפים|סניפי|רשת|קבוצת|חנות|אתר|shop|store)\b/gi, ' ');
-  s = s.replace(/[\(\)\[\]\"\'\-_–\.,\/]/g, ' ');
+  s = s.replace(/['"״׳.]/g, '');
+  s = s.replace(/[\(\)\[\]\-_–\.,\/]/g, ' ');
   s = s.replace(/ם/g, 'מ').replace(/ן/g, 'נ').replace(/ץ/g, 'צ').replace(/ף/g, 'פ').replace(/ך/g, 'כ');
   s = s.replace(/\s+/g, ' ').trim();
 

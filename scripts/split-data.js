@@ -26,13 +26,31 @@ const publicDir = path.join(rootDir, 'public');
 const publicDataDir = path.join(publicDir, 'data');
 const publicStoresDir = path.join(publicDataDir, 'stores');
 const publicDealsDir = path.join(publicDataDir, 'deals');
+const publicUniqDir = path.join(publicDataDir, 'uniq');
+const publicMcDir = path.join(publicDataDir, 'mastercard');
 
 // Ensure clean output directories
-[publicDataDir, publicStoresDir, publicDealsDir].forEach(dir => {
+[publicDataDir, publicStoresDir, publicDealsDir, publicUniqDir, publicMcDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 });
+
+// Copy UNIQ and Mastercard source datasets for fast dedicated tab loading
+const sourcesDir = path.join(dataDir, 'sources');
+const uniqRecSrc = path.join(sourcesDir, 'uniq', 'rechargeable_benefits.json');
+const uniqScrapedSrc = path.join(sourcesDir, 'uniq', 'scraped_benefits.json');
+const mcDealsSrc = path.join(sourcesDir, 'mastercard', 'deals.json');
+
+if (fs.existsSync(uniqRecSrc)) {
+  fs.copyFileSync(uniqRecSrc, path.join(publicUniqDir, 'rechargeable_benefits.json'));
+}
+if (fs.existsSync(uniqScrapedSrc)) {
+  fs.copyFileSync(uniqScrapedSrc, path.join(publicUniqDir, 'scraped_benefits.json'));
+}
+if (fs.existsSync(mcDealsSrc)) {
+  fs.copyFileSync(mcDealsSrc, path.join(publicMcDir, 'deals.json'));
+}
 
 console.log('⚡ [1/6] Loading master datasets from /data/ ...');
 
@@ -166,7 +184,8 @@ function normalizeHebrew(text) {
     .replace(/ן/g, 'נ')
     .replace(/ף/g, 'פ')
     .replace(/ץ/g, 'צ')
-    .replace(/["'״׳\-–_.,()/]/g, ' ')
+    .replace(/["'״׳.]/g, '')
+    .replace(/[\-–_(),/]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }

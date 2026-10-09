@@ -15,7 +15,8 @@ export function normalizeHebrew(text: string | null | undefined): string {
     .replace(/ן/g, 'נ')
     .replace(/ף/g, 'פ')
     .replace(/ץ/g, 'צ')
-    .replace(/["'״׳\-–_.,()/]/g, ' ')
+    .replace(/["'״׳.]/g, '')
+    .replace(/[\-–_(),/]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }

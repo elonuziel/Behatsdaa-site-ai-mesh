@@ -109,21 +109,47 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onSelect, onSelectD
         {/* Cards Breakdown List */}
         {cardsList.length > 0 && (
           <div className="mt-3 space-y-1 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/80">
-            {cardsList.map((card, idx) => (
-              <div key={idx} className="flex items-center justify-between text-xs py-0.5">
-                <span className="text-slate-600 dark:text-slate-300 truncate max-w-[170px]">
-                  {card.name}
-                </span>
-                {card.discount && (
-                  <span className="font-bold text-slate-900 dark:text-slate-100 shrink-0">
-                    {card.discount}
-                  </span>
-                )}
-              </div>
-            ))}
+            {cardsList.map((card, idx) => {
+              const is20 = card.discount.includes('20') || card.name.includes('20%') || card.name.includes('זהב');
+              const is15 = card.discount.includes('15') || card.name.includes('15%') || card.name.includes('כסף');
+              const isWallet = card.name.includes('ארנק') || card.name.toLowerCase().includes('wallet');
+              return (
+                <div key={idx} className="flex items-center justify-between text-xs py-0.5">
+                  <div className="flex items-center gap-1.5 truncate max-w-[170px]">
+                    {is20 ? (
+                      <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-amber-400 text-amber-950 shrink-0">
+                        זהב 20%
+                      </span>
+                    ) : is15 ? (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 shrink-0">
+                        כסף 15%
+                      </span>
+                    ) : isWallet ? (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200 shrink-0">
+                        ארנק
+                      </span>
+                    ) : null}
+                    <span className="text-slate-600 dark:text-slate-300 truncate">
+                      {card.name}
+                    </span>
+                  </div>
+                  {card.discount && (
+                    <span className="font-bold text-slate-900 dark:text-slate-100 shrink-0">
+                      {card.discount}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
             {extraCardsCount > 0 && (
               <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pt-0.5">
                 + עוד {extraCardsCount} כרטיסים
+              </div>
+            )}
+            {clubs.includes('behatsdaa') && (
+              <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-200/50 dark:border-slate-700/50 mt-1">
+                <span>תקרת טעינה: עד 3,000 ₪ בחודש</span>
+                <span>מינ׳ 100 ₪</span>
               </div>
             )}
           </div>

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 interface FavoritesContextType {
   isFavorite: (type: 'store' | 'deal', id: string) => boolean;
   toggleFavorite: (type: 'store' | 'deal', id: string) => void;
+  clearAllFavorites: () => void;
   showFavoritesOnly: boolean;
   setShowFavoritesOnly: (show: boolean) => void;
   favoritesCount: number;
@@ -52,11 +53,16 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
+  const clearAllFavorites = () => {
+    setFavorites(new Set());
+  };
+
   return (
     <FavoritesContext.Provider
       value={{
         isFavorite,
         toggleFavorite,
+        clearAllFavorites,
         showFavoritesOnly,
         setShowFavoritesOnly,
         favoritesCount: favorites.size

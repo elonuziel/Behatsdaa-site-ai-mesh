@@ -1,14 +1,35 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type MainTab = 'all' | 'stores' | 'deals' | 'billing' | 'map' | 'wallets';
+export type PrimaryTab = 'mega' | 'behatsdaa' | 'uniq' | 'mastercard' | 'favorites';
+
+export type MegaSubTab = 'all' | 'comparison' | 'map' | 'top-deals';
+export type BehatsdaaSubTab = 'stores' | 'deals' | 'billing' | 'map' | 'wallets';
+export type UniqSubTab = 'tab-a' | 'tab-b' | 'tab-c' | 'tab-d';
+export type MastercardSubTab = 'deals' | 'active-today' | 'terms';
+export type FavoritesSubTab = 'all' | 'stores' | 'deals';
+
+export type SubTab = MegaSubTab | BehatsdaaSubTab | UniqSubTab | MastercardSubTab | FavoritesSubTab;
+export type MainTab = string; // For backward compatibility
 export type SortOption = 'discount' | 'name' | 'relevant';
 export type ViewMode = 'grid' | 'table';
+
+export const DEFAULT_SUB_TABS: Record<PrimaryTab, string> = {
+  mega: 'all',
+  behatsdaa: 'stores',
+  uniq: 'tab-a',
+  mastercard: 'deals',
+  favorites: 'all'
+};
 
 interface SearchContextType {
   query: string;
   setQuery: (q: string) => void;
-  activeTab: MainTab;
-  setActiveTab: (tab: MainTab) => void;
+  primaryTab: PrimaryTab;
+  setPrimaryTab: (tab: PrimaryTab) => void;
+  subTab: string;
+  setSubTab: (subTab: string) => void;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
   selectedCategory: string;
@@ -26,8 +47,9 @@ interface SearchContextType {
 const SearchContext = createContext<SearchContextType | undefined>(undefined);
 
 export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [query, setQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<MainTab>('all');
+  const [query, setQueryState] = useState('');
+  const [primaryTab, setPrimaryTabState] = useState<PrimaryTab>('mega');
+  const [subTab, setSubTabState] = useState<string>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedCity, setSelectedCity] = useState<string>('all');
@@ -35,13 +57,71 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [selectedStoreSlug, setSelectedStoreSlug] = useState<string | null>(null);
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
 
+  // Sync initial hash if present
+  useEffect(() => {
+    try {
+      const hash = window.location.hash.replace(/^#/, '');
+      if (hash) {
+        const params = new URLSearchParams(hash);
+        const p = params.get('tab') as PrimaryTab;
+        const s = params.get('sub');
+        if (p && ['mega', 'behatsdaa', 'uniq', 'mastercard', 'favorites'].includes(p)) {
+          setPrimaryTabState(p);
+          if (s) {
+            setSubTabState(s);
+          } else {
+            setSubTabState(DEFAULT_SUB_TABS[p] || 'all');
+          }
+        }
+      }
+    } catch {
+      // Ignore hash parse errors
+    }
+  }, []);
+
+  // Update hash when tabs change
+  useEffect(() => {
+    try {
+      const newHash = `tab=${primaryTab}&sub=${subTab}`;
+      if (window.location.hash !== `#${newHash}`) {
+        window.history.replaceState(null, '', `#${newHash}`);
+      }
+    } catch {
+      // Ignore history state errors
+    }
+  }, [primaryTab, subTab]);
+
+  const setPrimaryTab = (tab: PrimaryTab) => {
+    setPrimaryTabState(tab);
+    setSubTabState(DEFAULT_SUB_TABS[tab] || 'all');
+    setSelectedCategory('all');
+  };
+
+  const setSubTab = (tab: string) => {
+    setSubTabState(tab);
+    setSelectedCategory('all');
+  };
+
+  const setQuery = (q: string) => {
+    setQueryState(q);
+    // Typing in search focuses mega search hub
+    if (q.trim().length > 0 && primaryTab !== 'mega' && primaryTab !== 'favorites') {
+      setPrimaryTabState('mega');
+      setSubTabState('all');
+    }
+  };
+
   return (
     <SearchContext.Provider
       value={{
         query,
         setQuery,
-        activeTab,
-        setActiveTab,
+        primaryTab,
+        setPrimaryTab,
+        subTab,
+        setSubTab,
+        activeTab: subTab,
+        setActiveTab: setSubTab,
         viewMode,
         setViewMode,
         selectedCategory,
