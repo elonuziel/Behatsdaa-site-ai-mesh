@@ -383,11 +383,13 @@ function queueOnDemandGeocode(store, marker) {
 /**
  * Renders the given store entries on the map using AdvancedMarkerElement and MarkerClusterer.
  * Employs diffing to skip redundant marker reconstruction when store IDs are identical.
+ * Groups co-located stores (>= 3 in the same mall/complex) into a single clean Hub Marker
+ * to completely eliminate visual clutter and card collisions.
  */
 async function renderMarkers(storesToRender) {
   // Diffing check: if the store IDs are identical, do not destroy and re-create DOM pins
   let hasChanged = false;
-  if (storesToRender.length !== currentMarkers.length) {
+  if (storesToRender.length !== currentRenderedStoreIds.size) {
     hasChanged = true;
   } else {
     for (let i = 0; i < storesToRender.length; i++) {
@@ -422,40 +424,22 @@ async function renderMarkers(storesToRender) {
   let topZIndexCounter = 3000;
   let activeBadgeElement = null;
 
-  // Group stores by identical/near-identical location so stores in the same building
-  // never completely cover one another.
+  // Group stores by identical/near-identical location (e.g. stores in the same mall or building)
   const locationGroups = new Map();
   storesToRender.forEach(item => {
-    const coordKey = `${item.lat.toFixed(5)}_${item.lng.toFixed(5)}`;
+    // 4 decimals is ~11m, perfectly capturing stores within the same building/mall complex
+    const coordKey = `${item.lat.toFixed(4)}_${item.lng.toFixed(4)}`;
     if (!locationGroups.has(coordKey)) {
       locationGroups.set(coordKey, []);
     }
-    const group = locationGroups.get(coordKey);
-    const indexInGroup = group.length;
-    group.push(item);
-    item.indexInGroup = indexInGroup;
-    item.coordKey = coordKey;
+    locationGroups.get(coordKey).push(item);
   });
 
-  storesToRender.forEach(({ store, coords, coordKey, indexInGroup, lat, lng }) => {
-    const group = locationGroups.get(coordKey);
-    const groupCount = group ? group.length : 1;
-
-    let markerLat = lat;
-    let markerLng = lng;
-
-    if (groupCount > 1) {
-      if (groupCount === 2) {
-        const offset = indexInGroup === 0 ? -0.00018 : 0.00018;
-        markerLng += offset * 1.15;
-        markerLat += (indexInGroup === 0 ? -0.00004 : 0.00004);
-      } else {
-        const angle = (indexInGroup / groupCount) * 2 * Math.PI;
-        const radius = 0.00022; // ~20 meters
-        markerLat += Math.sin(angle) * radius * 0.75;
-        markerLng += Math.cos(angle) * radius * 1.15;
-      }
-    }
+  // Helper to create a single store marker
+  const createSingleMarker = (item, offsetLng = 0, offsetLat = 0) => {
+    const { store, coords, lat, lng } = item;
+    const markerLat = lat + offsetLat;
+    const markerLng = lng + offsetLng;
 
     let exactAddress = store.full_address || formatFullAddress(store);
     if (exactAddress === 'Online / כל הארץ') exactAddress = '';
@@ -464,13 +448,13 @@ async function renderMarkers(storesToRender) {
     badgeEl.className = 'group relative flex flex-col items-center cursor-pointer select-none transition-transform duration-150 hover:scale-105 active:scale-95';
     badgeEl.setAttribute('dir', 'rtl');
     badgeEl.innerHTML = `
-      <div class="pin-card-wrapper flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs text-slate-800 dark:text-slate-100 px-2 py-1 rounded-xl shadow-md border border-purple-300 dark:border-purple-700 hover:border-purple-500 hover:shadow-lg max-w-[210px] text-right font-sans transition-all">
+      <div class="pin-card-wrapper flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs text-slate-800 dark:text-slate-100 px-2 py-1 rounded-xl shadow-md border border-purple-300 dark:border-purple-700 hover:border-purple-500 hover:shadow-lg max-w-[195px] text-right font-sans transition-all">
         <div class="flex-shrink-0 bg-purple-600 text-white font-black text-[11px] px-1.5 py-0.5 rounded-lg tracking-tight shadow-xs flex items-center justify-center">
           <span>${escapeHtml(String(store.discount || 5))}%</span>
         </div>
         <div class="flex flex-col min-w-0 leading-tight">
-          <span class="text-xs font-bold text-slate-900 dark:text-white truncate block max-w-[135px]">${escapeHtml(store.name || '')}</span>
-          ${exactAddress ? `<span class="text-[10px] text-slate-500 dark:text-slate-400 truncate block max-w-[135px] font-medium">${escapeHtml(exactAddress)}</span>` : ''}
+          <span class="text-xs font-bold text-slate-900 dark:text-white truncate block max-w-[125px]">${escapeHtml(store.name || '')}</span>
+          ${exactAddress ? `<span class="text-[10px] text-slate-500 dark:text-slate-400 truncate block max-w-[125px] font-medium">${escapeHtml(exactAddress)}</span>` : ''}
         </div>
       </div>
       <div class="w-2 h-2 bg-white/95 dark:bg-slate-900/95 border-r border-b border-purple-300 dark:border-purple-700 rotate-45 -mt-1 shadow-xs group-hover:border-purple-500"></div>
@@ -480,7 +464,7 @@ async function renderMarkers(storesToRender) {
       position: { lat: markerLat, lng: markerLng },
       title: `${store.name}${exactAddress ? ' - ' + exactAddress : ''} (${store.discount || 5}%)`,
       content: badgeEl,
-      zIndex: 100 + indexInGroup
+      zIndex: 100
     });
 
     const activateMarkerAndSelect = () => {
@@ -488,7 +472,7 @@ async function renderMarkers(storesToRender) {
       badgeEl.style.zIndex = String(topZIndexCounter);
 
       if (activeBadgeElement && activeBadgeElement !== badgeEl) {
-        const prevCard = activeBadgeElement.querySelector('.pin-card-wrapper');
+        const prevCard = activeBadgeElement.querySelector('.pin-card-wrapper, .pin-hub-wrapper');
         if (prevCard) {
           prevCard.classList.remove('ring-2', 'ring-purple-600', 'border-purple-600', 'shadow-2xl', 'bg-purple-50', 'dark:bg-purple-950/70');
         }
@@ -584,6 +568,178 @@ async function renderMarkers(storesToRender) {
 
     if (!coords.isExact && store.address && store.city) {
       queueOnDemandGeocode(store, marker);
+    }
+  };
+
+  // Helper to create a unified Mall / Complex Hub Marker
+  const createHubMarker = (group) => {
+    const firstItem = group[0];
+    const markerLat = firstItem.lat;
+    const markerLng = firstItem.lng;
+
+    const maxDiscount = Math.max(...group.map(x => parseFloat(x.store.discount) || 0));
+
+    // Try detecting a mall/center name from addresses
+    let hubTitle = `מתחם עסקים (${group.length})`;
+    for (const item of group) {
+      const addr = item.store.address || '';
+      const match = addr.match(/(קניון|מרכז|מתחם|דיזנגוף סנטר|ביג|גרנד|שרונה|מול|פאואר סנטר)[^,]*/);
+      if (match) {
+        hubTitle = `${match[0].trim()} (${group.length})`;
+        break;
+      }
+    }
+
+    const commonAddress = firstItem.store.address || firstItem.store.city || '';
+
+    const hubEl = document.createElement('div');
+    hubEl.className = 'group relative flex flex-col items-center cursor-pointer select-none transition-transform duration-150 hover:scale-105 active:scale-95';
+    hubEl.setAttribute('dir', 'rtl');
+    hubEl.innerHTML = `
+      <div class="pin-hub-wrapper flex items-center gap-1.5 bg-gradient-to-r from-purple-700 to-indigo-800 text-white px-2.5 py-1.5 rounded-xl shadow-lg border border-purple-300 dark:border-purple-600 hover:border-white hover:shadow-xl max-w-[210px] text-right font-sans transition-all">
+        <div class="flex-shrink-0 bg-white/20 backdrop-blur-xs text-white font-black text-xs px-1.5 py-0.5 rounded-lg flex items-center justify-center gap-1 shadow-xs">
+          <span class="text-[11px]">🏢</span>
+          <span>${group.length}</span>
+        </div>
+        <div class="flex flex-col min-w-0 leading-tight">
+          <span class="text-xs font-bold truncate block text-white">${escapeHtml(hubTitle)}</span>
+          <span class="text-[10px] text-purple-200 font-semibold truncate block">עד ${maxDiscount}% במעמד החיוב</span>
+        </div>
+      </div>
+      <div class="w-2.5 h-2.5 bg-indigo-800 border-r border-b border-purple-300 dark:border-purple-600 rotate-45 -mt-1 shadow-xs group-hover:border-white"></div>
+    `;
+
+    const marker = new AdvancedMarkerElement({
+      position: { lat: markerLat, lng: markerLng },
+      title: `${hubTitle} - עד ${maxDiscount}% (${commonAddress})`,
+      content: hubEl,
+      zIndex: 200
+    });
+
+    const activateHubAndSelect = () => {
+      marker.zIndex = ++topZIndexCounter;
+      hubEl.style.zIndex = String(topZIndexCounter);
+
+      if (activeBadgeElement && activeBadgeElement !== hubEl) {
+        const prevCard = activeBadgeElement.querySelector('.pin-card-wrapper, .pin-hub-wrapper');
+        if (prevCard) {
+          prevCard.classList.remove('ring-2', 'ring-purple-600', 'border-purple-600', 'shadow-2xl', 'bg-purple-50', 'dark:bg-purple-950/70');
+        }
+      }
+      activeBadgeElement = hubEl;
+      const currentCard = hubEl.querySelector('.pin-hub-wrapper');
+      if (currentCard) {
+        currentCard.classList.add('ring-2', 'ring-white', 'shadow-2xl');
+      }
+
+      const navUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(commonAddress + ' ' + (firstItem.store.city || ''))}`;
+
+      const contentString = `
+        <div dir="rtl" class="p-3 text-right max-w-sm font-sans text-slate-800">
+          <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 mb-2">
+            <div>
+              <h4 class="font-bold text-sm text-slate-900 leading-tight">${escapeHtml(hubTitle)}</h4>
+              ${commonAddress ? `<p class="text-[11px] text-slate-500 font-medium">${escapeHtml(commonAddress)}, ${escapeHtml(firstItem.store.city || '')}</p>` : ''}
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black bg-purple-100 text-purple-900 border border-purple-200 whitespace-nowrap">
+              עד ${maxDiscount}%
+            </span>
+          </div>
+          <div class="max-h-56 overflow-y-auto divide-y divide-slate-100 pr-0.5 space-y-1">
+            ${group.map(({ store }) => `
+              <div class="pt-1.5 pb-1 flex items-center justify-between gap-2 hover:bg-slate-50 rounded px-1 transition-colors">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-bold text-xs text-slate-900 truncate">${escapeHtml(store.name || '')}</span>
+                    <span class="text-[10px] font-bold text-purple-700 bg-purple-100 px-1.5 py-0.2 rounded-full whitespace-nowrap">${escapeHtml(String(store.discount || 5))}%</span>
+                  </div>
+                  ${store.category ? `<div class="text-[10px] text-slate-400 truncate">${escapeHtml(store.category)}</div>` : ''}
+                </div>
+                <button type="button" class="hub-store-view-btn flex-shrink-0 px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-[11px] font-medium transition cursor-pointer" data-store-id="${store.id}">
+                  לפרטים
+                </button>
+              </div>
+            `).join('')}
+          </div>
+          <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-end">
+            <a href="${navUrl}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1">
+              <span>נווט למתחם ב-Maps</span>
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+            </a>
+          </div>
+        </div>
+      `;
+
+      infoWindowInstance.setContent(contentString);
+      infoWindowInstance.open({
+        anchor: marker,
+        map: mapInstance
+      });
+
+      setTimeout(() => {
+        const btns = document.querySelectorAll('.hub-store-view-btn');
+        btns.forEach(b => {
+          b.addEventListener('click', () => {
+            const storeId = b.getAttribute('data-store-id');
+            const found = group.find(x => String(x.store.id) === storeId)?.store;
+            if (found && onStoreSelectCallback) {
+              onStoreSelectCallback(found);
+            }
+          });
+        });
+      }, 50);
+
+      if (onMarkerClickCallback) {
+        onMarkerClickCallback(firstItem.store);
+      }
+    };
+
+    hubEl.addEventListener('mouseenter', () => {
+      marker.zIndex = ++topZIndexCounter;
+      hubEl.style.zIndex = String(topZIndexCounter);
+    });
+
+    let lastActionTime = 0;
+    const onTrigger = (e) => {
+      if (e) {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+      }
+      const now = Date.now();
+      if (now - lastActionTime < 180) return;
+      lastActionTime = now;
+      activateHubAndSelect();
+    };
+
+    hubEl.addEventListener('click', onTrigger);
+    hubEl.addEventListener('pointerup', onTrigger);
+
+    if (typeof marker.addEventListener === 'function') {
+      marker.addEventListener('gmp-click', onTrigger);
+    } else if (typeof marker.addListener === 'function') {
+      marker.addListener('click', onTrigger);
+    }
+
+    markers.push(marker);
+
+    // Register all store IDs so diffing recognizes they are rendered
+    group.forEach(({ store, coords }) => {
+      currentRenderedStoreIds.add(store.id);
+      if (!coords.isExact && store.address && store.city) {
+        queueOnDemandGeocode(store, marker);
+      }
+    });
+  };
+
+  // Iterate over location groups and create appropriate markers
+  locationGroups.forEach(group => {
+    if (group.length >= 3) {
+      createHubMarker(group);
+    } else if (group.length === 2) {
+      createSingleMarker(group[0], -0.00015, -0.00003);
+      createSingleMarker(group[1], 0.00015, 0.00003);
+    } else {
+      createSingleMarker(group[0], 0, 0);
     }
   });
 
