@@ -627,6 +627,32 @@ for (const d of uniqBrandDiscounts) {
 // Ingest Mastercard Day Deals
 for (const d of mcDealsList) {
   const isPercent = d.discount_type === 'percent' || /percent/i.test(d.discount_type || '');
+  const extraTags = [];
+  const bLow = (d.brand || '').toLowerCase();
+  const tLow = (d.title || '').toLowerCase();
+  const cLow = (d.category || '').toLowerCase();
+
+  if (bLow.includes('voye') || bLow.includes('airalo') || tLow.includes('גלישה') || tLow.includes('אינטרנט')) {
+    extraTags.push('eSIM', 'איסים', 'סים', 'חבילות גלישה', 'גלישה', 'אינטרנט', 'חו״ל', 'חו ל', 'טיסה', 'תיירות', 'סלולר');
+  }
+  if (bLow.includes('booking') || bLow.includes('gett') || cLow.includes('תיירות')) {
+    extraTags.push('תיירות', 'חו״ל', 'נופש', 'חופשה', 'טיסה');
+    if (bLow.includes('booking')) extraTags.push('מלון', 'מלונות', 'לינה', 'אכסניה');
+    if (bLow.includes('gett')) extraTags.push('מוניות', 'נסיעות', 'תחבורה');
+  }
+  if (cLow.includes('קולינריה') || cLow.includes('מסעד') || tLow.includes('פיצה') || tLow.includes('גלידה') || tLow.includes('משקה')) {
+    extraTags.push('אוכל', 'מסעדות', 'מזון', 'קולינריה');
+    if (tLow.includes('פיצה') || bLow.includes('דומינו')) extraTags.push('פיצה', 'דומינוס');
+    if (tLow.includes('גלידה') || bLow.includes('גולדה') || bLow.includes('golda')) extraTags.push('גלידה', 'גולדה');
+    if (bLow.includes('מקדונלד')) extraTags.push('המבורגר', 'מקדונלדס');
+  }
+  if (cLow.includes('אופנה') || tLow.includes('נעלי') || tLow.includes('בגדים')) {
+    extraTags.push('אופנה', 'בגדים', 'נעליים', 'הלבשה');
+  }
+  if (cLow.includes('חשמל') || tLow.includes('חשמל') || tLow.includes('מחשב')) {
+    extraTags.push('חשמל', 'טכנולוגיה', 'אלקטרוניקה', 'מחשבים');
+  }
+
   unifiedDeals.push({
     id: `mc-${d.id}`,
     title: d.title,
@@ -648,7 +674,7 @@ for (const d of mcDealsList) {
     url: d.url || null,
     description: d.description || '',
     terms_of_use: d.description || '',
-    tags: ['Mastercard Day', '10 בחודש', d.coupon].filter(Boolean),
+    tags: Array.from(new Set(['Mastercard Day', '10 בחודש', d.coupon, ...extraTags].filter(Boolean))),
     locations: (d.terms_bullets || []).join(' | '),
     matched_store_id: d._assignedStoreId || null,
     matched_store_name: d.brand

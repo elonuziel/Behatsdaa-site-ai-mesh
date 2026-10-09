@@ -75,8 +75,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             messages: payloadMessages,
-            activeClubs,
-            model: 'gemini-3.8-flash',
+            activeClubs: Array.from(activeClubs),
+            model: 'gemini-3.1-flash-lite',
           }),
         });
 

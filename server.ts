@@ -225,7 +225,8 @@ const HEBREW_STOP_WORDS = new Set([
   'איפה', 'הכי', 'משתלם', 'יש', 'של', 'על', 'את', 'מה', 'איזה', 'אילו', 'האם',
   'כדאי', 'אפשר', 'רוצה', 'מחפש', 'הנחה', 'הנחות', 'מבצע', 'מבצעים', 'מועדון',
   'מועדונים', 'חנות', 'רשת', 'חבר', 'חברי', 'למצוא', 'לקנות', 'באיזה', 'כמה',
-  'טוב', 'טובה', 'טובים', 'שלום', 'היי', 'תודה', 'בבקשה', 'ספר', 'לי', 'בשבילי'
+  'טוב', 'טובה', 'טובים', 'שלום', 'היי', 'תודה', 'בבקשה', 'ספר', 'לי', 'בשבילי',
+  'אבל', 'עם', 'גם', 'לם', 'להם', 'אז', 'ומה', 'שם', 'אלו', 'אלה', 'שלהם', 'עוד'
 ]);
 
 // Check if user query is conversational, meta, explanatory, or greeting rather than a specific store search
@@ -240,27 +241,44 @@ function isPurelyConversationalOrInformational(query: string): boolean {
     'מסעדה', 'מסעדות', 'המבורגר', 'סושי', 'אוכל', 'משלוח', 'וולט', 'משלוחה', 'רכב', 'מוסך', 'שיניים',
     'רופא', 'אופנה', 'בגדים', 'קניון', 'אילת', 'תל אביב', 'ירושלים', 'חיפה', 'ראשון לציון', 'באר שבע',
     'נתניה', 'כרמיאל', 'אשדוד', 'פתח תקווה', 'חולון', 'רמת גן', 'הרצליה', 'רעננה', 'כפר סבא', 'מבצעים',
-    'קופון', 'קופונים', 'שובר', 'שוברים'
+    'קופון', 'קופונים', 'שובר', 'שוברים', 'איסים', 'סים', 'גלישה', 'voye', 'airalo', 'globalesim', 'besim',
+    'esim', 'pizza', 'shoes', 'hotel', 'flights', 'burger', 'flight', 'clothes', 'laptop', 'phone'
   ];
 
   for (const word of commercialKeywords) {
     if (qNorm.includes(word)) return false;
   }
 
-  // Conversational or meta questions
+  // Conversational or meta questions in Hebrew and English
   const metaPhrases = [
     'איך האתר עובד', 'איך משתמשים', 'מה האתר', 'הסבר לי על', 'מי אתה', 'מה אתה', 'האם אתה', 'באמת ai',
     'איך לחסוך', 'מה זה ארנק נטען', 'מה ההבדל בין', 'הנחה במעמד החיוב', 'איך מטעינים', 'איך ממשים',
-    'שלום', 'היי', 'בוקר טוב', 'ערב טוב', 'צהריים טובים', 'תודה', 'מי יצר', 'מה היכולות', 'גולש ומבין'
+    'שלום', 'היי', 'בוקר טוב', 'ערב טוב', 'צהריים טובים', 'תודה', 'מי יצר', 'מה היכולות', 'גולש ומבין',
+    'זה רע', 'זה לא טוב', 'שיחה', 'שיחתי', 'תדבר כמו', 'תענה לי',
+    'thats bad', 'that is bad', 'it should be a conversation', 'conversation', 'chat', 'not true',
+    'thats not true', 'does it scan', 'they do have', 'what about', 'who are you', 'how does this work',
+    'hello', 'hi', 'thank you', 'thanks'
   ];
 
   return metaPhrases.some(phrase => qNorm.includes(phrase));
 }
 
-// Find relevant stores & deals from query across all 10,000+ businesses
-function findRelevantCatalog(query: string, activeClubs?: string[]) {
+function matchesToken(text: string, token: string): boolean {
+  if (!text || !token) return false;
+  if (token.length <= 3) {
+    const regex = new RegExp(`(^|[^a-zA-Z0-9\u0590-\u05fe])${token}([^a-zA-Z0-9\u0590-\u05fe]|$)`, 'i');
+    return regex.test(text);
+  }
+  return text.includes(token);
+}
+
+const isWaterOrFitness = (text: string) =>
+  /מועדון גלישה|שיעורי גלישה|חוף הצוק|ווי סרף|we surf|סאפ|קייט|גלשן|ספורט ימי|חוף נאות|דאדיז|פילאטיס|כושר|הולמס פלייס/i.test(text);
+
+// Find relevant stores & deals from query across all 10,000+ businesses with context awareness
+function findRelevantCatalog(query: string, activeClubs?: string[], conversationTopic?: string) {
   // If the query is purely a meta question, greeting, or conceptual explanation, don't force random store cards
-  if (isPurelyConversationalOrInformational(query)) {
+  if (isPurelyConversationalOrInformational(query) && !conversationTopic) {
     return {
       topStores: [],
       topDeals: [],
@@ -268,7 +286,39 @@ function findRelevantCatalog(query: string, activeClubs?: string[]) {
     };
   }
 
-  const qNorm = normalizeHebrew(query);
+  const combinedSearchQuery = conversationTopic ? `${query} ${conversationTopic}` : query;
+  const qNorm = normalizeHebrew(combinedSearchQuery);
+
+  // Detect explicit club targeting from the query or conversation topic
+  const isMastercardMentioned =
+    qNorm.includes('mastercard') || qNorm.includes('מאסטרקארד') || qNorm.includes('מסטרקארד') ||
+    qNorm.includes('mastercarday') || qNorm.includes('matercarday') || qNorm.includes('matercard');
+
+  const targetClub = isMastercardMentioned
+    ? 'mastercard'
+    : (qNorm.includes('בהצדעה') || qNorm.includes('בהצדאה') || qNorm.includes('מילואים'))
+      ? 'behatsdaa'
+      : (qNorm.includes('יוניק') || qNorm.includes('uniq'))
+        ? 'uniq'
+        : (conversationTopic && (
+            conversationTopic.includes('mastercard') || conversationTopic.includes('מאסטרקארד') ||
+            conversationTopic.includes('mastercarday') || conversationTopic.includes('matercarday') ||
+            conversationTopic.includes('matercard')
+          ))
+          ? 'mastercard'
+          : null;
+
+  const isEsimTopic = qNorm.includes('esim') || qNorm.includes('איסים') ||
+    qNorm.includes('voye') || qNorm.includes('airalo') ||
+    qNorm.includes('globalesim') || qNorm.includes('besim') ||
+    ((qNorm.includes('גלישה') || qNorm.includes('אינטרנט')) && (qNorm.includes('חול') || qNorm.includes('חו ל') || qNorm.includes('סלולר') || qNorm.includes('סים') || qNorm.includes('טיסה')));
+
+  const isAllDealsRequest =
+    qNorm.includes('all other') || qNorm.includes('other deals') || qNorm.includes('all deals') ||
+    qNorm.includes('options') || qNorm.includes('what else') || qNorm.includes('שאר') ||
+    qNorm.includes('עוד מבצעים') || qNorm.includes('כל המבצעים') || qNorm.includes('הטבות נוספות') ||
+    qNorm.includes('שאר ההטבות') || qNorm.includes('מבצעים ואפשרויות');
+
   const rawWords = qNorm.split(/\s+/).filter(w => w.length > 1);
   const keywords = rawWords.filter(w => !HEBREW_STOP_WORDS.has(w));
   const activeWords = keywords.length > 0 ? keywords : rawWords;
@@ -287,11 +337,28 @@ function findRelevantCatalog(query: string, activeClubs?: string[]) {
   const matchedStores: { store: StoreItem; score: number }[] = [];
   const matchedDeals: { deal: DealItem; score: number }[] = [];
 
+  // Effective club filter: If the question is about eSIM or targets a specific club, permit relevant clubs
+  const effectiveClubs = isEsimTopic
+    ? ['behatsdaa', 'uniq', 'mastercard']
+    : (targetClub && activeClubs && activeClubs.length > 0)
+      ? [...activeClubs, targetClub]
+      : activeClubs;
+
   // 1. Filter primary club stores
   for (const s of cachedStores) {
-    if (activeClubs && activeClubs.length > 0) {
-      const hasClub = (s.clubs || []).some(c => activeClubs.includes(c));
+    if (effectiveClubs && effectiveClubs.length > 0) {
+      const hasClub = (s.clubs || []).some(c => effectiveClubs.includes(c));
       if (!hasClub) continue;
+    }
+
+    // When targeting mastercard, only consider mastercard partner stores
+    if (targetClub === 'mastercard' && !(s.clubs || []).includes('mastercard')) {
+      continue;
+    }
+
+    // Exclude water surfing / unrelated fitness when searching for cellular eSIM
+    if (isEsimTopic && isWaterOrFitness(s.name || '')) {
+      continue;
     }
 
     const nameNorm = normalizeHebrew(s.name || '');
@@ -302,17 +369,35 @@ function findRelevantCatalog(query: string, activeClubs?: string[]) {
     );
 
     let score = 0;
-    if (nameNorm.includes(qNorm)) score += 60;
-    if (catNorm.includes(qNorm)) score += 25;
+    if (nameNorm.includes(qNorm)) score += 80;
+    if (catNorm.includes(qNorm)) score += 35;
 
     for (const w of expandedWords) {
-      if (nameNorm.includes(w)) score += 18;
-      if (catNorm.includes(w)) score += 10;
-      if (cardsNorm.includes(w)) score += 6;
-      if (condNorm.includes(w)) score += 3;
+      if (matchesToken(nameNorm, w)) score += 25;
+      if (matchesToken(catNorm, w)) score += 12;
+      if (matchesToken(cardsNorm, w)) score += 6;
+      if (matchesToken(condNorm, w)) score += 3;
     }
 
-    if (score > 0) {
+    // Boost club if explicitly targeted
+    if (targetClub && (s.clubs || []).includes(targetClub)) {
+      score += 40;
+    }
+
+    // Boost eSIM providers if relevant
+    if (isEsimTopic) {
+      const sId = (s.id || '').toLowerCase();
+      if (sId.includes('voye') || sId.includes('airalo') || nameNorm.includes('voye') || nameNorm.includes('airalo')) {
+        score += 200;
+      }
+    }
+
+    if (isAllDealsRequest && targetClub === 'mastercard') {
+      score += 30;
+    }
+
+    // Require threshold to avoid noisy random suggestions
+    if (score >= 25) {
       score += (s.max_discount || 0) * 0.5;
       matchedStores.push({ store: s, score });
     }
@@ -320,8 +405,23 @@ function findRelevantCatalog(query: string, activeClubs?: string[]) {
 
   // 2. Filter deals & vouchers
   for (const d of cachedDeals) {
-    if (activeClubs && activeClubs.length > 0) {
-      if (d.club && !activeClubs.includes(d.club)) continue;
+    if (effectiveClubs && effectiveClubs.length > 0) {
+      if (d.club && !effectiveClubs.includes(d.club)) continue;
+    }
+
+    // If query targeted a specific club, filter out other clubs so they don't pollute
+    if (targetClub && d.club && d.club !== targetClub) {
+      continue;
+    }
+
+    // Exclude water sports / gym when looking for eSIM
+    if (isEsimTopic) {
+      const dTitle = d.title || '';
+      const dSupp = d.supplier || '';
+      const dCat = d.category || '';
+      if (isWaterOrFitness(dTitle) || isWaterOrFitness(dSupp) || dCat.includes('כושר')) {
+        continue;
+      }
     }
 
     const titleNorm = normalizeHebrew(d.title || '');
@@ -331,49 +431,83 @@ function findRelevantCatalog(query: string, activeClubs?: string[]) {
     const tagsNorm = normalizeHebrew((d.tags || []).join(' '));
 
     let score = 0;
-    if (titleNorm.includes(qNorm)) score += 50;
-    if (suppNorm.includes(qNorm)) score += 35;
-    if (catNorm.includes(qNorm)) score += 18;
+    if (titleNorm.includes(qNorm)) score += 70;
+    if (suppNorm.includes(qNorm)) score += 45;
+    if (catNorm.includes(qNorm)) score += 20;
 
     for (const w of expandedWords) {
-      if (titleNorm.includes(w)) score += 14;
-      if (suppNorm.includes(w)) score += 12;
-      if (catNorm.includes(w)) score += 8;
-      if (tagsNorm.includes(w)) score += 5;
-      if (descNorm.includes(w)) score += 3;
+      if (matchesToken(titleNorm, w)) score += 25;
+      if (matchesToken(suppNorm, w)) score += 25;
+      if (matchesToken(tagsNorm, w)) score += 30; // Tags are curated and highly accurate
+      if (matchesToken(catNorm, w)) score += 10;
+      if (matchesToken(descNorm, w)) score += 5;
     }
 
-    if (score > 0) {
+    // Target club boost
+    if (targetClub && d.club === targetClub) {
+      score += 40;
+    }
+
+    // eSIM & travel data boost
+    if (isEsimTopic) {
+      const suppLow = (d.supplier || '').toLowerCase();
+      const titleLow = (d.title || '').toLowerCase();
+      if (suppLow.includes('voye') || suppLow.includes('airalo') || titleLow.includes('voye') || titleLow.includes('airalo') || (titleLow.includes('גלישה') && titleLow.includes('חול'))) {
+        score += 200;
+        if (targetClub && d.club === targetClub) {
+          score += 40;
+        }
+      }
+    }
+
+    if (isAllDealsRequest && targetClub === 'mastercard') {
+      score += 35;
+    }
+
+    // Require strong relevance threshold
+    if (score >= 25) {
       score += (d.discount_percent || 0) * 0.5;
       matchedDeals.push({ deal: d, score });
     }
   }
 
-  // 3. Filter 10,000+ billing stores directory
+  // 3. Filter 10,000+ billing stores directory (only if not restricted to mastercard)
   const matchedBilling: { store: BillingStoreItem; score: number }[] = [];
-  for (const b of cachedBillingStores) {
-    const nameNorm = normalizeHebrew(b.name || '');
-    const catNorm = normalizeHebrew(b.category || '');
-    const cityNorm = normalizeHebrew(b.city || '');
-    const addrNorm = normalizeHebrew(b.full_address || b.address || '');
-    const descNorm = normalizeHebrew(b.description || '');
+  if (!targetClub || targetClub === 'behatsdaa') {
+    for (const b of cachedBillingStores) {
+      const nameNorm = normalizeHebrew(b.name || '');
+      const catNorm = normalizeHebrew(b.category || '');
+      const cityNorm = normalizeHebrew(b.city || '');
+      const addrNorm = normalizeHebrew(b.full_address || b.address || '');
+      const descNorm = normalizeHebrew(b.description || '');
 
-    let score = 0;
-    if (nameNorm.includes(qNorm)) score += 60;
-    if (catNorm.includes(qNorm)) score += 30;
-    if (cityNorm && cityNorm.includes(qNorm)) score += 35;
+      if (isEsimTopic && isWaterOrFitness(nameNorm)) {
+        continue;
+      }
 
-    for (const w of expandedWords) {
-      if (nameNorm.includes(w)) score += 20;
-      if (cityNorm && cityNorm.includes(w)) score += 15;
-      if (catNorm.includes(w)) score += 10;
-      if (addrNorm.includes(w)) score += 8;
-      if (descNorm.includes(w)) score += 5;
-    }
+      let score = 0;
+      if (nameNorm.includes(qNorm)) score += 75;
+      if (catNorm.includes(qNorm)) score += 35;
+      if (cityNorm && cityNorm.includes(qNorm)) score += 40;
 
-    if (score > 0) {
-      score += (b.discount || 0) * 0.8;
-      matchedBilling.push({ store: b, score });
+      for (const w of expandedWords) {
+        if (matchesToken(nameNorm, w)) score += 25;
+        if (cityNorm && matchesToken(cityNorm, w)) score += 18;
+        if (catNorm && matchesToken(catNorm, w)) score += 12;
+        if (addrNorm && matchesToken(addrNorm, w)) score += 8;
+        if (descNorm && matchesToken(descNorm, w)) score += 5;
+      }
+
+      // Boost eSIM billing stores
+      if (isEsimTopic && (nameNorm.includes('globalesim') || nameNorm.includes('besim') || nameNorm.includes('סים פור פליי'))) {
+        score += 200;
+      }
+
+      // Strict threshold: do not include random businesses on loose word matches
+      if (score >= 35) {
+        score += (b.discount || 0) * 0.8;
+        matchedBilling.push({ store: b, score });
+      }
     }
   }
 
@@ -382,9 +516,9 @@ function findRelevantCatalog(query: string, activeClubs?: string[]) {
   matchedBilling.sort((a, b) => b.score - a.score);
 
   return {
-    topStores: matchedStores.slice(0, 8).map(m => m.store),
-    topDeals: matchedDeals.slice(0, 8).map(m => m.deal),
-    topBilling: matchedBilling.slice(0, 12).map(m => m.store),
+    topStores: matchedStores.slice(0, 6).map(m => m.store),
+    topDeals: matchedDeals.slice(0, 6).map(m => m.deal),
+    topBilling: matchedBilling.slice(0, 8).map(m => m.store),
   };
 }
 
@@ -422,7 +556,7 @@ function generateFollowUps(query: string, stores: StoreItem[], deals: DealItem[]
 // POST /api/chat: Multi-turn chat with Gemini
 app.post('/api/chat', async (req, res) => {
   try {
-    const { messages, activeClubs, model = 'gemini-3.8-flash' } = req.body;
+    const { messages, activeClubs, model = 'gemini-3.1-flash-lite' } = req.body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'Messages array is required.' });
@@ -431,8 +565,30 @@ app.post('/api/chat', async (req, res) => {
     const latestUserMessage = [...messages].reverse().find(m => m.role === 'user');
     const userPromptText = latestUserMessage ? latestUserMessage.content : '';
 
-    // Search catalog for grounded knowledge
-    const { topStores, topDeals, topBilling } = findRelevantCatalog(userPromptText, activeClubs);
+    // Extract conversation context from prior turns to maintain topic continuity
+    let previousTopic = '';
+    const userMessages = messages.filter(m => m.role === 'user');
+    if (userMessages.length > 1) {
+      const priorUserPrompts = userMessages.slice(0, -1).map(m => m.content).join(' ');
+      const normPrior = normalizeHebrew(priorUserPrompts);
+      // Key topic anchors: esim, food, shoes, hotel, supermarket, etc.
+      const topicMatches: string[] = [];
+      const topics = [
+        'esim', 'איסים', 'סים', 'חו ל', 'טיסה', 'פיצה', 'נעליים', 'ספורט', 'מלון', 'ספא', 'קרפור',
+        'שופרסל', 'וולט', 'משלוחה', 'רכב', 'מוסך', 'שיניים', 'בגדים', 'טרמינל x', 'מגה ספורט',
+        'mastercard', 'mastercarday', 'matercarday', 'matercard', 'מאסטרקארד', 'מסטרקארד',
+        'uniq', 'יוניק', 'behatsdaa', 'בהצדעה'
+      ];
+      for (const t of topics) {
+        if (normPrior.includes(t)) topicMatches.push(t);
+      }
+      if (topicMatches.length > 0) {
+        previousTopic = topicMatches.join(' ');
+      }
+    }
+
+    // Search catalog for grounded knowledge with conversation awareness
+    const { topStores, topDeals, topBilling } = findRelevantCatalog(userPromptText, activeClubs, previousTopic);
 
     // Build catalog context summary
     let catalogContext = '';
@@ -461,36 +617,42 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const systemInstruction = `אתה "סייר ה-AI והיועץ הפיננסי של פורטל ההטבות שלי".
-אתה מודל בינה מלאכותית מודרני, חד וחכם המחובר ישירות לקטלוג המועדונים וההטבות של בהצדעה, UNIQ ו-Mastercard Day.
-המשתמש יכול לשאול אותך **כל שאלה שבעולם** הקשורה לאתר, למועדונים, להטבות, לחיסכון, להשוואות, או המלצות צרכניות אישיות.
+אתה מודל בינה מלאכותית מודרני, חד, שיחתי וחכם המחובר ישירות לקטלוג המועדונים וההטבות של בהצדעה, UNIQ ו-Mastercard Day.
+המשתמש משוחח איתך בשיחה רציפה (Multi-turn conversation). חובה עליך להבין את ההקשר של כל השאלות הקודמות בשיחה ולהתנהג כמו בן אדם ויועץ מומחה, לא כמו בוט מנותק!
 
-מידע מקיף על הפורטל והמועדונים:
-1. מועדון בהצדעה (משרתי מילואים פעילים ולוחמים משוחררים):
-   - **ארנק רשתות / כרטיס נטען בהצדעה**: הנחה של 20% (ולכרטיסים מסוימים 15%) ברשתות מובילות (מגה ספורט, פוקס הום, שילב, קולומביה, סטימצקי, ורדינון, נעמן, קסטרו ועוד). כרטיס אשראי "פייטר" מעניק הנחות ייעודיות נוספות.
-   - **הנחה אוטומטית במעמד החיוב (הנחה באשראי)**: למעלה מ-10,650 בתי עסק וסניפים בכל עיר בישראל שבהם משלמים בכרטיס האשראי של בהצדעה ומקבלים הנחה אוטומטית בחשבון (2%-15%) בלי לקנות שום שובר מראש (רופאי שיניים, מוסכים, מסעדות, מאפיות, בוטיקים, חנויות ציוד).
-   - **שוברים ומבצעים מסובסדים**: כרטיסי קולנוע (סינמה סיטי ב-33 ₪, יס פלאנט), ארוחות מסובסדות (מקדונלד'ס, בורגרים, פיצה האט, וולט, משלוחה), מלונות וספא (ישרוטל, פתאל, דן, הרברט סמואל), פארקים (ימית 2000, לונה פארק), מחשבים ומוצרי חשמל.
+מידע מקיף ומדויק על מועדון Mastercard Day (הטבות יום מאסטרקארד בכל 10 בחודש):
+1. **חבילות גלישה, תקשורת ו-eSIM לחו"ל ב-Mastercard Day**:
+   - **VOYE**: **25% הנחה** ב-10 וב-11 בחודש (ו-**18% הנחה** בכל שאר ימות החודש) על כל חבילות הגלישה וה-eSIM באתר ובאפליקציית VOYE! קוד קופון: \`MASTERCARDAY\`.
+   - **Airalo**: **20% הנחה** ב-10 וב-11 בחודש (ו-**15% הנחה** בכל שאר ימות החודש) על כל חבילות האינטרנט באתר ובאפליקציית Airalo (חברת ה-eSIM הפופולרית בעולם)! קוד קופון: \`MASTERCARDAY\`.
+   - **Gett בחו"ל**: 20 ₪ הנחה בהזמנת נסיעה בחו"ל באפליקציית Gett (קוד קופון: \`mastercard 10\`).
+   - **Booking.com**: 4% קרדיט כספי לארנק בהזמנת לינה ומלונות (קוד: \`MASTERCARDAY\`).
 
-2. מועדון UNIQ (סטודנטים ובוגרים אקדמאים עם כרטיס MAX UNIQ / MAX ACADEMIC):
-   - **כרטיס נטען UNIQ 15%**: טעינה דיגיטלית ל-31 רשתות מובילות (טרמינל X, פוקס, מנגו, ללין, מגה ספורט, פוט לוקר, אמריקן איגל ועוד).
-   - **הנחות במעמד החיוב**: הנחה אוטומטית בעסקים לסטודנטים.
-   - **מבצעים וקופונים ייחודיים**: אטרקציות, קולנוע, תרבות וקופונים לחופשות.
+2. **קטגוריות מובילות נוספות ב-Mastercard Day (בכל 10 בחודש)**:
+   - **אופנה ולייף סטייל**: Terminal X (50 ₪ הנחה בקנייה מעל 250 ₪ עם קוד \`MASTERCARDAY10\`), adidas (אקסטרה 20% הנחה), ALDO (20%), GALI (20%), Lee Cooper (20%), Minene (20%), Nine West (20%), Nautica (15%), Timberland (15%), Guess (15%).
+   - **קולינריה ומסעדות**: מקדונלד'ס (50% הנחה על ארוחות), דומינו'ס (2 פיצות משפחתיות + נלווה ב-130 ₪ עם קוד \`MDAY130\`), גולדה Golda (קילו גלידה + 2 רטבים ב-84 ₪ בלבד), משלוחה (30 ₪ הנחה לחדשים), rebar (10 ₪ הנחה על משקה M).
+   - **חשמל, אלקטרוניקה וגיימינג**: עולם הקולנוע והחשמל (200 ₪ הנחה מעל 2000 ₪), BUG (עד 30% הנחה), Lenovo (10% הנחה נוספים), Nintendo (10% הנחה), Last Price (10% אקסטרה הנחה), Walla Shops (10% הנחה).
+   - **קניות בינלאומיות אונליין**: Amazon (10% הנחה מעל $49), AliExpress ($5 הנחה מעל $35).
 
-3. מועדון Mastercard Day:
-   - בכל 10 בחודש (Mastercard Day) כל מחזיקי כרטיס אשראי מאסטרקארד זכאים להטבות וקודי קופון (כמו MASTERCARDAY, MASTERCARDAY10) באתרים מובילים כמו Terminal X (50 ₪ הנחה מעל 250 ₪), קרליין, סוויטוויט, מיננה, לנובו, לאסטפרייס ועוד.
+3. **מועדון בהצדעה (משרתי מילואים ולוחמים)**:
+   - **eSIM ותקשורת**: GlobaleSIM (15% הנחה אוטומטית במעמד החיוב באשראי בהצדעה ללא צורך בקוד קופון), BeSIM (10% הנחה אוטומטית במעמד החיוב).
+   - **ארנק רשתות / כרטיס נטען 20%**: טעינה דיגיטלית מוזלת (מגה ספורט, פוקס הום, שילב, קולומביה, סטימצקי, ורדינון ועוד).
+   - **הנחה אוטומטית באשראי**: מעל 10,650 בתי עסק וסניפים בכל עיר בישראל (2%-15% אוטומטית בדף החשבון).
+   - **שוברים מסובסדים**: קולנוע (סינמה סיטי ב-33 ₪), ארוחות (מקדונלד'ס, בורגרים, פיצה האט), מלונות וספא.
 
-4. מאפייני האתר ואופן השימוש:
-   - "מגה חיפוש": חיפוש אינטגרטיבי ביותר מ-10,000 סניפים, 1,041 רשתות ו-2,670 שוברים.
-   - "תצוגה נקייה" (Clean View): מצב ממוקד וטבלאי שמסתיר את הרשימה המלאה כברירת מחדל כדי להתמקד בחיפוש מהיר.
-   - "יועץ חיסכון": חישוב מדויק מה משתלם יותר: טעינת ארנק נטען, רכישת שובר, תשלום באשראי המועדון, או שימוש בקופון ב-10 לחודש.
-   - שמירת מועדפים מקומית בדפדפן.
+4. **מועדון UNIQ (סטודנטים ובוגרים אקדמאים)**:
+   - **כרטיס נטען UNIQ 15%**: טעינה דיגיטלית ל-31 רשתות מובילות כולל טרמינל X.
+   - מבצעים וקופונים ייחודיים ללימודים, פנאי וקולנוע.
 
-${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור השאלה הנוכחית:\n${catalogContext}` : 'לא נמצאו פריטים קונקרטיים בקטלוג עבור מילות השאלה הללו (או שמדובר בשאלה כללית/קונספטואלית). השתמש בידע שלך והסבר למשתמש בצורה עשירה ומלאה.'}
+הנחיות קריטיות לשיחה (Conversation Rules):
+- **מענה לשאלות המשך (Follow-up handling)**:
+  אם המשתמש שאל קודם "איפה לקנות ESIM" וענית לו על בהצדעה, ואז הוא שואל: "אבל מה עם MASTERCARDAY גם לם יש" (או "גם להם יש?"):
+  ענה ישירות ובצורה שיחתית טבעית: **כן, בהחלט!** הסבר שב-Mastercard Day ישנן שתי הטבות מצוינות ל-eSIM ולגלישה בחו"ל עם אחוזי הנחה אפילו גבוהים יותר (VOYE 25% ו-Airalo 20% עם קוד קופון MASTERCARDAY).
+  ערוך עבורו השוואה חכמה: ב-10-11 לחודש VOYE נותן את ההנחה הגבוהה ביותר (25%), Airalo נותן 20% ומציע את הכיסוי הגלובלי הנרחב ביותר, ואילו בבהצדעה יש 15% ב-GlobaleSIM ו-10% ב-BeSIM שתקפים בכל יום בשנה אוטומטית באשראי בלי לחכות לקופון. הזכר גם את הטבות הנסיעות המשלימות של מאסטרקארד (20 ₪ ב-Gett ו-4% ב-Booking.com).
+- **מענה לגבי שאר המבצעים והאפשרויות (All other deals and options)**:
+  אם המשתמש מבקש לראות גם את שאר המבצעים של Mastercard Day או להכיר אפשרויות נוספות, פתח בפניו סקירה שיחתית, עשירה ומסודרת של ההטבות הבולטות לפי תחומי עניין (אופנה, מסעדות ואוכל, מחשבים וטכנולוגיה, קניות אונליין).
+- **שיחה זורמת, אנושית ומקצועית**: שוחח כמו יועץ חיסכון אישי שמבין בדיוק מה הצרכים של המשתמש. אל תזרוק רשימות אקראיות של חנויות שאינן קשורות לנושא!
 
-הנחיות קריטיות לעיבוד התשובה:
-- **אותנטיות ובינה מלאכותית אמיתית**: אל תישמע כמו בוט או תבנית אוטומטית שחוזרת על עצמה! אתה מבין עברית באופן מושלם, קורא את ההקשר ומגיב כיועץ אנושי, חם, חכם, שנון ומקצועי.
-- **מענה לכל שאלה**: אם המשתמש שואל "מי אתה?", "האם אתה באמת AI?", "איך האתר עובד?", "מה ההבדל בין כרטיס נטען למעמד החיוב?", "כמה אני אחסוך?", או "איפה לקנות מתנה לחג?" – ענה באופן ישיר, מפורט ומדויק על השאלה שנשאלה, בלי לדחוף רשימת חנויות לא רלוונטית!
-- **המלצות חכמות**: כשמבקשים המלצה (למשל על נעלי ספורט או אוכל), הסבר **באיזו שיטה הכי כדאי לשלם** (לדוגמה: "אם אתה בהצדעה, מומלץ להטעין את הארנק הנטען ב-20% למגה ספורט; אם אתה ב-UNIQ יש 15% בטרמינל X; וב-10 לחודש כדאי לבדוק קופון במאסטרקארד דיי").
-- **שפה ועיצוב**: עברית רהוטה וזורמת. השתמש בבולטים ובהדגשות **bold** רק במקומות שמוסיפים בהירות.`;
+${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור השאלה הנוכחית:\n${catalogContext}` : 'לא נמצאו פריטים קונקרטיים בקטלוג עבור מילות השאלה הללו. השתמש בידע הקטלוגי המלא שלך והסבר למשתמש בצורה עשירה ומלאה.'}`;
 
     // Map conversation history into Gemini Content format
     const contents = messages
@@ -504,39 +666,63 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
     const activeKey = getGeminiApiKey();
 
     if (activeKey && !activeKey.startsWith('MY_')) {
-      try {
-        const ai = getGeminiClient();
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('AI generation timed out after 20 seconds')), 20000)
-        );
+      // Prioritize confirmed high-speed working models: gemini-3.1-flash-lite & gemini-3.5-flash
+      const candidateModels = [
+        'gemini-3.1-flash-lite',
+        'gemini-3.5-flash',
+        model,
+        'gemini-3.8-flash'
+      ].filter((v, i, a) => a.indexOf(v) === i);
 
-        const aiPromise = ai.models.generateContent({
-          model: model || 'gemini-3.8-flash',
-          contents,
-          config: {
-            systemInstruction,
-            temperature: 0.7,
-            thinkingConfig: {
-              thinkingBudget: 0,
+      let success = false;
+      const ai = getGeminiClient();
+
+      for (const mName of candidateModels) {
+        try {
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`Timeout for ${mName}`)), 15000)
+          );
+
+          const aiPromise = ai.models.generateContent({
+            model: mName,
+            contents,
+            config: {
+              systemInstruction,
+              temperature: 0.7,
+              thinkingConfig: {
+                thinkingBudget: 0,
+              },
             },
-          },
-        });
+          });
 
-        const response = await Promise.race([aiPromise, timeoutPromise]);
-        replyText = response.text || '';
-      } catch (geminiError: any) {
-        console.error('Gemini API call failed, using smart catalog fallback:', geminiError?.message || geminiError);
-        replyText = generateFallbackResponse(userPromptText, topStores, topDeals, topBilling);
+          const response = await Promise.race([aiPromise, timeoutPromise]);
+          if (response && response.text) {
+            replyText = response.text;
+            success = true;
+            break;
+          }
+        } catch (geminiError: any) {
+          console.warn(`Model ${mName} call failed (${geminiError?.message || geminiError}), trying next candidate...`);
+        }
+      }
+
+      if (!success || !replyText) {
+        replyText = generateFallbackResponse(userPromptText, topStores, topDeals, topBilling, previousTopic);
       }
     } else {
-      replyText = generateFallbackResponse(userPromptText, topStores, topDeals, topBilling);
+      replyText = generateFallbackResponse(userPromptText, topStores, topDeals, topBilling, previousTopic);
     }
+
+    // Keep deals and stores if they have genuine relevance
+    const filteredStores = topStores;
+    const filteredDeals = topDeals;
+    const filteredBilling = topBilling;
 
     const followUps = generateFollowUps(userPromptText, topStores, topDeals);
 
     return res.json({
       reply: replyText,
-      recommendedStores: topStores.map(s => ({
+      recommendedStores: filteredStores.map(s => ({
         id: s.id,
         name: s.name,
         slug: s.slug,
@@ -548,7 +734,7 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
         cards: s.cards,
         payment_options: s.payment_options,
       })),
-      recommendedDeals: topDeals.map(d => ({
+      recommendedDeals: filteredDeals.map(d => ({
         id: d.id,
         title: d.title,
         slug: d.slug,
@@ -562,7 +748,7 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
         image: d.image,
         url: d.url,
       })),
-      recommendedBilling: topBilling.map(b => ({
+      recommendedBilling: filteredBilling.map(b => ({
         id: b.id,
         name: b.name,
         discount: b.discount,
@@ -590,47 +776,281 @@ function generateFallbackResponse(
   query: string,
   stores: StoreItem[],
   deals: DealItem[],
-  billingStores: BillingStoreItem[] = []
+  billingStores: BillingStoreItem[] = [],
+  previousTopic: string = ''
 ): string {
   const qNorm = normalizeHebrew(query);
+  const qLower = query.toLowerCase();
 
-  if (qNorm.includes('מי אתה') || qNorm.includes('מה אתה') || qNorm.includes('ai') || qNorm.includes('בינה מלאכותית') || qNorm.includes('אמיתי') || qNorm.includes('רובוט') || qNorm.includes('גולש ומבין')) {
-    return `שלום! אני סייר ה-AI החכם של פורטל **"ההטבות שלי"**, מבוסס מודל Gemini של גוגל.
+  // 1. Feedback handling ("thats bad... it should be a conversation")
+  if (
+    qNorm.includes('זה רע') ||
+    qNorm.includes('לא טוב') ||
+    qNorm.includes('שיחה') ||
+    qNorm.includes('תדבר') ||
+    qLower.includes('thats bad') ||
+    qLower.includes('that is bad') ||
+    qLower.includes('be a conversation') ||
+    qLower.includes('chat')
+  ) {
+    if (qLower.includes('bad') || qLower.includes('conversation')) {
+      return `You are completely right — let's have a genuine conversation rather than throwing isolated store lists at you!
 
-אני מחובר ישירות לקטלוג המלא של שלושת מועדוני הצרכנות המובילים:
-1. **בהצדעה** – משרתי מילואים ולוחמים (ארנק נטען של 20%, מעל 10,650 בתי עסק בהנחה במעמד החיוב, ושוברים מסובסדים).
-2. **UNIQ** – סטודנטים ובוגרים אקדמאים (כרטיס נטען 15% ל-31 רשתות מובילות, הטבות קולנוע וסבסודים).
-3. **Mastercard Day** – כל מחזיקי מאסטרקארד בכל 10 בחודש (קופונים בלעדיים לאתרים כמו Terminal X ועוד).
+I am your personal benefits advisor across **Behatsdaa** (IDF reservists & veterans), **UNIQ** (students & academics), and **Mastercard Day** (monthly benefits on the 10th for all Mastercard cardholders).
 
-אני כאן כדי לענות על כל שאלה: להשוות מחירים, לבדוק באיזה מועדון תקבל את ההנחה הגבוהה ביותר, להמליץ על שוברים, ולמצוא חנויות וסניפים בכל עיר בישראל. שאל אותי כל דבר!`;
+Feel free to ask me anything conversationally:
+• Which club gives the highest discount for what you need (eSIMs, sneakers, pizza, tech, supermarkets)?
+• How to combine rechargeable wallets (20%) with automatic credit card discounts?
+• Any upcoming offers, coupons, or promo codes.
+
+What are you currently planning to purchase? I'm listening!`;
+    }
+
+    return `אתה צודק לחלוטין – בוא ננהל שיחה אמיתית וזורמת במקום לזרוק רשימות חנויות מנותקות!
+
+אני כאן כיועץ הפיננסי האישי שלך למועדוני **בהצדעה**, **UNIQ** ו-**Mastercard Day**. 
+אתה יכול לשוחח איתי בחופשיות על כל נושא:
+• איפה תקבל את אחוז ההנחה המקסימלי (חבילות eSIM לחו"ל, נעליים, פיצה, גאדג'טים, קניות בסופר).
+• איך לשלב ארנק נטען של 20% עם הנחות במעמד החיוב.
+• מה המבצעים הכי שווים שפתוחים כרגע בכל מועדון.
+
+מה הדבר הבא שאתה מתכנן לקנות או לתכנן? אני פה איתך!`;
   }
 
-  if (qNorm.includes('איך האתר עובד') || qNorm.includes('איך משתמשים') || qNorm.includes('הסבר על האתר') || qNorm.includes('מה האתר')) {
+  // 2. Mastercard Day scanning confirmation ("does it scan matercarday as well? they do have")
+  const isMastercardQuery =
+    qNorm.includes('mastercard') ||
+    qNorm.includes('מאסטרקארד') ||
+    qNorm.includes('מסטרקארד') ||
+    qNorm.includes('mastercarday') ||
+    qNorm.includes('matercarday') ||
+    qNorm.includes('matercard') ||
+    previousTopic.includes('mastercard') ||
+    previousTopic.includes('mastercarday') ||
+    previousTopic.includes('matercarday');
+
+  const isScanningCheck =
+    qLower.includes('scan') ||
+    qLower.includes('they do have') ||
+    qLower.includes('does it') ||
+    qNorm.includes('סורק') ||
+    qNorm.includes('כולל') ||
+    qNorm.includes('יש להם') ||
+    qNorm.includes('גם להם יש') ||
+    qNorm.includes('גם לם יש');
+
+  const isEsimQuestion =
+    previousTopic.includes('esim') ||
+    previousTopic.includes('איסים') ||
+    previousTopic.includes('חו ל') ||
+    previousTopic.includes('טיסה') ||
+    previousTopic.includes('גלישה') ||
+    qNorm.includes('esim') ||
+    qNorm.includes('איסים') ||
+    qNorm.includes('גלישה') ||
+    qNorm.includes('voye') ||
+    qNorm.includes('airalo');
+
+  const isAllDealsQuestion =
+    qLower.includes('all other') ||
+    qLower.includes('other deals') ||
+    qLower.includes('all deals') ||
+    qLower.includes('options') ||
+    qLower.includes('what else') ||
+    qNorm.includes('עוד') ||
+    qNorm.includes('שאר') ||
+    qNorm.includes('כל') ||
+    qNorm.includes('מבצעים') ||
+    qNorm.includes('אפשרויות') ||
+    qNorm.includes('דיי') ||
+    qNorm.includes('הטבות נוספות');
+
+  if (isMastercardQuery && (isScanningCheck || isEsimQuestion) && !isAllDealsQuestion) {
+    if (qLower.includes('scan') || qLower.includes('they do have') || qLower.includes('esim') || qLower.includes('matercard')) {
+      return `**Yes, absolutely!** Our portal fully scans, indexes, and tracks **Mastercard Day** benefits (which take place on the 10th of every month, with many extended through the 11th and all month long).
+
+Regarding **eSIM and global travel data packages**, Mastercard Day actually offers some of the highest discounts available:
+
+1. 🌐 **VOYE (eSIM)**:
+   • **25% discount** on the 10th and 11th of the month.
+   • **18% ongoing discount** for all other days of the month.
+   • **Coupon Code**: \`MASTERCARDAY\` (apply at checkout on voye.com or their app with a Mastercard).
+
+2. 📱 **Airalo (eSIM)**:
+   • **20% discount** on the 10th and 11th of the month.
+   • **15% ongoing discount** throughout the month.
+   • **Coupon Code**: \`MASTERCARDAY\` (the world's most popular eSIM platform covering 200+ destinations).
+
+✈️ **Complementary Travel Benefits on Mastercard Day:**
+• **Gett Abroad**: 20 ₪ off taxi rides abroad in the Gett app (Coupon: \`mastercard 10\`).
+• **Booking.com**: 4% wallet credit on hotel reservations (Coupon: \`MASTERCARDAY\`).
+
+⚖️ **Comparison with Behatsdaa:**
+• **For peak percentage (10th-11th)**: **VOYE on Mastercard Day (25%)** gives the highest rate.
+• **For worldwide destination variety**: **Airalo (20% / 15%)** is premier.
+• **For year-round zero-effort savings**: **Behatsdaa** gives **15% off GlobaleSIM** and **10% off BeSIM** directly on your credit card statement automatically without coupons or waiting for the 10th.`;
+    }
+
+    return `**כן, בהחלט!** הפורטל סורק ומעדכן את כל ההטבות והקופונים של **Mastercard Day** (שמתקיים בכל 10 בחודש, עם מבצעים שממשיכים גם ב-11 ובמהלך כל החודש).
+
+בנושא **חבילות eSIM וגלישה בחו"ל**, ב-Mastercard Day יש שתי הטבות מובילות עם אחוזי הנחה מעולים:
+
+1. 🌐 **VOYE (eSIM)**:
+   • **25% הנחה** ב-10 וב-11 בחודש!
+   • **18% הנחה קבועה** בכל שאר ימות החודש.
+   • **קוד קופון**: \`MASTERCARDAY\` (תקף באתר ובאפליקציה למשלמים במאסטרקארד).
+
+2. 📱 **Airalo (eSIM)**:
+   • **20% הנחה** ב-10 וב-11 בחודש!
+   • **15% הנחה קבועה** במהלך כל ימות החודש.
+   • **קוד קופון**: \`MASTERCARDAY\` (ספק ה-eSIM הפופולרי בעולם עם כיסוי במאות יעדים).
+
+✈️ **הטבות משלימות לטסים לחו"ל ב-Mastercard Day:**
+• **Gett בחו"ל**: 20 ₪ הנחה בנסיעות בחו"ל באפליקציית Gett (קוד קופון: \`mastercard 10\`).
+• **Booking.com**: 4% קרדיט כספי לארנק בהזמנת לינה ומלונות (קוד: \`MASTERCARDAY\`).
+
+⚖️ **השוואת כדאיות מול מועדון בהצדעה:**
+• **ב-10 וה-11 לחודש**: **VOYE ב-Mastercard Day מנצח עם 25% הנחה**!
+• **למגוון יעדים עולמי רחב**: **Airalo (20% / 15%)** מציע שירות גלובלי מצוין.
+• **לכל יום בשנה בלי לחכות לקופון**: ב**בהצדעה** יש לך את **GlobaleSIM עם 15% הנחה** ו-**BeSIM עם 10% הנחה** אוטומטית במעמד החיוב באשראי.`;
+  }
+
+  // 3. All other deals and options in Mastercard Day
+  if (isMastercardQuery && isAllDealsQuestion) {
+    if (qLower.includes('all other') || qLower.includes('deals') || qLower.includes('options')) {
+      return `Here is a complete, curated guide to all the top deals and options available on **Mastercard Day** (held on the 10th of every month, with peak benefits on the 10th-11th and ongoing offers all month):
+
+🛍️ **Fashion & Lifestyle:**
+• **Terminal X**: 50 ₪ off on purchases over 250 ₪ (Coupon: \`MASTERCARDAY10\`)
+• **adidas**: Extra 20% discount on official site and app (Coupon: \`MASTERCARDAY\`)
+• **ALDO**, **GALI**, **Lee Cooper**, **Nine West**, **Minene**: 20% off (Coupon: \`MDAY20\` or \`MASTERCARDAY\`)
+• **Timberland**, **Nautica**, **Guess**, **Emporium**: 15% off
+• **Afrodita**: 20% off sitewide
+
+🍔 **Culinary & Food Delivery:**
+• **McDonald's**: 50% discount on select combo meals (Coupon: \`MASTERCARDAY\`)
+• **Domino's Pizza**: 2 family pizzas + side dish for 130 ₪ (Coupon: \`MDAY130\`)
+• **Golda**: 1 kg premium ice cream + 2 sauce jars for only 84 ₪ (Coupon: \`MASTERCARDAY\`)
+• **Mishloha**: 30 ₪ off for new users (Coupon: \`MASTERCARDAY\`)
+• **rebar**: 10 ₪ off any size M smoothie
+
+💻 **Tech, Electronics & Gaming:**
+• **Cinema & Electronics (עולם הקולנוע והחשמל)**: 200 ₪ off orders over 2,000 ₪ (Coupon: \`MASTERCARDAY\`)
+• **BUG**: Up to 30% discount on select gaming and gadgets (Coupon: \`MASTERCARDAY\`)
+• **Lenovo**: Extra 10% discount on laptops and accessories
+• **Nintendo**: 10% discount on games and consoles
+• **Last Price** & **Walla Shops**: 10% extra discount on electronics
+
+✈️ **Travel & Global Connectivity:**
+• **VOYE**: 25% off eSIM data packages on the 10th-11th (18% ongoing) (Coupon: \`MASTERCARDAY\`)
+• **Airalo**: 20% off global eSIM packages on the 10th-11th (15% ongoing) (Coupon: \`MASTERCARDAY\`)
+• **Gett Abroad**: 20 ₪ off taxi rides abroad (Coupon: \`mastercard 10\`)
+• **Booking.com**: 4% wallet cashback credit (Coupon: \`MASTERCARDAY\`)
+
+🛒 **Global Online Shopping:**
+• **Amazon**: 10% off purchases over $49 (Coupon: \`MASTERCARDAY\`)
+• **AliExpress**: $5 off orders over $35 (Coupon: \`MASTERCARDAY\`)
+
+💡 **Pro Tip**: Use your Mastercard on the 10th to stack discounts with existing site sales, and remember that UNIQ and Behatsdaa wallets can be compared anytime!`;
+    }
+
+    return `הנה סקירה מקיפה ומסודרת של כל המבצעים והאפשרויות המובילות ב-**Mastercard Day** (שמתקיים בכל 10 בחודש, עם הטבות שיא ב-10-11 והטבות מתמשכות בכל החודש):
+
+🛍️ **אופנה ולייף סטייל:**
+• **Terminal X**: 50 ₪ הנחה בקנייה מעל 250 ₪ (קוד קופון: \`MASTERCARDAY10\`)
+• **adidas**: אקסטרה 20% הנחה באתר ובאפליקציה (קוד: \`MASTERCARDAY\`)
+• **ALDO**, **GALI**, **Lee Cooper**, **Nine West**, **Minene**: 20% הנחה (קוד: \`MDAY20\` / \`MASTERCARDAY\`)
+• **Timberland**, **Nautica**, **Guess**, **Emporium**: 15% הנחה
+• **אפרודיטה**: 20% הנחה על כל האתר
+
+🍔 **קולינריה, מתוקים ומשלוחים:**
+• **מקדונלד'ס**: 50% הנחה על מגוון ארוחות (קוד: \`MASTERCARDAY\`)
+• **דומינו'ס פיצה**: 2 פיצות משפחתיות + נלווה ב-130 ₪ (קוד: \`MDAY130\`)
+• **Golda**: 1 ק"ג גלידה + 2 רטבים ב-84 ₪ בלבד (קוד: \`MASTERCARDAY\`)
+• **משלוחה**: 30 ₪ הנחה למזמינים חדשים (קוד: \`MASTERCARDAY\`)
+• **rebar**: 10 ₪ הנחה על משקה M
+
+💻 **חשמל, גיימינג ואלקטרוניקה:**
+• **עולם הקולנוע והחשמל**: 200 ₪ הנחה בקנייה מעל 2,000 ₪ (קוד: \`MASTERCARDAY\`)
+• **BUG**: עד 30% הנחה על מגוון מוצרי גיימינג ואלקטרוניקה (קוד: \`MASTERCARDAY\`)
+• **Lenovo**: 10% הנחה נוספים על מחשבים ניידים
+• **Nintendo**: 10% הנחה על קונסולות ומשחקים
+• **Last Price** ו-**Walla Shops**: 10% הנחה על מוצרי חשמל
+
+✈️ **תיירות ו-eSIM:**
+• **VOYE**: 25% הנחה על חבילות גלישה ו-eSIM ב-10-11 (18% בשאר החודש)
+• **Airalo**: 20% הנחה על חבילות אינטרנט עולמיות ב-10-11 (15% בשאר החודש)
+• **Gett בחו"ל**: 20 ₪ הנחה בנסיעות (קוד: \`mastercard 10\`)
+• **Booking.com**: 4% קרדיט כספי לארנק בהזמנת מלונות
+
+🛒 **קניות בינלאומיות אונליין:**
+• **Amazon**: 10% הנחה בקנייה מעל $49
+• **AliExpress**: $5 הנחה בקנייה מעל $35
+
+💡 **טיפ חשוב**: מרבית הקופונים מאפשרים כפל מבצעים עם מחירי המבצע באתרי הסחר עצמם.`;
+  }
+
+  // 4. Meta identity & capability responses
+  if (
+    qNorm.includes('מי אתה') ||
+    qNorm.includes('מה אתה') ||
+    qNorm.includes('ai') ||
+    qNorm.includes('בינה מלאכותית') ||
+    qNorm.includes('אמיתי') ||
+    qNorm.includes('גולש ומבין') ||
+    qLower.includes('who are you') ||
+    qLower.includes('what are you')
+  ) {
+    return `שלום! אני סייר ה-AI והיועץ הפיננסי של פורטל **"ההטבות שלי"**, מבוסס מודלי השפה המתקדמים של Gemini מגוגל.
+
+אני מחובר ישירות לקטלוג המלא של שלושת מועדוני הצרכנות המובילים:
+1. **בהצדעה** – משרתי מילואים ולוחמים (ארנק נטען 20%, מעל 10,650 בתי עסק בהנחה אוטומטית במעמד החיוב באשראי, ושוברים מסובסדים).
+2. **UNIQ** – סטודנטים ובוגרים אקדמאים (כרטיס נטען 15% ל-31 רשתות מובילות כולל טרמינל X, הטבות קולנוע וסבסודים).
+3. **Mastercard Day** – כל מחזיקי מאסטרקארד בכל 10 בחודש (קופונים בלעדיים ל-VOYE, Airalo, Terminal X, adidas, דומינו'ס, אמזון ועוד).
+
+אני כאן לשיחה חופשית, השוואת מועדונים וייעוץ חכם כדי להבטיח שתשלם את המחיר הנמוך ביותר בכל רכישה!`;
+  }
+
+  // 5. How does the site work?
+  if (
+    qNorm.includes('איך האתר עובד') ||
+    qNorm.includes('איך משתמשים') ||
+    qNorm.includes('הסבר על האתר') ||
+    qNorm.includes('מה האתר') ||
+    qLower.includes('how does')
+  ) {
     return `פורטל **"ההטבות שלי"** הוא מנוע חיפוש והשוואה חכם המרכז את כל ההטבות של בהצדעה, UNIQ ו-Mastercard Day במקום אחד!
 
 איך מפיקים מהאתר את המקסימום:
 * 🔍 **מגה חיפוש**: חפש כל מוצר, רשת (כמו מגה ספורט, קולומביה), עיר (כמו תל אביב, חיפה) או קטגוריה, ותקבל תוצאות מכל המועדונים יחד.
 * 💳 **השוואת שיטות תשלום**: גלה האם שווה להטעין כרטיס נטען מראש, לקנות שובר מוזל, או לשלם באשראי המועדון להנחה אוטומטית במעמד החיוב.
 * ⚡ **תצוגה נקייה vs מורחבת**: כפתור "תצוגה נקייה" בראש הדף מאפשר מצב טבלאי מהיר וממוקד לחיפוש מיידי.
-* 🤖 **סייר AI**: שאל אותי בכל רגע שאלות חופשיות וקבל המלצות מדויקות.`;
+* 🤖 **סייר AI**: שוחח איתי בחופשיות ושאל אותי שאלות מורכבות על כדאיות תשלום.`;
   }
 
-  if (qNorm.includes('הבדל') || qNorm.includes('מעמד החיוב') || qNorm.includes('ארנק נטען') || qNorm.includes('איך מטעינים')) {
-    return `שאלה מצוינת! ישנם 3 אפיקי חיסכון עיקריים שכדאי להכיר:
+  // 6. Payment methods explanation
+  if (
+    qNorm.includes('הבדל') ||
+    qNorm.includes('מעמד החיוב') ||
+    qNorm.includes('ארנק נטען') ||
+    qNorm.includes('איך מטעינים')
+  ) {
+    return `ישנם 3 אפיקי חיסכון עיקריים שכדאי להכיר ולשלב ביניהם:
 
 1. 👛 **ארנק רשתות / כרטיס נטען (עד 20% הנחה)**:
-   מטעינים מראש סכום כסף דיגיטלי באתר המועדון (משלמים למשל 80 ₪ ומקבלים 100 ₪ למימוש). תקף ברשתות האופנה, הספורט והבית הגדולות (מגה ספורט, שילב, פוקס הום, ורדינון ועוד). מציגים את הקוד בקופה.
+   מטעינים מראש סכום כסף דיגיטלי באתר המועדון (משלמים למשל 80 ₪ ומקבלים 100 ₪ למימוש). תקף ברשתות האופנה, הספורט והבית הגדולות (מגה ספורט, שילב, פוקס הום, ורדינון, טרמינל X ועוד). מציגים את הקוד בקופה או מזינים באונליין.
 
 2. 💳 **הנחה במעמד החיוב (2%-15% אוטומטית)**:
-   השיטה הפשוטה ביותר: לא קונים שום דבר מראש! פשוט משלמים בבית העסק עם כרטיס האשראי של המועדון (בהצדעה/UNIQ), ובדף החשבון בסוף החודש יורד אחוז ההנחה באופן שקט ואוטומטי. זה תקף ביותר מ-**10,650 עסקים מקומיים** ברחבי הארץ (מסעדות, מוסכים, רופאי שיניים, מאפיות ועוד).
+   השיטה הפשוטה ביותר: לא קונים שום דבר מראש! פשוט משלמים בבית העסק עם כרטיס האשראי של המועדון (בהצדעה/UNIQ), ובדף החשבון בסוף החודש יורד אחוז ההנחה באופן שקט ואוטומטי. תקף ביותר מ-**10,650 עסקים מקומיים** ברחבי הארץ.
 
 3. 🎟️ **שוברים ומבצעים מסובסדים**:
-   רכישת כרטיס מוגדר מראש במחיר מוזל (למשל כרטיס לסינמה סיטי ב-33 ₪ במקום 47 ₪, ארוחה במקדונלד'ס, או לינה במלונות).`;
+   רכישת שובר מוגדר מראש במחיר מוזל (למשל כרטיס לסינמה סיטי ב-33 ₪ במקום 47 ₪, ארוחה במקדונלד'ס, או לינה במלונות).`;
   }
 
+  // Fallback catalog list if user asked for a specific item
   if (stores.length === 0 && deals.length === 0 && billingStores.length === 0) {
     return `לא מצאתי תוצאות ספציפיות בקטלוג עבור **"${query}"**.
-אפשר לחפש רשתות (מגה ספורט, פוקס, טרמינל X, קולומביה), תחומים (נעליים, פיצה, מלונות, מוסכים, שיניים), או ערים ברחבי הארץ. לחלופין, שאל אותי כל שאלה כללית על המועדונים והשימוש בהם!`;
+אפשר לחפש רשתות (מגה ספורט, פוקס, טרמינל X, קולומביה), תחומים (נעליים, פיצה, מלונות, מוסכים, שיניים, eSIM), או לשאול אותי שאלה חופשית על המועדונים וההטבות!`;
   }
 
   let text = `מצאתי מספר אפשרויות מצוינות בקטלוג עבור **"${query}"**:\n\n`;
@@ -649,7 +1069,8 @@ function generateFallbackResponse(
     for (const d of deals.slice(0, 4)) {
       const priceText = d.price ? `ב-₪${d.price}` : '';
       const discText = d.discount_percent ? ` (${d.discount_percent}% הנחה)` : '';
-      text += `* **${d.title}** ${priceText}${discText} דרך מועדון ${d.club === 'behatsdaa' ? 'בהצדעה' : d.club || 'בהצדעה'}.\n`;
+      const clubName = d.club === 'behatsdaa' ? 'בהצדעה' : d.club === 'uniq' ? 'UNIQ' : 'Mastercard Day';
+      text += `* **${d.title}** ${priceText}${discText} דרך מועדון ${clubName}.\n`;
     }
     text += `\n`;
   }
