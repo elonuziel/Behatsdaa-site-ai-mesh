@@ -106,3 +106,27 @@ body {
 .modal-content {
   animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Category Chips Carousel, Track & Controls */
+.chips-carousel-track {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  user-select: none;
+}
+
+.chips-carousel-track.cursor-grab {
+  cursor: grab;
+}
+
+.chips-carousel-track.cursor-grabbing {
+  cursor: grabbing;
+}
+
+.chips-scroll-btn {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  transition: opacity 0.2s ease, transform 0.15s ease, background-color 0.15s ease;
+}
+
+.chips-scroll-btn:active {
+  transform: scale(0.92);
+}

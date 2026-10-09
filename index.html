@@ -481,12 +481,48 @@
 
         </div>
 
-        <!-- Row 2: Category Chips Filter -->
-        <div class="pt-2 border-t border-slate-100 dark:border-slate-700/60">
-          <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-sm" id="category-chips-container">
-            <button class="category-chip px-3.5 py-1.5 rounded-full font-medium transition text-xs flex items-center gap-1.5 whitespace-nowrap bg-blue-600 text-white shadow-xs" data-category="all">
-              <span>הכל</span>
-              <span class="category-count bg-blue-700 text-white text-[10px] px-1.5 py-0.2 rounded-full">0</span>
+        <!-- Row 2: Category Chips Filter Carousel -->
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-700/60" id="stores-chips-wrapper">
+          <div class="relative flex items-center gap-1.5">
+            <!-- Scroll Right Button (in RTL: toward start/הכל) -->
+            <button type="button" 
+                    id="stores-chips-scroll-right"
+                    aria-label="גלול קטגוריות ימינה"
+                    title="גלול ימינה"
+                    class="chips-scroll-btn hidden sm:flex shrink-0 items-center justify-center w-7 h-7 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer z-10 disabled:opacity-20 disabled:pointer-events-none">
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Scrollable Track Container with Gradient Overlays -->
+            <div class="relative flex-1 min-w-0 overflow-hidden py-0.5">
+              <div id="stores-chips-fade-left" class="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white dark:from-slate-800 to-transparent z-5 opacity-0 transition-opacity duration-200"></div>
+              <div id="stores-chips-fade-right" class="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-slate-800 to-transparent z-5 opacity-0 transition-opacity duration-200"></div>
+
+              <div class="chips-carousel-track flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-sm flex-nowrap scroll-smooth cursor-grab select-none w-full" id="category-chips-container">
+                <button class="category-chip px-3.5 py-1.5 rounded-full font-medium transition text-xs flex items-center gap-1.5 whitespace-nowrap bg-blue-600 text-white shadow-xs" data-category="all">
+                  <span>הכל</span>
+                  <span class="category-count bg-blue-700 text-white text-[10px] px-1.5 py-0.2 rounded-full">0</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Scroll Left Button (in RTL: toward overflow/left) -->
+            <button type="button" 
+                    id="stores-chips-scroll-left"
+                    aria-label="גלול קטגוריות שמאלה"
+                    title="גלול שמאלה"
+                    class="chips-scroll-btn hidden sm:flex shrink-0 items-center justify-center w-7 h-7 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer z-10 disabled:opacity-20 disabled:pointer-events-none">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Expand / Wrap Toggle Button -->
+            <button type="button"
+                    id="stores-chips-expand-btn"
+                    aria-label="הצג את כל הקטגוריות"
+                    title="הצג את כל הקטגוריות ברשת"
+                    class="chips-expand-btn shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 text-xs font-medium transition cursor-pointer z-10">
+              <span class="chips-expand-text hidden md:inline">כל הקטגוריות</span>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 chips-expand-icon transition-transform duration-200"></i>
             </button>
           </div>
         </div>
@@ -663,12 +699,48 @@
 
         </div>
 
-        <!-- Row 2: Deals Category Chips -->
-        <div class="pt-2 border-t border-slate-100 dark:border-slate-700/60">
-          <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-sm" id="deals-category-chips-container">
-            <button class="deal-category-chip px-3.5 py-1.5 rounded-full font-medium transition text-xs flex items-center gap-1.5 whitespace-nowrap bg-emerald-600 text-white shadow-xs" data-category="all">
-              <span>הכל</span>
-              <span class="deal-category-count bg-emerald-700 text-white text-[10px] px-1.5 py-0.2 rounded-full">0</span>
+        <!-- Row 2: Deals Category Chips Carousel -->
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-700/60" id="deals-chips-wrapper">
+          <div class="relative flex items-center gap-1.5">
+            <!-- Scroll Right Button -->
+            <button type="button" 
+                    id="deals-chips-scroll-right"
+                    aria-label="גלול קטגוריות מבצעים ימינה"
+                    title="גלול ימינה"
+                    class="chips-scroll-btn hidden sm:flex shrink-0 items-center justify-center w-7 h-7 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer z-10 disabled:opacity-20 disabled:pointer-events-none">
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Scrollable Track Container with Gradient Overlays -->
+            <div class="relative flex-1 min-w-0 overflow-hidden py-0.5">
+              <div id="deals-chips-fade-left" class="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white dark:from-slate-800 to-transparent z-5 opacity-0 transition-opacity duration-200"></div>
+              <div id="deals-chips-fade-right" class="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-slate-800 to-transparent z-5 opacity-0 transition-opacity duration-200"></div>
+
+              <div class="chips-carousel-track flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-sm flex-nowrap scroll-smooth cursor-grab select-none w-full" id="deals-category-chips-container">
+                <button class="deal-category-chip px-3.5 py-1.5 rounded-full font-medium transition text-xs flex items-center gap-1.5 whitespace-nowrap bg-emerald-600 text-white shadow-xs" data-category="all">
+                  <span>הכל</span>
+                  <span class="deal-category-count bg-emerald-700 text-white text-[10px] px-1.5 py-0.2 rounded-full">0</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Scroll Left Button -->
+            <button type="button" 
+                    id="deals-chips-scroll-left"
+                    aria-label="גלול קטגוריות מבצעים שמאלה"
+                    title="גלול שמאלה"
+                    class="chips-scroll-btn hidden sm:flex shrink-0 items-center justify-center w-7 h-7 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer z-10 disabled:opacity-20 disabled:pointer-events-none">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Expand / Wrap Toggle Button -->
+            <button type="button"
+                    id="deals-chips-expand-btn"
+                    aria-label="הצג את כל הקטגוריות"
+                    title="הצג את כל קטגוריות המבצעים"
+                    class="chips-expand-btn shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-medium transition cursor-pointer z-10">
+              <span class="chips-expand-text hidden md:inline">כל הקטגוריות</span>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 chips-expand-icon transition-transform duration-200"></i>
             </button>
           </div>
         </div>
@@ -826,12 +898,48 @@
 
         </div>
 
-        <!-- Row 2: Billing Category Chips -->
-        <div class="pt-2 border-t border-slate-100 dark:border-slate-700/60">
-          <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-sm" id="billing-category-chips-container">
-            <button class="billing-category-chip px-3.5 py-1.5 rounded-full font-medium transition text-xs flex items-center gap-1.5 whitespace-nowrap bg-purple-600 text-white shadow-xs" data-category="all">
-              <span>הכל</span>
-              <span class="billing-category-count bg-purple-700 text-white text-[10px] px-1.5 py-0.2 rounded-full">0</span>
+        <!-- Row 2: Billing Category Chips Carousel -->
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-700/60" id="billing-chips-wrapper">
+          <div class="relative flex items-center gap-1.5">
+            <!-- Scroll Right Button -->
+            <button type="button" 
+                    id="billing-chips-scroll-right"
+                    aria-label="גלול קטגוריות מעמד החיוב ימינה"
+                    title="גלול ימינה"
+                    class="chips-scroll-btn hidden sm:flex shrink-0 items-center justify-center w-7 h-7 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs text-slate-500 hover:text-purple-600 dark:text-slate-400 dark:hover:text-purple-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer z-10 disabled:opacity-20 disabled:pointer-events-none">
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Scrollable Track Container with Gradient Overlays -->
+            <div class="relative flex-1 min-w-0 overflow-hidden py-0.5">
+              <div id="billing-chips-fade-left" class="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white dark:from-slate-800 to-transparent z-5 opacity-0 transition-opacity duration-200"></div>
+              <div id="billing-chips-fade-right" class="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-slate-800 to-transparent z-5 opacity-0 transition-opacity duration-200"></div>
+
+              <div class="chips-carousel-track flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-sm flex-nowrap scroll-smooth cursor-grab select-none w-full" id="billing-category-chips-container">
+                <button class="billing-category-chip px-3.5 py-1.5 rounded-full font-medium transition text-xs flex items-center gap-1.5 whitespace-nowrap bg-purple-600 text-white shadow-xs" data-category="all">
+                  <span>הכל</span>
+                  <span class="billing-category-count bg-purple-700 text-white text-[10px] px-1.5 py-0.2 rounded-full">0</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Scroll Left Button -->
+            <button type="button" 
+                    id="billing-chips-scroll-left"
+                    aria-label="גלול קטגוריות מעמד החיוב שמאלה"
+                    title="גלול שמאלה"
+                    class="chips-scroll-btn hidden sm:flex shrink-0 items-center justify-center w-7 h-7 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs text-slate-500 hover:text-purple-600 dark:text-slate-400 dark:hover:text-purple-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer z-10 disabled:opacity-20 disabled:pointer-events-none">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Expand / Wrap Toggle Button -->
+            <button type="button"
+                    id="billing-chips-expand-btn"
+                    aria-label="הצג את כל הקטגוריות"
+                    title="הצג את כל קטגוריות מעמד החיוב"
+                    class="chips-expand-btn shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 text-xs font-medium transition cursor-pointer z-10">
+              <span class="chips-expand-text hidden md:inline">כל הקטגוריות</span>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 chips-expand-icon transition-transform duration-200"></i>
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { state } from './state.js';
 import { normalizeHebrew, formatILS } from './utils.js';
 import { searchDeals } from './search.js';
 import { fetchDealDetail } from './data.js';
+import { updateChipsControls, scrollActiveChipIntoView } from './chips-carousel.js';
 
 export function populateDealsTagsFilter(dealsTagSelect) {
   if (!dealsTagSelect) return;
@@ -63,6 +64,9 @@ export function updateDealsCategoryChips(dealsCategoryChipsContainer) {
     `;
     dealsCategoryChipsContainer.appendChild(chip);
   });
+
+  updateChipsControls('deals-category-chips-container');
+  scrollActiveChipIntoView('deals-category-chips-container');
 }
 
 export function getFilteredDeals() {

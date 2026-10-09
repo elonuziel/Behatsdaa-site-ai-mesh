@@ -10,6 +10,7 @@ import { populateCardsFilter, updateCategoryChips, getFilteredStores, createStor
 import { populateDealsTagsFilter, updateDealsCategoryChips, getFilteredDeals, createDealCardElement, createDealTableRow, openDealModal, closeDealModal } from './js/deals.js';
 import { populateBillingCitiesFilter, updateBillingCategoryChips, getFilteredBillingStores, createBillingCardElement, createBillingTableRow, openBillingModal, closeBillingModal } from './js/billing.js';
 import { initBillingMap, updateMapMarkers, centerOnUserLocation, toggleMapMaximize, isMapReady, recenterMapToAllMarkers, setMapCallbacks } from './js/map.js';
+import { initChipsCarousel, updateAllChipsControls } from './js/chips-carousel.js';
 
 // DOM Elements - Navigation Tabs
 const tabAllBtn = document.getElementById('tab-all-btn');
@@ -912,6 +913,11 @@ function switchTab(tab, options = {}) {
       renderStores();
     }
   }
+
+  // Refresh carousel controls for newly visible tab
+  setTimeout(() => {
+    updateAllChipsControls();
+  }, 50);
 }
 
 function onDatasetsLoaded() {
@@ -2159,6 +2165,38 @@ if (window.lucide && typeof window.lucide.createIcons === 'function') {
   window.lucide.createIcons();
 }
 setBillingUnhidden(state.isBillingUnhidden);
+
+// Initialize Category Chips Carousels (Stores, Deals, Billing)
+initChipsCarousel({
+  containerId: 'category-chips-container',
+  scrollRightBtnId: 'stores-chips-scroll-right',
+  scrollLeftBtnId: 'stores-chips-scroll-left',
+  fadeRightId: 'stores-chips-fade-right',
+  fadeLeftId: 'stores-chips-fade-left',
+  expandBtnId: 'stores-chips-expand-btn',
+  accentColor: 'blue'
+});
+
+initChipsCarousel({
+  containerId: 'deals-category-chips-container',
+  scrollRightBtnId: 'deals-chips-scroll-right',
+  scrollLeftBtnId: 'deals-chips-scroll-left',
+  fadeRightId: 'deals-chips-fade-right',
+  fadeLeftId: 'deals-chips-fade-left',
+  expandBtnId: 'deals-chips-expand-btn',
+  accentColor: 'emerald'
+});
+
+initChipsCarousel({
+  containerId: 'billing-category-chips-container',
+  scrollRightBtnId: 'billing-chips-scroll-right',
+  scrollLeftBtnId: 'billing-chips-scroll-left',
+  fadeRightId: 'billing-chips-fade-right',
+  fadeLeftId: 'billing-chips-fade-left',
+  expandBtnId: 'billing-chips-expand-btn',
+  accentColor: 'purple'
+});
+
 switchTab(state.currentTab);
 loadAllData();
 

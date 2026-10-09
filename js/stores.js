@@ -6,6 +6,7 @@ import { state } from './state.js';
 import { normalizeHebrew } from './utils.js';
 import { searchStores } from './search.js';
 import { fetchStoreDetail } from './data.js';
+import { updateChipsControls, scrollActiveChipIntoView } from './chips-carousel.js';
 
 export function populateCardsFilter(cardFilterSelect) {
   if (!cardFilterSelect) return;
@@ -85,6 +86,9 @@ export function updateCategoryChips(categoryChipsContainer) {
     `;
     categoryChipsContainer.appendChild(chip);
   });
+
+  updateChipsControls('category-chips-container');
+  scrollActiveChipIntoView('category-chips-container');
 }
 
 export function getFilteredStores() {

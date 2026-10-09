@@ -922,12 +922,50 @@ async function runTests() {
   
   console.log('  -> PASS (Smart search successfully expands transliterations and respects toggle state)');
 
-  console.log('[Test 22] Checking for console errors...');
+  // --- Test 22: Category Chips Carousel & Expand Controls ---
+  console.log('[Test 22] Testing Category Chips Carousel & Expand Controls across all tabs...');
+  
+  // Stores tab controls
+  const storesExpandBtn = document.getElementById('stores-chips-expand-btn');
+  const storesScrollRight = document.getElementById('stores-chips-scroll-right');
+  const storesScrollLeft = document.getElementById('stores-chips-scroll-left');
+  const storesChipsContainer = document.getElementById('category-chips-container');
+  
+  assert.ok(storesExpandBtn, 'Stores chips expand toggle button should exist');
+  assert.ok(storesScrollRight, 'Stores scroll right button should exist');
+  assert.ok(storesScrollLeft, 'Stores scroll left button should exist');
+  assert.ok(storesChipsContainer, 'Stores category chips container should exist');
+
+  // Verify initial state is compact (no flex-wrap)
+  assert.ok(!storesChipsContainer.classList.contains('flex-wrap'), 'Initial category container should be in compact carousel mode');
+
+  // Click expand toggle
+  storesExpandBtn.click();
+  assert.ok(storesChipsContainer.classList.contains('flex-wrap'), 'Clicking expand button should toggle category container to flex-wrap');
+  const expandText = storesExpandBtn.querySelector('.chips-expand-text');
+  if (expandText) {
+    assert.strictEqual(expandText.textContent, 'צמצם', 'Button text should update to צמצם when expanded');
+  }
+
+  // Click collapse toggle
+  storesExpandBtn.click();
+  assert.ok(!storesChipsContainer.classList.contains('flex-wrap'), 'Clicking collapse button should restore compact carousel mode');
+  if (expandText) {
+    assert.strictEqual(expandText.textContent, 'כל הקטגוריות', 'Button text should update to כל הקטגוריות when collapsed');
+  }
+
+  // Verify Deals & Billing have controls
+  assert.ok(document.getElementById('deals-chips-expand-btn'), 'Deals chips expand toggle should exist');
+  assert.ok(document.getElementById('billing-chips-expand-btn'), 'Billing chips expand toggle should exist');
+
+  console.log('  -> PASS (Category chips carousel, scroll controls, and expand toggle validated across all tabs)');
+
+  console.log('[Test 23] Checking for console errors...');
   assert.strictEqual(consoleErrors.length, 0, `Expected 0 console errors, but found: ${consoleErrors.join(', ')}`);
   console.log('  -> PASS (Zero errors during entire session)');
 
   console.log('\n====================================================');
-  console.log('   ALL 22 UI & DOM INTEGRATION TESTS PASSED!       ');
+  console.log('   ALL 23 UI & DOM INTEGRATION TESTS PASSED!       ');
   console.log('====================================================\n');
   process.exit(0);
 }

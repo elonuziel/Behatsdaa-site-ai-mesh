@@ -5,6 +5,7 @@
 import { state } from './state.js';
 import { normalizeHebrew, formatILS, formatFullAddress } from './utils.js';
 import { searchBilling } from './search.js';
+import { updateChipsControls, scrollActiveChipIntoView } from './chips-carousel.js';
 
 export function populateBillingCitiesFilter(billingCitySelect) {
   if (!billingCitySelect) return;
@@ -80,6 +81,9 @@ export function updateBillingCategoryChips(billingCategoryChipsContainer) {
     `;
     billingCategoryChipsContainer.appendChild(chip);
   });
+
+  updateChipsControls('billing-category-chips-container');
+  scrollActiveChipIntoView('billing-category-chips-container');
 }
 
 export function getFilteredBillingStores() {
