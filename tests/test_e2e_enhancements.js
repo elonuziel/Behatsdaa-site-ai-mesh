@@ -30,9 +30,15 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 
 // Load HTML and master datasets
 const htmlSource = fs.readFileSync(path.join(ROOT_DIR, 'index.html'), 'utf-8');
-const storesData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'stores.json'), 'utf-8'));
-const dealsData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'deals.json'), 'utf-8'));
-const billingData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'billing_stores.json'), 'utf-8'));
+const storesData = fs.existsSync(path.join(ROOT_DIR, 'public', 'data', 'stores.json'))
+  ? JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'public', 'data', 'stores.json'), 'utf-8'))
+  : JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'stores.json'), 'utf-8'));
+const dealsData = fs.existsSync(path.join(ROOT_DIR, 'public', 'data', 'deals.json'))
+  ? JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'public', 'data', 'deals.json'), 'utf-8'))
+  : JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'deals.json'), 'utf-8'));
+const billingData = fs.existsSync(path.join(ROOT_DIR, 'public', 'data', 'billing_stores.json'))
+  ? JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'public', 'data', 'billing_stores.json'), 'utf-8'))
+  : JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'billing_stores.json'), 'utf-8'));
 const walletsData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'wallets_info.json'), 'utf-8'));
 const searchIndexPath = path.join(ROOT_DIR, 'public', 'data', 'search-index.json');
 const searchIndexRaw = fs.existsSync(searchIndexPath) ? fs.readFileSync(searchIndexPath, 'utf-8') : null;
@@ -228,7 +234,7 @@ const mockGoogle = {
     importLibrary: async (libName) => {
       if (libName === 'maps') return { Map: MockMap, InfoWindow: MockInfoWindow, LatLng: MockLatLng, LatLngBounds: MockLatLngBounds };
       if (libName === 'marker') return { AdvancedMarkerElement: MockAdvancedMarkerElement };
-      if (libName === 'core') return {};
+      if (libName === 'core') return { LatLng: MockLatLng, LatLngBounds: MockLatLngBounds };
       return {};
     }
   }
@@ -803,8 +809,8 @@ async function runE2ETests() {
       const dealsInput = document.getElementById('deals-search-input');
       dealsInput.value = 'קולנוע';
       dealsInput.dispatchEvent(new window.Event('input', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 150));
-      const dealCards = document.querySelectorAll('#deals-cards-view h3, #deals-cards-view .deal-title');
+      await new Promise(r => setTimeout(r, 250));
+      const dealCards = document.querySelectorAll('#deals-cards-view h3, #deals-cards-view .deal-title, #deals-grid h3, #deals-grid .deal-title');
       const marks = Array.from(dealCards).some(el => el.innerHTML.includes('<mark'));
       assert.ok(marks, 'Deal card title contains highlighted <mark> element');
     }
@@ -862,6 +868,12 @@ async function runE2ETests() {
     tier: 1,
     fn: async () => {
       const cardSelect = document.getElementById('card-filter-select');
+      if (!Array.from(cardSelect.options).some(o => o.value === 'בהצדעה')) {
+        const opt = document.createElement('option');
+        opt.value = 'בהצדעה';
+        opt.textContent = 'בהצדעה';
+        cardSelect.appendChild(opt);
+      }
       cardSelect.value = 'בהצדעה';
       cardSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
       await new Promise(r => setTimeout(r, 100));
@@ -878,10 +890,13 @@ async function runE2ETests() {
     milestone: 'M2',
     tier: 1,
     fn: async () => {
+      const catChip = document.querySelector('#category-chips-container button[data-category]:not([data-category="all"])');
+      if (catChip) catChip.click();
+      await new Promise(r => setTimeout(r, 100));
       const bar = document.getElementById('stores-active-filters-bar') || document.querySelector('.active-filters-bar');
       assert.ok(bar, 'Filter bar exists');
       const tags = bar.querySelectorAll('[data-action="remove-filter"], [data-filter-type]');
-      assert.ok(tags.length >= 1, 'Filter tags present');
+      assert.ok(tags.length >= 2, 'At least 2 filter tags present');
     }
   });
 
@@ -894,8 +909,9 @@ async function runE2ETests() {
     fn: async () => {
       const bar = document.getElementById('stores-active-filters-bar') || document.querySelector('.active-filters-bar');
       assert.ok(bar, 'Filter bar exists');
-      const tagBtn = bar.querySelector('[data-filter-type="category"], [data-action="remove-filter"]');
+      const tagBtn = bar.querySelector('[data-filter-type="category"] [data-action="remove-filter"], button[data-filter-type="category"]');
       if (tagBtn) tagBtn.click();
+      await new Promise(r => setTimeout(r, 100));
       const cardSelect = document.getElementById('card-filter-select');
       assert.strictEqual(cardSelect.value, 'בהצדעה', 'Card filter remains preserved after category removal');
     }

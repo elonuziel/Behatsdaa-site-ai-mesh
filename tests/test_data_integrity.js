@@ -174,9 +174,5 @@ console.log(`\n===========================================`);
 console.log(`🎉 Results: ${passedTests} / ${totalTests} tests passed successfully!`);
 console.log(`===========================================\n`);
 
-// Clean up temporary split directories to keep repository light and fast
-try {
-  fs.rmSync(publicStoresDir, { recursive: true, force: true });
-  fs.rmSync(publicDealsDir, { recursive: true, force: true });
-} catch (e) {}
+
 

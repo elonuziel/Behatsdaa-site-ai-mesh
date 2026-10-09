@@ -215,7 +215,7 @@ export function createDealCardElement(deal) {
 
   const fav = isFavorite('deal', deal.id);
   const favBtnHtml = `
-    <button type="button" data-action="toggle-favorite" data-item-type="deal" data-item-id="${deal.id}" title="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" aria-label="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" class="favorite-toggle-btn absolute top-3 left-3 p-1.5 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-700 hover:scale-110 active:scale-95 transition-all z-10 shadow-xs">
+    <button type="button" data-action="toggle-favorite" data-type="deal" data-id="${deal.id}" data-item-type="deal" data-item-id="${deal.id}" title="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" aria-label="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" class="favorite-toggle-btn absolute top-3 left-3 p-1.5 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-700 hover:scale-110 active:scale-95 transition-all z-10 shadow-xs">
       <i data-lucide="star" class="w-4 h-4 ${fav ? 'fill-amber-400 text-amber-500' : 'text-slate-400 dark:text-slate-500'}"></i>
     </button>
   `;
@@ -244,7 +244,7 @@ export function createDealCardElement(deal) {
         <span class="text-[11px]">${deal.category || 'כללי'}</span>
       </div>
 
-      <h3 class="font-bold text-sm text-slate-900 dark:text-white leading-snug mb-2 line-clamp-2" title="${deal.title}">
+      <h3 class="deal-title font-bold text-sm text-slate-900 dark:text-white leading-snug mb-2 line-clamp-2" title="${deal.title}">
         ${(state.dealsSearchQuery || state.searchQuery) ? highlightText(deal.title, state.dealsSearchQuery || state.searchQuery) : deal.title}
       </h3>
     </div>
@@ -324,7 +324,7 @@ export function createDealTableRow(deal) {
 
   const fav = isFavorite('deal', deal.id);
   const favBtnHtml = `
-    <button type="button" data-action="toggle-favorite" data-item-type="deal" data-item-id="${deal.id}" title="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" aria-label="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" class="favorite-toggle-btn p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+    <button type="button" data-action="toggle-favorite" data-type="deal" data-id="${deal.id}" data-item-type="deal" data-item-id="${deal.id}" title="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" aria-label="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" class="favorite-toggle-btn p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
       <i data-lucide="star" class="w-4 h-4 ${fav ? 'fill-amber-400 text-amber-500' : 'text-slate-400 dark:text-slate-500'}"></i>
     </button>
   `;

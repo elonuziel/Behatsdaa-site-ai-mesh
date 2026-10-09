@@ -807,10 +807,10 @@ function handleSearchChange(val, originTab) {
     state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
     state.billingVisibleCount = state.BILLING_PAGE_SIZE;
 
+    if (originTab === 'stores' || state.currentTab === 'stores') renderStores();
+    if (originTab === 'deals' || state.currentTab === 'deals') renderDeals();
+    if (originTab === 'billing' || state.currentTab === 'billing') renderBillingStores();
     if (state.currentTab === 'all') renderAllTab();
-    else if (state.currentTab === 'stores') renderStores();
-    else if (state.currentTab === 'deals') renderDeals();
-    else if (state.currentTab === 'billing') renderBillingStores();
 
     updateCrossTabBadges();
   } else {
@@ -850,10 +850,10 @@ function handleClearSearch(originTab) {
     state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
     state.billingVisibleCount = state.BILLING_PAGE_SIZE;
 
+    renderStores();
+    renderDeals();
+    if (state.isBillingUnhidden) renderBillingStores();
     if (state.currentTab === 'all') renderAllTab();
-    else if (state.currentTab === 'stores') renderStores();
-    else if (state.currentTab === 'deals') renderDeals();
-    else if (state.currentTab === 'billing') renderBillingStores();
 
     updateCrossTabBadges();
   } else {
@@ -1362,12 +1362,15 @@ categoryChipsContainer.addEventListener('click', (e) => {
 
 function resetStoresFilters() {
   state.currentCard = 'all';
-  cardFilterSelect.value = 'all';
+  if (cardFilterSelect) cardFilterSelect.value = 'all';
   state.currentCategory = 'all';
+  state.showFavoritesOnly = false;
   if (storesSearchDescToggle) storesSearchDescToggle.checked = false;
   state.storesSearchInDesc = false;
   handleClearSearch('stores');
   updateCategoryChips(categoryChipsContainer);
+  updateFavoritesFilterUI();
+  renderStores();
 }
 
 resetFiltersBtn.addEventListener('click', resetStoresFilters);
@@ -2242,8 +2245,8 @@ document.addEventListener('click', (e) => {
   if (favBtn) {
     e.preventDefault();
     e.stopPropagation();
-    const type = favBtn.dataset.itemType;
-    const id = favBtn.dataset.itemId;
+    const type = favBtn.dataset.itemType || favBtn.dataset.type;
+    const id = favBtn.dataset.itemId || favBtn.dataset.id;
     if (type && id) {
       toggleFavorite(type, id);
     }
@@ -2681,7 +2684,7 @@ window.addEventListener('behatsdaa:favorites-updated', (e) => {
 
   const { type, id, isFavorite } = (e && e.detail) || {};
   if (id && type) {
-    const btns = document.querySelectorAll(`[data-action="toggle-favorite"][data-item-type="${type}"][data-item-id="${id}"]`);
+    const btns = document.querySelectorAll(`[data-action="toggle-favorite"][data-item-type="${type}"][data-item-id="${id}"], [data-action="toggle-favorite"][data-type="${type}"][data-id="${id}"]`);
     btns.forEach(btn => {
       btn.title = isFavorite ? 'הסר ממועדפים' : 'הוסף למועדפים';
       btn.setAttribute('aria-label', isFavorite ? 'הסר ממועדפים' : 'הוסף למועדפים');
