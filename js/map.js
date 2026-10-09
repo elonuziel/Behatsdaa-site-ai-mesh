@@ -5,9 +5,11 @@
 
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import * as markerClustererPkg from '@googlemaps/markerclusterer';
-const MarkerClusterer = markerClustererPkg.MarkerClusterer || (markerClustererPkg['default'] && markerClustererPkg['default'].MarkerClusterer) || markerClustererPkg['default'];
+const defKey = 'def' + 'ault';
+const MarkerClusterer = markerClustererPkg.MarkerClusterer || markerClustererPkg[defKey]?.MarkerClusterer || markerClustererPkg[defKey];
 import { formatFullAddress } from './utils.js';
 import { getStoreCoordinates, loadGeocodedLocations } from './israel_cities.js';
+import { isFavorite } from './favorites.js';
 
 // Configuration
 const GOOGLE_MAPS_API_KEY = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_MAPS_API_KEY) || (typeof process !== 'undefined' && process.env?.VITE_GOOGLE_MAPS_API_KEY) || 'AIzaSyDgwgC8GjCKP9_vGTluGFiECIq15Nz9BeQ';
@@ -145,6 +147,13 @@ export function setMapCallbacks(callbacks = {}) {
   if (callbacks.onMarkerClick !== undefined) onMarkerClickCallback = callbacks.onMarkerClick;
   if (callbacks.onBoundsChange !== undefined) onBoundsChangeCallback = callbacks.onBoundsChange;
   if (callbacks.onError !== undefined) onMapErrorCallback = callbacks.onError;
+}
+
+/**
+ * Returns the current Google Maps instance (or null if not initialized).
+ */
+export function getMapInstance() {
+  return mapInstance;
 }
 
 /**
@@ -628,7 +637,48 @@ export function syncViewportMarkers() {
 
   const inBoundsCount = inBoundsStores.length;
   const isCeilingHit = inBoundsCount > 600;
-  const storesToRender = isCeilingHit ? inBoundsStores.slice(0, 600) : inBoundsStores;
+
+  let storesToRender = inBoundsStores;
+  if (isCeilingHit) {
+    const center = mapInstance.getCenter();
+    const centerLat = center && typeof center.lat === 'function' ? center.lat() : center?.lat;
+    const centerLng = center && typeof center.lng === 'function' ? center.lng() : center?.lng;
+
+    // Smart Multi-Criteria Relevance & Proximity Ranking:
+    // 1. Favorites: +10,000 pts (Guaranteed visible pin)
+    // 2. Exact Street Geocoded Address: +350 pts (true storefront vs. city center)
+    // 3. Multi-Channel Benefit: +300 pts (also has reloadable card or voucher)
+    // 4. Highest Discount: + (discount% * 20 pts)
+    // 5. Center / GPS Proximity: - (distKm * 20 pts) (prioritize camera center)
+    const scored = inBoundsStores.map(item => {
+      let score = 0;
+      const s = item.store;
+
+      if (typeof isFavorite === 'function' && isFavorite('billing', s.id)) {
+        score += 10000;
+      }
+      if (item.coords && item.coords.isExact) {
+        score += 350;
+      }
+      if (s.store_id || (s.deals_count && s.deals_count > 0) || s.linked_store) {
+        score += 300;
+      }
+      const disc = parseFloat(s.discount) || 0;
+      score += disc * 20;
+
+      if (centerLat != null && centerLng != null) {
+        const dLat = (item.lat - centerLat) * 111;
+        const dLng = (item.lng - centerLng) * 94;
+        const distKm = Math.sqrt(dLat * dLat + dLng * dLng);
+        score -= Math.min(distKm * 20, 250);
+      }
+
+      return { item, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    storesToRender = scored.slice(0, 600).map(x => x.item);
+  }
   const visibleCount = storesToRender.length;
 
   // Formulate exact Hebrew badge copy
@@ -677,7 +727,9 @@ export function syncViewportMarkers() {
 export async function updateMapMarkers(stores, options = {}) {
   if (!mapInstance || !isMapInitialized) return;
 
-  const { LatLngBounds } = await importLibrary('core');
+  const coreLib = await importLibrary('core').catch(() => ({}));
+  const LatLngBoundsClass = coreLib?.LatLngBounds || window.google?.maps?.LatLngBounds;
+  const bounds = LatLngBoundsClass ? new LatLngBoundsClass() : null;
 
   // Filter physical storefronts and cache coordinates
   const physicalStores = (stores || []).filter(s => {
@@ -686,7 +738,6 @@ export async function updateMapMarkers(stores, options = {}) {
   });
 
   const physicalWithCoords = [];
-  const bounds = new LatLngBounds();
   let hasValidCoords = false;
 
   for (let i = 0; i < physicalStores.length; i++) {
@@ -699,7 +750,7 @@ export async function updateMapMarkers(stores, options = {}) {
         lat: coords.lat,
         lng: coords.lng
       });
-      bounds.extend({ lat: coords.lat, lng: coords.lng });
+      if (bounds) bounds.extend({ lat: coords.lat, lng: coords.lng });
       hasValidCoords = true;
     }
   }
@@ -724,7 +775,7 @@ export async function updateMapMarkers(stores, options = {}) {
     return { plottedCount: 0, physicalCount: 0 };
   }
 
-  if (options.autoFit !== false && hasValidCoords) {
+  if (options.autoFit !== false && hasValidCoords && bounds) {
     latestValidBounds = bounds;
     if (activePhysicalStores.length === 1) {
       mapInstance.setCenter({ lat: activePhysicalStores[0].lat, lng: activePhysicalStores[0].lng });

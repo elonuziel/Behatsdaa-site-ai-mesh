@@ -9,7 +9,7 @@ import { loadStores, loadDeals, loadBilling, crossLinkAllDatasets, fetchWalletsI
 import { populateCardsFilter, updateCategoryChips, getFilteredStores, createStoreCardElement, createStoreTableRow, openStoreModal, closeStoreModal } from './js/stores.js';
 import { populateDealsTagsFilter, updateDealsCategoryChips, getFilteredDeals, createDealCardElement, createDealTableRow, openDealModal, closeDealModal } from './js/deals.js';
 import { populateBillingCitiesFilter, updateBillingCategoryChips, getFilteredBillingStores, createBillingCardElement, createBillingTableRow, openBillingModal, closeBillingModal } from './js/billing.js';
-import { initBillingMap, updateMapMarkers, centerOnUserLocation, toggleMapMaximize, isMapReady, recenterMapToAllMarkers, setMapCallbacks, flyToArea } from './js/map.js';
+import { initBillingMap, updateMapMarkers, centerOnUserLocation, toggleMapMaximize, isMapReady, recenterMapToAllMarkers, setMapCallbacks, flyToArea, getMapInstance } from './js/map.js';
 import { initChipsCarousel, updateAllChipsControls } from './js/chips-carousel.js';
 import { getFavoritesCount, toggleFavorite, isFavorite } from './js/favorites.js';
 
@@ -1922,6 +1922,13 @@ async function updateBillingMap(stores) {
           const { totalPhysicalCount, isNationwide, inBoundsCount, badgeText } = metrics;
           if (billingMapCountBadge && badgeText) {
             billingMapCountBadge.textContent = badgeText;
+            if (inBoundsCount > 600) {
+              billingMapCountBadge.title = 'לחץ להתמקדות וצפייה בכל העסקים ברחוב';
+              billingMapCountBadge.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+            } else {
+              billingMapCountBadge.title = '';
+              billingMapCountBadge.classList.remove('cursor-pointer', 'hover:opacity-80');
+            }
           }
           if (billingMapBoundsEmptyBanner) {
             if (!isNationwide && totalPhysicalCount > 0 && inBoundsCount === 0) {
@@ -1952,6 +1959,13 @@ async function updateBillingMap(stores) {
         const { totalPhysicalCount, isNationwide, inBoundsCount, badgeText } = metrics;
         if (billingMapCountBadge && badgeText) {
           billingMapCountBadge.textContent = badgeText;
+          if (inBoundsCount > 600) {
+            billingMapCountBadge.title = 'לחץ להתמקדות וצפייה בכל העסקים ברחוב';
+            billingMapCountBadge.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+          } else {
+            billingMapCountBadge.title = '';
+            billingMapCountBadge.classList.remove('cursor-pointer', 'hover:opacity-80');
+          }
         }
         if (billingMapBoundsEmptyBanner) {
           if (!isNationwide && totalPhysicalCount > 0 && inBoundsCount === 0) {
@@ -2063,6 +2077,17 @@ if (billingMapRecenterBtn) {
   billingMapRecenterBtn.addEventListener('click', () => {
     recenterMapToAllMarkers();
     if (billingMapBoundsEmptyBanner) billingMapBoundsEmptyBanner.classList.add('hidden');
+  });
+}
+
+// Quick auto-zoom on count badge when ceiling is reached to drill down
+if (billingMapCountBadge) {
+  billingMapCountBadge.addEventListener('click', () => {
+    const map = getMapInstance();
+    if (map && typeof map.getZoom === 'function' && typeof map.setZoom === 'function') {
+      const currentZoom = map.getZoom() || 12;
+      map.setZoom(Math.min(currentZoom + 2, 19));
+    }
   });
 }
 
