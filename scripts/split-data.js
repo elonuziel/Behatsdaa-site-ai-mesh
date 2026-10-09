@@ -550,6 +550,13 @@ fs.writeFileSync(path.join(publicDataDir, 'stores.json'), JSON.stringify({ metad
 fs.writeFileSync(path.join(publicDataDir, 'deals.json'), JSON.stringify({ metadata: dealsRaw.metadata, deals: allDeals }));
 fs.writeFileSync(path.join(publicDataDir, 'billing_stores.json'), JSON.stringify({ metadata: billingRaw.metadata, stores: allBilling }));
 
+// Copy search_lexicon.json to public/data if exists
+const lexiconFile = path.join(dataDir, 'search_lexicon.json');
+if (fs.existsSync(lexiconFile)) {
+  fs.copyFileSync(lexiconFile, path.join(publicDataDir, 'search_lexicon.json'));
+  console.log('  📖 Copied search_lexicon.json to /public/data/');
+}
+
 console.log('⚡ [6/6] Static API Generation Summary:');
 console.log(`  ✅ /public/data/search-index.json (${searchIndexSizeKB} KB < 400KB target achieved!)`);
 console.log(`  ✅ /public/data/billing-index.json (${billingIndexSizeKB} KB)`);
