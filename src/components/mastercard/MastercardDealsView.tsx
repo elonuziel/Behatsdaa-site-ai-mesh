@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearch } from '../../context/SearchContext';
 import { MastercardDeal, getDealValidityStatus } from '../../utils/mastercardValidity';
 import { MastercardHero } from './MastercardHero';
 import { MastercardDealCard } from './MastercardDealCard';
@@ -27,13 +28,11 @@ export const MastercardDealsView: React.FC<MastercardDealsViewProps> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters & Controls State
+  const { viewMode, setViewMode } = useSearch();
   const [search, setSearch] = useState('');
   const [selectedValidity, setSelectedValidity] = useState<string>(initialValidity);
   const [selectedCategory, setSelectedCategory] = useState<string>('הכל');
   const [sortBy, setSortBy] = useState<'discount-desc' | 'brand-asc' | 'min-spend-asc'>('discount-desc');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
-    return (localStorage.getItem('mc_view_mode') as 'grid' | 'table') || 'grid';
-  });
 
   useEffect(() => {
     if (initialValidity) {
@@ -92,7 +91,6 @@ export const MastercardDealsView: React.FC<MastercardDealsViewProps> = ({
 
   const handleSetViewMode = (mode: 'grid' | 'table') => {
     setViewMode(mode);
-    localStorage.setItem('mc_view_mode', mode);
   };
 
   const categories = useMemo(() => {

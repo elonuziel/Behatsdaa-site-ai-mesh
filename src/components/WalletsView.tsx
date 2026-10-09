@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { WalletsInfoData, WalletItem } from '../types/wallet';
-import { CreditCard, Shield, RefreshCw, AlertCircle, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
+import { ViewModeToggle } from './ViewModeToggle';
+import { useSearch } from '../context/SearchContext';
+import { CreditCard, Shield, RefreshCw, AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 
 export const WalletsView: React.FC = () => {
+  const { viewMode } = useSearch();
   const [data, setData] = useState<WalletsInfoData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedRule, setExpandedRule] = useState<string | null>(null);
@@ -89,57 +92,111 @@ export const WalletsView: React.FC = () => {
         </div>
       </div>
 
-      {/* 6 Digital Wallets Grid */}
+      {/* 6 Digital Wallets Section */}
       <div>
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
-          6 הארנקים הדיגיטליים של מועדון בהצדעה
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {data.wallets.map((wallet: WalletItem) => (
-            <div
-              key={wallet.id}
-              className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-xs hover:shadow-md transition flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className="font-bold text-xs px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-                    {wallet.discount}% הנחה בטעינה
-                  </span>
-                  <span className="text-xs text-slate-500">
-                    {wallet.stores_count} רשתות מכבדות
-                  </span>
-                </div>
-
-                <h4 className="font-bold text-slate-900 dark:text-white text-base mb-1.5">
-                  {wallet.short_name || wallet.name}
-                </h4>
-
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
-                  {wallet.description}
-                </p>
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 text-[11px] text-slate-500 space-y-1">
-                <div className="flex justify-between">
-                  <span>תקרה חודשית:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
-                    ₪{wallet.monthly_cap.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>תקרה רגעית:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
-                    ₪{wallet.instant_cap.toLocaleString()}
-                  </span>
-                </div>
-                <div className="pt-1 text-slate-400 truncate" title={wallet.category_scope}>
-                  תחום: {wallet.category_scope}
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+            6 הארנקים הדיגיטליים של מועדון בהצדעה
+          </h3>
+          <ViewModeToggle />
         </div>
+
+        {viewMode === 'table' ? (
+          <div className="bg-white dark:bg-slate-850 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="py-3 px-4">ארנק דיגיטלי</th>
+                    <th className="py-3 px-4">הנחה בטעינה</th>
+                    <th className="py-3 px-4">רשתות מכבדות</th>
+                    <th className="py-3 px-4">תקרה חודשית</th>
+                    <th className="py-3 px-4">תקרה רגעית</th>
+                    <th className="py-3 px-4">תחום ושימוש</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
+                  {data.wallets.map((wallet: WalletItem) => (
+                    <tr key={wallet.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition">
+                      <td className="py-3.5 px-4">
+                        <span className="font-bold text-slate-900 dark:text-white block text-sm">
+                          {wallet.short_name || wallet.name}
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          {wallet.description}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className="font-black text-xs px-2.5 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 inline-flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          {wallet.discount}% הנחה
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap font-medium text-slate-800 dark:text-slate-200">
+                        {wallet.stores_count} רשתות
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap font-bold text-slate-900 dark:text-white">
+                        ₪{wallet.monthly_cap.toLocaleString()}
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap font-bold text-slate-900 dark:text-white">
+                        ₪{wallet.instant_cap.toLocaleString()}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 max-w-xs truncate" title={wallet.category_scope}>
+                        {wallet.category_scope}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {data.wallets.map((wallet: WalletItem) => (
+              <div
+                key={wallet.id}
+                className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-xs hover:shadow-md transition flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <span className="font-bold text-xs px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                      {wallet.discount}% הנחה בטעינה
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {wallet.stores_count} רשתות מכבדות
+                    </span>
+                  </div>
+
+                  <h4 className="font-bold text-slate-900 dark:text-white text-base mb-1.5">
+                    {wallet.short_name || wallet.name}
+                  </h4>
+
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
+                    {wallet.description}
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 text-[11px] text-slate-500 space-y-1">
+                  <div className="flex justify-between">
+                    <span>תקרה חודשית:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      ₪{wallet.monthly_cap.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>תקרה רגעית:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      ₪{wallet.instant_cap.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="pt-1 text-slate-400 truncate" title={wallet.category_scope}>
+                    תחום: {wallet.category_scope}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* General Rules Accordion */}

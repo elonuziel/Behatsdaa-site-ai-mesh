@@ -6,13 +6,13 @@ import { useSearch } from '../../context/SearchContext';
 import { StoreCard } from '../StoreCard';
 import { DealCard } from '../DealCard';
 import { TableView } from '../TableView';
+import { DealsTableView } from '../DealsTableView';
+import { ViewModeToggle } from '../ViewModeToggle';
 import {
   Star,
   Store,
   Tag,
   Sparkles,
-  LayoutGrid,
-  Table as TableIcon,
   Trash2
 } from 'lucide-react';
 
@@ -30,7 +30,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
   onSelectDeal
 }) => {
   const { isFavorite, clearAllFavorites } = useFavorites();
-  const { subTab, viewMode, setViewMode } = useSearch();
+  const { subTab, viewMode } = useSearch();
 
   const savedStores = stores.filter(s => isFavorite('store', String(s.id)));
   const savedDeals = deals.filter(d => isFavorite('deal', String(d.id)));
@@ -80,32 +80,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
         </div>
 
         {/* View mode toggle */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700">
-          <button
-            onClick={() => setViewMode('grid')}
-            title="כרטיסים"
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-              viewMode === 'grid'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">כרטיסים</span>
-          </button>
-          <button
-            onClick={() => setViewMode('table')}
-            title="טבלה"
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-              viewMode === 'table'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <TableIcon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">טבלה</span>
-          </button>
-        </div>
+        <ViewModeToggle />
       </div>
 
       {totalSaved === 0 ? (
@@ -163,16 +138,24 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {savedDeals.map(deal => (
-                  <DealCard
-                    key={deal.id}
-                    deal={deal}
-                    onSelect={id => onSelectDeal(id)}
-                    onSelectStore={slug => onSelectStore(slug)}
-                  />
-                ))}
-              </div>
+              {viewMode === 'table' ? (
+                <DealsTableView
+                  deals={savedDeals}
+                  onSelectDeal={id => onSelectDeal(id)}
+                  onSelectStore={slug => onSelectStore(slug)}
+                />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {savedDeals.map(deal => (
+                    <DealCard
+                      key={deal.id}
+                      deal={deal}
+                      onSelect={id => onSelectDeal(id)}
+                      onSelectStore={slug => onSelectStore(slug)}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
           )}
         </div>

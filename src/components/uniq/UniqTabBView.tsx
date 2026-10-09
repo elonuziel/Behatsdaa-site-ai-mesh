@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { ViewModeToggle } from '../ViewModeToggle';
+import { useSearch } from '../../context/SearchContext';
 import {
   Gift,
   Search,
   ExternalLink,
-  Ticket
+  Ticket,
+  Sparkles
 } from 'lucide-react';
 
 interface UniqItemDeal {
@@ -24,6 +27,7 @@ interface UniqItemDeal {
 }
 
 export const UniqTabBView: React.FC = () => {
+  const { viewMode } = useSearch();
   const [deals, setDeals] = useState<UniqItemDeal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -111,23 +115,26 @@ export const UniqTabBView: React.FC = () => {
 
       {/* Filter & Search Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3.5 shadow-2xs">
-        <div className="relative flex-1 min-w-[220px] max-w-md">
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="חיפוש שובר, אטרקציה, מוצר או ספק..."
-            className="w-full pl-8 pr-9 py-2 text-xs md:text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl border border-transparent focus:border-purple-500 focus:outline-none transition"
-          />
-          <Search className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none" />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 absolute left-2.5 text-xs font-bold"
-            >
-              ✕
-            </button>
-          )}
+        <div className="flex items-center gap-2 flex-1 min-w-[220px] max-w-md">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="חיפוש שובר, אטרקציה, מוצר או ספק..."
+              className="w-full pl-8 pr-9 py-2 text-xs md:text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl border border-transparent focus:border-purple-500 focus:outline-none transition"
+            />
+            <Search className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none" />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 absolute left-2.5 text-xs font-bold"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <ViewModeToggle />
         </div>
 
         <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -164,9 +171,83 @@ export const UniqTabBView: React.FC = () => {
         </div>
       )}
 
-      {/* Grid of Deals */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredDeals.map(d => {
+      {/* Display: Table or Grid of Deals */}
+      {viewMode === 'table' ? (
+        <div className="bg-white dark:bg-slate-850 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-right text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th className="py-3 px-4">שובר / הטבה</th>
+                  <th className="py-3 px-4">קטגוריה</th>
+                  <th className="py-3 px-4">מחיר UNIQ</th>
+                  <th className="py-3 px-4">מחיר מקורי</th>
+                  <th className="py-3 px-4">הנחה</th>
+                  <th className="py-3 px-4 text-center">הזמנה ומימוש</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
+                {filteredDeals.map(d => (
+                  <tr key={d.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition">
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-slate-800 p-1 border border-purple-200/60 dark:border-slate-700 shrink-0 flex items-center justify-center overflow-hidden">
+                          {d.image_url && !imgErrors[d.id] ? (
+                            <img
+                              src={d.image_url}
+                              alt={d.name}
+                              loading="lazy"
+                              className="max-h-full max-w-full object-contain"
+                              onError={() => setImgErrors(prev => ({ ...prev, [d.id]: true }))}
+                            />
+                          ) : (
+                            <Ticket className="w-4 h-4 text-purple-400" />
+                          )}
+                        </div>
+                        <span className="font-bold text-slate-900 dark:text-white max-w-xs truncate" title={d.name}>
+                          {d.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-purple-600 dark:text-purple-400 font-medium whitespace-nowrap">
+                      {d.category || 'כללי'}
+                    </td>
+                    <td className="py-3 px-4 font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                      {d.price ? `₪${d.price}` : '—'}
+                    </td>
+                    <td className="py-3 px-4 text-slate-400 line-through whitespace-nowrap">
+                      {d.original_price ? `₪${d.original_price}` : '—'}
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded-lg bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 font-black text-xs inline-flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        {d.discount}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
+                      {d.direct_url ? (
+                        <a
+                          href={d.direct_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition"
+                        >
+                          <span>הזמן באתר</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredDeals.map(d => {
           const hasSavings = d.price && d.original_price && d.original_price > d.price;
           const savings = hasSavings ? d.original_price! - d.price! : 0;
           const isImgBroken = imgErrors[d.id];
@@ -274,6 +355,7 @@ export const UniqTabBView: React.FC = () => {
           );
         })}
       </div>
+      )}
     </div>
   );
 };

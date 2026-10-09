@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { UnifiedDeal } from '../../types/deal';
 import { DealCard } from '../DealCard';
+import { DealsTableView } from '../DealsTableView';
+import { ViewModeToggle } from '../ViewModeToggle';
+import { useSearch } from '../../context/SearchContext';
 import {
   Flame,
   Search,
@@ -18,6 +21,7 @@ export const MegaTopDealsView: React.FC<MegaTopDealsViewProps> = ({
   onSelectDeal,
   onSelectStore
 }) => {
+  const { viewMode } = useSearch();
   const [selectedClub, setSelectedClub] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [search, setSearch] = useState('');
@@ -134,24 +138,28 @@ export const MegaTopDealsView: React.FC<MegaTopDealsViewProps> = ({
           </button>
         </div>
 
-        {/* Search Input */}
-        <div className="relative max-w-xs w-full">
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="סינון לפי שם מבצע או ספק..."
-            className="w-full pl-8 pr-9 py-2 text-xs md:text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl border border-transparent focus:border-amber-500 focus:outline-none transition"
-          />
-          <Search className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none" />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 absolute left-2.5 text-xs font-bold"
-            >
-              ✕
-            </button>
-          )}
+        {/* Controls: Search Input & View Mode Toggle */}
+        <div className="flex items-center gap-2 max-w-md w-full justify-end">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="סינון לפי שם מבצע או ספק..."
+              className="w-full pl-8 pr-9 py-2 text-xs md:text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl border border-transparent focus:border-amber-500 focus:outline-none transition"
+            />
+            <Search className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none" />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 absolute left-2.5 text-xs font-bold"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <ViewModeToggle />
         </div>
       </div>
 
@@ -184,17 +192,25 @@ export const MegaTopDealsView: React.FC<MegaTopDealsViewProps> = ({
         </div>
       )}
 
-      {/* Deals Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredDeals.slice(0, visibleLimit).map(deal => (
-          <DealCard
-            key={deal.id}
-            deal={deal}
-            onSelect={id => onSelectDeal(id)}
-            onSelectStore={slug => onSelectStore(slug)}
-          />
-        ))}
-      </div>
+      {/* Deals Display: Table or Grid */}
+      {viewMode === 'table' ? (
+        <DealsTableView
+          deals={filteredDeals.slice(0, visibleLimit)}
+          onSelectDeal={id => onSelectDeal(id)}
+          onSelectStore={slug => onSelectStore(slug)}
+        />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredDeals.slice(0, visibleLimit).map(deal => (
+            <DealCard
+              key={deal.id}
+              deal={deal}
+              onSelect={id => onSelectDeal(id)}
+              onSelectStore={slug => onSelectStore(slug)}
+            />
+          ))}
+        </div>
+      )}
 
       {filteredDeals.length > visibleLimit && (
         <div className="mt-6 text-center">

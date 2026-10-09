@@ -56,7 +56,15 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [query, setQueryState] = useState('');
   const [primaryTab, setPrimaryTabState] = useState<PrimaryTab>('mega');
   const [subTab, setSubTabState] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewModeState] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem('app_view_mode');
+    return saved === 'table' ? 'table' : 'grid';
+  });
+
+  const setViewMode = (mode: ViewMode) => {
+    setViewModeState(mode);
+    localStorage.setItem('app_view_mode', mode);
+  };
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortOption>('discount');

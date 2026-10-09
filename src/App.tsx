@@ -4,6 +4,8 @@ import { CategoryChips } from './components/CategoryChips';
 import { StoreCard } from './components/StoreCard';
 import { DealCard } from './components/DealCard';
 import { TableView } from './components/TableView';
+import { DealsTableView } from './components/DealsTableView';
+import { ViewModeToggle } from './components/ViewModeToggle';
 import { BillingView } from './components/BillingView';
 import { MapView } from './components/MapView';
 import { WalletsView } from './components/WalletsView';
@@ -510,16 +512,24 @@ export const App: React.FC = () => {
                           </h2>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {filteredDeals.slice(0, visibleDealLimit).map(deal => (
-                            <DealCard
-                              key={deal.id}
-                              deal={deal}
-                              onSelect={id => setSelectedDealId(id)}
-                              onSelectStore={slug => setSelectedStoreSlug(slug)}
-                            />
-                          ))}
-                        </div>
+                        {viewMode === 'table' ? (
+                          <DealsTableView
+                            deals={filteredDeals.slice(0, visibleDealLimit)}
+                            onSelectDeal={id => setSelectedDealId(id)}
+                            onSelectStore={slug => setSelectedStoreSlug(slug)}
+                          />
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {filteredDeals.slice(0, visibleDealLimit).map(deal => (
+                              <DealCard
+                                key={deal.id}
+                                deal={deal}
+                                onSelect={id => setSelectedDealId(id)}
+                                onSelectStore={slug => setSelectedStoreSlug(slug)}
+                              />
+                            ))}
+                          </div>
+                        )}
 
                         {filteredDeals.length > visibleDealLimit && (
                           <div className="mt-6 text-center">
@@ -722,14 +732,18 @@ export const App: React.FC = () => {
                     </span>
                   </div>
 
-                  <select
-                    value={sortBy}
-                    onChange={e => setSortBy(e.target.value as any)}
-                    className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer text-xs"
-                  >
-                    <option value="discount">הנחה מרבית % (גבוה לנמוך)</option>
-                    <option value="name">שם א-ת</option>
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <ViewModeToggle />
+
+                    <select
+                      value={sortBy}
+                      onChange={e => setSortBy(e.target.value as any)}
+                      className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer text-xs"
+                    >
+                      <option value="discount">הנחה מרבית % (גבוה לנמוך)</option>
+                      <option value="name">שם א-ת</option>
+                    </select>
+                  </div>
                 </div>
 
                 {filteredBehDeals.length === 0 ? (
@@ -750,6 +764,12 @@ export const App: React.FC = () => {
                       איפוס סינונים
                     </button>
                   </div>
+                ) : viewMode === 'table' ? (
+                  <DealsTableView
+                    deals={filteredBehDeals.slice(0, visibleDealLimit)}
+                    onSelectDeal={id => setSelectedDealId(id)}
+                    onSelectStore={slug => setSelectedStoreSlug(slug)}
+                  />
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {filteredBehDeals.slice(0, visibleDealLimit).map(deal => (

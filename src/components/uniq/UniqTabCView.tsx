@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { ViewModeToggle } from '../ViewModeToggle';
+import { useSearch } from '../../context/SearchContext';
 import {
   Tag,
   Search,
   ExternalLink,
-  ShoppingBag
+  ShoppingBag,
+  Sparkles
 } from 'lucide-react';
 
 interface UniqBrandDiscount {
@@ -25,6 +28,7 @@ interface UniqBrandDiscount {
 }
 
 export const UniqTabCView: React.FC = () => {
+  const { viewMode } = useSearch();
   const [brands, setBrands] = useState<UniqBrandDiscount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -112,23 +116,26 @@ export const UniqTabCView: React.FC = () => {
 
       {/* Filter & Search Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3.5 shadow-2xs">
-        <div className="relative flex-1 min-w-[220px] max-w-md">
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="חיפוש מותג או רשת (למשל סנו, קרביץ, מגה ספורט)..."
-            className="w-full pl-8 pr-9 py-2 text-xs md:text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl border border-transparent focus:border-purple-500 focus:outline-none transition"
-          />
-          <Search className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none" />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 absolute left-2.5 text-xs font-bold"
-            >
-              ✕
-            </button>
-          )}
+        <div className="flex items-center gap-2 flex-1 min-w-[220px] max-w-md">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="חיפוש מותג או רשת (למשל סנו, קרביץ, מגה ספורט)..."
+              className="w-full pl-8 pr-9 py-2 text-xs md:text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl border border-transparent focus:border-purple-500 focus:outline-none transition"
+            />
+            <Search className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none" />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 absolute left-2.5 text-xs font-bold"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <ViewModeToggle />
         </div>
 
         <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -165,86 +172,156 @@ export const UniqTabCView: React.FC = () => {
         </div>
       )}
 
-      {/* Grid of Brand Discounts */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredBrands.map(b => {
-          const isImgBroken = imgErrors[b.id];
-          return (
-            <div
-              key={b.id}
-              className="group bg-white dark:bg-slate-850 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-2xs hover:shadow-md hover:border-purple-500/50 dark:hover:border-purple-500/50 transition-all flex flex-col justify-between"
-            >
-              <div>
-                {/* Brand Image Container */}
-                <div className="w-full h-40 rounded-xl bg-slate-50 dark:bg-slate-900/60 p-2 mb-3 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 relative">
-                  {b.image_url && !isImgBroken ? (
-                    <img
-                      src={b.image_url}
-                      alt={b.name}
-                      loading="lazy"
-                      decoding="async"
-                      referrerPolicy="no-referrer"
-                      onError={() => setImgErrors(prev => ({ ...prev, [b.id]: true }))}
-                      className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-purple-300 dark:text-purple-600">
-                      <ShoppingBag className="w-12 h-12" />
-                    </div>
-                  )}
+      {/* Display: Table or Grid */}
+      {viewMode === 'table' ? (
+        <div className="bg-white dark:bg-slate-850 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-right text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th className="py-3 px-4">מותג / רשת</th>
+                  <th className="py-3 px-4">קטגוריה</th>
+                  <th className="py-3 px-4">הנחה</th>
+                  <th className="py-3 px-4">תנאי הטבה וסייגים</th>
+                  <th className="py-3 px-4 text-center">פרטים ומימוש</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
+                {filteredBrands.map(b => (
+                  <tr key={b.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition">
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-slate-800 p-1 border border-purple-200/60 dark:border-slate-700 shrink-0 flex items-center justify-center overflow-hidden">
+                          {b.image_url && !imgErrors[b.id] ? (
+                            <img
+                              src={b.image_url}
+                              alt={b.name}
+                              loading="lazy"
+                              className="max-h-full max-w-full object-contain"
+                            />
+                          ) : (
+                            <ShoppingBag className="w-4 h-4 text-purple-400" />
+                          )}
+                        </div>
+                        <span className="font-bold text-slate-900 dark:text-white">
+                          {b.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-purple-600 dark:text-purple-400 font-medium whitespace-nowrap">
+                      {b.category || 'הנחות מותגים'}
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span className="px-2.5 py-0.5 rounded-lg bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-black text-xs inline-flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                        {b.discount || 'הטבה'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-500 dark:text-slate-400 max-w-sm text-[11px]">
+                      {b.terms || 'בכפוף לתקנון מועדון UNIQ'}
+                    </td>
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
+                      {b.direct_url ? (
+                        <a
+                          href={b.direct_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/50 transition"
+                        >
+                          <span>לאתר UNIQ</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredBrands.map(b => {
+            const isImgBroken = imgErrors[b.id];
+            return (
+              <div
+                key={b.id}
+                className="group bg-white dark:bg-slate-850 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-2xs hover:shadow-md hover:border-purple-500/50 dark:hover:border-purple-500/50 transition-all flex flex-col justify-between"
+              >
+                <div>
+                  {/* Brand Image Container */}
+                  <div className="w-full h-40 rounded-xl bg-slate-50 dark:bg-slate-900/60 p-2 mb-3 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 relative">
+                    {b.image_url && !isImgBroken ? (
+                      <img
+                        src={b.image_url}
+                        alt={b.name}
+                        loading="lazy"
+                        decoding="async"
+                        referrerPolicy="no-referrer"
+                        onError={() => setImgErrors(prev => ({ ...prev, [b.id]: true }))}
+                        className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-purple-300 dark:text-purple-600">
+                        <ShoppingBag className="w-12 h-12" />
+                      </div>
+                    )}
 
-                  {/* Discount Badge */}
-                  {b.discount && (
-                    <span className="absolute top-2 right-2 font-black text-xs px-2.5 py-0.5 rounded-lg bg-purple-600 text-white shadow-xs">
-                      {b.discount.split('(')[0].trim()}
+                    {/* Discount Badge */}
+                    {b.discount && (
+                      <span className="absolute top-2 right-2 font-black text-xs px-2.5 py-0.5 rounded-lg bg-purple-600 text-white shadow-xs">
+                        {b.discount.split('(')[0].trim()}
+                      </span>
+                    )}
+
+                    <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                      UNIQ
                     </span>
-                  )}
+                  </div>
 
-                  <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                    UNIQ
+                  {/* Category */}
+                  <span className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold block mb-1">
+                    {b.category || 'הנחות מותגים'}
                   </span>
+
+                  {/* Name */}
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white leading-snug mb-2 line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition" title={b.name}>
+                    {b.name}
+                  </h3>
+
+                  {/* Terms */}
+                  {b.terms && (
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mb-3">
+                      {b.terms}
+                    </p>
+                  )}
                 </div>
 
-                {/* Category */}
-                <span className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold block mb-1">
-                  {b.category || 'הנחות מותגים'}
-                </span>
-
-                {/* Name */}
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white leading-snug mb-2 line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition" title={b.name}>
-                  {b.name}
-                </h3>
-
-                {/* Terms */}
-                {b.terms && (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mb-3">
-                    {b.terms}
-                  </p>
-                )}
+                {/* Action Button */}
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                  {b.direct_url ? (
+                    <a
+                      href={b.direct_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 text-xs font-bold hover:bg-purple-100 dark:hover:bg-purple-900/60 transition cursor-pointer"
+                    >
+                      <span>קבלת ההטבה באתר UNIQ</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  ) : (
+                    <div className="text-center text-xs text-purple-600 dark:text-purple-400 font-bold py-1">
+                      הטבה בלעדית לחברי מועדון
+                    </div>
+                  )}
+                </div>
               </div>
-
-              {/* Action Button */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                {b.direct_url ? (
-                  <a
-                    href={b.direct_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 text-xs font-bold hover:bg-purple-100 dark:hover:bg-purple-900/60 transition cursor-pointer"
-                  >
-                    <span>קבלת ההטבה באתר UNIQ</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                ) : (
-                  <div className="text-center text-xs text-purple-600 dark:text-purple-400 font-bold py-1">
-                    הטבה בלעדית לחברי מועדון
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
