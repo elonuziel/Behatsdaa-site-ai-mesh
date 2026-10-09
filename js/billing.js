@@ -3,9 +3,10 @@
  */
 
 import { state } from './state.js';
-import { normalizeHebrew, formatILS, formatFullAddress } from './utils.js';
+import { normalizeHebrew, formatILS, formatFullAddress, highlightText } from './utils.js';
 import { searchBilling } from './search.js';
 import { updateChipsControls, scrollActiveChipIntoView } from './chips-carousel.js';
+import { isFavorite, toggleFavorite } from './favorites.js';
 
 export function populateBillingCitiesFilter(billingCitySelect) {
   if (!billingCitySelect) return;
@@ -88,6 +89,10 @@ export function updateBillingCategoryChips(billingCategoryChipsContainer) {
 
 export function getFilteredBillingStores() {
   let result = state.allBillingStores;
+
+  if (state.showFavoritesOnly) {
+    result = result.filter(s => isFavorite('billing', s.id));
+  }
 
   if (state.currentBillingCity !== 'all') {
     result = result.filter(s => s.city === state.currentBillingCity);
@@ -279,9 +284,17 @@ export function createBillingCardElement(store) {
     />
   ` : `<i data-lucide="${catIcon}" class="w-6 h-6 text-purple-400"></i>`;
 
+  const fav = isFavorite('billing', store.id);
+  const favBtnHtml = `
+    <button type="button" data-action="toggle-favorite" data-item-type="billing" data-item-id="${store.id}" title="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" aria-label="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" class="favorite-toggle-btn absolute top-3 left-3 p-1.5 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-700 hover:scale-110 active:scale-95 transition-all z-10 shadow-xs">
+      <i data-lucide="star" class="w-4 h-4 ${fav ? 'fill-amber-400 text-amber-500' : 'text-slate-400 dark:text-slate-500'}"></i>
+    </button>
+  `;
+
   card.innerHTML = `
+    ${favBtnHtml}
     <div>
-      <div class="flex items-start justify-between gap-3 mb-3">
+      <div class="flex items-start justify-between gap-3 mb-3 pl-8">
         <div class="w-12 h-12 rounded-xl bg-purple-50 dark:bg-slate-700 p-1.5 border border-purple-100 dark:border-slate-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
           ${logoHtml}
         </div>
@@ -292,7 +305,7 @@ export function createBillingCardElement(store) {
       </div>
 
       <h3 class="font-bold text-base text-slate-900 dark:text-white leading-tight mb-1 truncate" title="${store.name}">
-        ${store.name}
+        ${(state.billingSearchQuery || state.searchQuery) ? highlightText(store.name, state.billingSearchQuery || state.searchQuery) : store.name}
       </h3>
 
       <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mb-2 truncate">
@@ -362,14 +375,22 @@ export function createBillingTableRow(store) {
     `);
   }
 
+  const fav = isFavorite('billing', store.id);
+  const favBtnHtml = `
+    <button type="button" data-action="toggle-favorite" data-item-type="billing" data-item-id="${store.id}" title="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" aria-label="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" class="favorite-toggle-btn p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+      <i data-lucide="star" class="w-4 h-4 ${fav ? 'fill-amber-400 text-amber-500' : 'text-slate-400 dark:text-slate-500'}"></i>
+    </button>
+  `;
+
   tr.innerHTML = `
     <td class="py-3 px-4">
       <div class="flex items-center gap-3">
+        ${favBtnHtml}
         <div class="w-10 h-10 rounded-lg bg-purple-50 dark:bg-slate-700 p-1 flex-shrink-0 flex items-center justify-center overflow-hidden border border-purple-100 dark:border-slate-600">
           ${logoHtml}
         </div>
         <div class="min-w-0">
-          <div class="font-bold text-slate-900 dark:text-white truncate max-w-xs md:max-w-sm" title="${store.name}">${store.name}</div>
+          <div class="font-bold text-slate-900 dark:text-white truncate max-w-xs md:max-w-sm" title="${store.name}">${(state.billingSearchQuery || state.searchQuery) ? highlightText(store.name, state.billingSearchQuery || state.searchQuery) : store.name}</div>
           <div class="text-xs text-slate-500 dark:text-slate-400 truncate max-w-xs">${fullAddr}</div>
         </div>
       </div>

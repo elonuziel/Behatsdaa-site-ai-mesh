@@ -3,10 +3,12 @@
  */
 
 import { state } from './state.js';
-import { normalizeHebrew } from './utils.js';
+import { normalizeHebrew, highlightText } from './utils.js';
 import { searchStores } from './search.js';
 import { fetchStoreDetail } from './data.js';
 import { updateChipsControls, scrollActiveChipIntoView } from './chips-carousel.js';
+import { isFavorite, toggleFavorite } from './favorites.js';
+import { renderPaymentAdvisorHtml } from './payment-advisor.js';
 
 export function populateCardsFilter(cardFilterSelect) {
   if (!cardFilterSelect) return;
@@ -93,6 +95,10 @@ export function updateCategoryChips(categoryChipsContainer) {
 
 export function getFilteredStores() {
   let result = state.allStores;
+
+  if (state.showFavoritesOnly) {
+    result = result.filter(s => isFavorite('store', s.id));
+  }
 
   if (state.currentCard !== 'all') {
     result = result.filter(s =>
@@ -223,9 +229,20 @@ export function createStoreCardElement(store) {
     </div>
   ` : '';
 
+  const fav = isFavorite('store', store.id);
+  const favBtnHtml = `
+    <button type="button" data-action="toggle-favorite" data-item-type="store" data-item-id="${store.id}" title="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" aria-label="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" class="favorite-toggle-btn absolute top-3 left-3 p-1.5 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-700 hover:scale-110 active:scale-95 transition-all z-10 shadow-xs">
+      <i data-lucide="star" class="w-4 h-4 ${fav ? 'fill-amber-400 text-amber-500' : 'text-slate-400 dark:text-slate-500'}"></i>
+    </button>
+  `;
+
+  const query = state.searchQuery;
+  const titleHighlighted = query ? highlightText(store.name, query) : store.name;
+
   card.innerHTML = `
+    ${favBtnHtml}
     <div>
-      <div class="flex items-start justify-between gap-3 mb-3">
+      <div class="flex items-start justify-between gap-3 mb-3 pl-8">
         <div class="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-700 p-1.5 border border-slate-100 dark:border-slate-600 flex items-center justify-center flex-shrink-0">
           ${store.logo ? `<img src="${store.logo}" alt="${store.name}" class="max-h-full max-w-full object-contain" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🛍️</text></svg>'"/>` : `<i data-lucide="shopping-bag" class="w-6 h-6 text-slate-400"></i>`}
         </div>
@@ -238,7 +255,7 @@ export function createStoreCardElement(store) {
       </div>
 
       <h3 class="font-bold text-base text-slate-900 dark:text-white leading-tight mb-2 truncate" title="${store.name}">
-        ${store.name}
+        ${titleHighlighted}
       </h3>
 
       <div class="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-2.5 mb-2">
@@ -294,12 +311,23 @@ export function createStoreTableRow(store) {
     </span>
   ` : '';
 
+  const fav = isFavorite('store', store.id);
+  const favBtnHtml = `
+    <button type="button" data-action="toggle-favorite" data-item-type="store" data-item-id="${store.id}" title="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" aria-label="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" class="favorite-toggle-btn p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+      <i data-lucide="star" class="w-4 h-4 ${fav ? 'fill-amber-400 text-amber-500' : 'text-slate-400 dark:text-slate-500'}"></i>
+    </button>
+  `;
+
+  const query = state.searchQuery;
+  const titleHighlighted = query ? highlightText(store.name, query) : store.name;
+
   tr.innerHTML = `
     <td class="py-3 px-4 flex items-center gap-3">
+      ${favBtnHtml}
       <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-700 p-1 border border-slate-200 dark:border-slate-600 flex items-center justify-center flex-shrink-0">
         ${store.logo ? `<img src="${store.logo}" alt="" class="max-h-full max-w-full object-contain" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🛍️</text></svg>'"/>` : `<i data-lucide="shopping-bag" class="w-4 h-4 text-slate-400"></i>`}
       </div>
-      <div class="font-bold text-slate-900 dark:text-white">${store.name}</div>
+      <div class="font-bold text-slate-900 dark:text-white">${titleHighlighted}</div>
     </td>
     <td class="py-3 px-4 text-slate-600 dark:text-slate-300 text-xs">${store.category || 'כללי'}</td>
     <td class="py-3 px-4 text-center">
@@ -363,6 +391,21 @@ function populateStoreModal(store, elements, callbacks) {
     }
   } else if (elements.modalLinkedBillingBanner) {
     elements.modalLinkedBillingBanner.classList.add('hidden');
+  }
+
+  const advisorContainer = elements.modalSavingsAdvisor || document.getElementById('modal-savings-advisor');
+  if (elements.modalPaymentAdvisorContainer) {
+    const html = renderPaymentAdvisorHtml(store);
+    elements.modalPaymentAdvisorContainer.innerHTML = html;
+    const hasMultipleChannels = (store.cards?.length > 0 && (store.linked_deals?.length > 0 || store.linkedDeals?.length > 0 || store.linked_billing || store.linkedBillingStore)) ||
+      ((store.linked_deals?.length > 0 || store.linkedDeals?.length > 0) && (store.linked_billing || store.linkedBillingStore));
+    if (advisorContainer) {
+      if (hasMultipleChannels) {
+        advisorContainer.classList.remove('hidden');
+      } else {
+        advisorContainer.classList.add('hidden');
+      }
+    }
   }
 
   elements.modalCardsList.innerHTML = (store.cards || []).map(c => `

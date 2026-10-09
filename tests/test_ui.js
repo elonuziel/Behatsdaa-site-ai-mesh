@@ -1386,12 +1386,78 @@ async function runTests() {
   }
   console.log('  -> PASS (Quick city area chips navigation, camera centering, and bounds sync validated)');
 
-  console.log('[Test 27] Checking for console errors...');
+  // --- Test 28: Favorites UI Toggle, Badge Count & Filtering ---
+  console.log('[Test 28] Testing Favorites UI Toggle, Badge Count & Filtering...');
+  {
+    // 1. Switch to stores tab
+    document.getElementById('tab-stores-btn').click();
+    await new Promise(r => setTimeout(r, 60));
+
+    const storesCardsView = document.getElementById('cards-view');
+    const firstStoreCard = storesCardsView.querySelector('.store-card');
+    assert.ok(firstStoreCard, 'Store card should exist in stores tab');
+
+    const favStoreBtn = firstStoreCard.querySelector('[data-action="toggle-favorite"]');
+    assert.ok(favStoreBtn, 'Favorite button should exist on store card');
+
+    // Click favorite button on first store
+    favStoreBtn.click();
+    await new Promise(r => setTimeout(r, 50));
+
+    const favBadge = document.getElementById('favorites-badge-count');
+    assert.ok(favBadge, 'favorites-badge-count should exist');
+    assert.strictEqual(favBadge.textContent.trim(), '1', 'Badge count should show 1 after favoriting store');
+    assert.ok(!favBadge.classList.contains('hidden'), 'Badge should not be hidden when count > 0');
+
+    // Star icon should have fill class
+    const starIcon = favStoreBtn.querySelector('i');
+    assert.ok(starIcon.classList.contains('fill-amber-400'), 'Star icon should be filled when favorited');
+
+    // 2. Toggle Favorites-Only filter
+    const favoritesFilterBtn = document.getElementById('favorites-filter-toggle-btn') || document.getElementById('favorites-filter-btn');
+    assert.ok(favoritesFilterBtn, 'favorites-filter-toggle-btn should exist');
+
+    favoritesFilterBtn.click();
+    await new Promise(r => setTimeout(r, 60));
+
+    // Verify only the favorited store card is shown
+    const visibleCards = storesCardsView.querySelectorAll('.store-card');
+    assert.strictEqual(visibleCards.length, 1, 'Only 1 store card should be visible in favorites-only mode');
+    assert.strictEqual(visibleCards[0].dataset.storeId, firstStoreCard.dataset.storeId, 'Visible card must be the favorited store');
+
+    // Turn off favorites filter
+    favoritesFilterBtn.click();
+    await new Promise(r => setTimeout(r, 60));
+    assert.ok(storesCardsView.querySelectorAll('.store-card').length > 1, 'All store cards should return after toggling off favorites-only');
+
+    // 3. Switch to Deals tab & test deal favoriting
+    document.getElementById('tab-deals-btn').click();
+    await new Promise(r => setTimeout(r, 60));
+
+    const dealsCardsView = document.getElementById('deals-grid');
+    const firstDealCard = dealsCardsView.querySelector('.deal-card');
+    assert.ok(firstDealCard, 'Deal card should exist');
+
+    const favDealBtn = firstDealCard.querySelector('[data-action="toggle-favorite"]');
+    assert.ok(favDealBtn, 'Favorite button should exist on deal card');
+
+    favDealBtn.click();
+    await new Promise(r => setTimeout(r, 50));
+    assert.strictEqual(favBadge.textContent.trim(), '2', 'Badge count should show 2 after favoriting deal');
+
+    // Unfavorite the deal
+    favDealBtn.click();
+    await new Promise(r => setTimeout(r, 50));
+    assert.strictEqual(favBadge.textContent.trim(), '1', 'Badge count should drop back to 1 after unfavoriting deal');
+  }
+  console.log('  -> PASS (Favorites UI toggle, badge count, card stars, and favorites-only filtering validated)');
+
+  console.log('[Test 29] Checking for console errors...');
   assert.strictEqual(consoleErrors.length, 0, `Expected 0 console errors, but found: ${consoleErrors.join(', ')}`);
   console.log('  -> PASS (Zero errors during entire session)');
 
   console.log('\n====================================================');
-  console.log('   ALL 27 UI & DOM INTEGRATION TESTS PASSED!       ');
+  console.log('   ALL 29 UI & DOM INTEGRATION TESTS PASSED!       ');
   console.log('====================================================\n');
   process.exit(0);
 }

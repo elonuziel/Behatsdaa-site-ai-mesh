@@ -80,3 +80,35 @@ export function formatFullAddress(storeOrAddress, city) {
   return "Online / כל הארץ";
 }
 
+export function highlightHebrew(text, query) {
+  if (!text) return '';
+  const escapedText = String(text)
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  if (!query) return escapedText;
+
+  const rawTerms = String(query)
+    .toLowerCase()
+    .replace(/[^\w\u0590-\u05FF\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (rawTerms.length === 0) return escapedText;
+
+  const parts = escapedText.split(/(&[a-zA-Z0-9#]+;)/g);
+  const escapedTerms = rawTerms.map(t => t.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
+  const regex = new RegExp(`(${escapedTerms.join('|')})`, 'gi');
+
+  return parts.map(part => {
+    if (part.startsWith('&') && part.endsWith(';')) {
+      return part;
+    }
+    return part.replace(regex, '<mark class="search-highlight bg-yellow-200 dark:bg-yellow-800/60 text-inherit px-0.5 rounded-sm">$1</mark>');
+  }).join('');
+}
+
+export function highlightText(text, query) {
+  return highlightHebrew(text, query);
+}
+
+

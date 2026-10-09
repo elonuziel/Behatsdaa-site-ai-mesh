@@ -61,6 +61,9 @@ export const state = {
 
   // Billing Tab Visibility (Hidden by default for max performance; session-scoped)
   isBillingUnhidden: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('behatsdaa_billing_unhidden') === 'true') || false,
+
+  // Favorites Filter
+  showFavoritesOnly: false,
 };
 
 if (typeof localStorage !== 'undefined') {

@@ -134,6 +134,21 @@ export function initStoresSearch(stores) {
   return storesMiniSearch;
 }
 
+export function suggestStores(query, options = {}) {
+  if (!query || !storesMiniSearch) return [];
+  const clean = normalizeHebrew(query).trim();
+  if (!clean) return [];
+
+  try {
+    return storesMiniSearch.autoSuggest(clean, {
+      fuzzy: (term) => (term.length > 3 ? 0.2 : false)
+    });
+  } catch (err) {
+    console.warn('MiniSearch stores suggest error:', err);
+    return [];
+  }
+}
+
 export function searchStores(query, options = {}) {
   if (!query || !storesMiniSearch) return null;
   const clean = normalizeHebrew(query).trim();
@@ -192,6 +207,21 @@ export function initDealsSearch(deals) {
   return dealsMiniSearch;
 }
 
+export function suggestDeals(query, options = {}) {
+  if (!query || !dealsMiniSearch) return [];
+  const clean = normalizeHebrew(query).trim();
+  if (!clean) return [];
+
+  try {
+    return dealsMiniSearch.autoSuggest(clean, {
+      fuzzy: (term) => (term.length > 3 ? 0.2 : false)
+    });
+  } catch (err) {
+    console.warn('MiniSearch deals suggest error:', err);
+    return [];
+  }
+}
+
 export function searchDeals(query, options = {}) {
   if (!query || !dealsMiniSearch) return null;
   const clean = normalizeHebrew(query).trim();
@@ -247,6 +277,21 @@ export function initBillingSearch(billingStores) {
 
   billingMiniSearch.addAll(docs);
   return billingMiniSearch;
+}
+
+export function suggestBilling(query, options = {}) {
+  if (!query || !billingMiniSearch) return [];
+  const clean = normalizeHebrew(query).trim();
+  if (!clean) return [];
+
+  try {
+    return billingMiniSearch.autoSuggest(clean, {
+      fuzzy: (term) => (term.length > 3 ? 0.2 : false)
+    });
+  } catch (err) {
+    console.warn('MiniSearch billing suggest error:', err);
+    return [];
+  }
 }
 
 export function searchBilling(query, options = {}) {

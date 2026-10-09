@@ -11,6 +11,7 @@ import { populateDealsTagsFilter, updateDealsCategoryChips, getFilteredDeals, cr
 import { populateBillingCitiesFilter, updateBillingCategoryChips, getFilteredBillingStores, createBillingCardElement, createBillingTableRow, openBillingModal, closeBillingModal } from './js/billing.js';
 import { initBillingMap, updateMapMarkers, centerOnUserLocation, toggleMapMaximize, isMapReady, recenterMapToAllMarkers, setMapCallbacks, flyToArea } from './js/map.js';
 import { initChipsCarousel, updateAllChipsControls } from './js/chips-carousel.js';
+import { getFavoritesCount, toggleFavorite, isFavorite } from './js/favorites.js';
 
 // DOM Elements - Navigation Tabs
 const tabAllBtn = document.getElementById('tab-all-btn');
@@ -87,7 +88,7 @@ const sortSelect = document.getElementById('sort-select');
 const categoryChipsContainer = document.getElementById('category-chips-container');
 const matchingCountEl = document.getElementById('matching-count');
 const totalCountEl = document.getElementById('total-count');
-const activeFilterBadge = document.getElementById('active-filter-badge');
+const activeFilterBadge = document.getElementById('stores-active-filters-bar') || document.getElementById('active-filter-badge');
 const activeFilterText = document.getElementById('active-filter-text');
 const resetFiltersBtn = document.getElementById('reset-filters-btn');
 const lastUpdatedDateEl = document.getElementById('last-updated-date');
@@ -120,6 +121,8 @@ const storeModalElements = {
   modalLinkedBillingBanner: document.getElementById('modal-linked-billing-banner'),
   modalLinkedBillingTitle: document.getElementById('modal-linked-billing-title'),
   modalViewBillingBtn: document.getElementById('modal-view-billing-btn'),
+  modalPaymentAdvisorContainer: document.getElementById('modal-payment-advisor-container'),
+  modalSavingsAdvisor: document.getElementById('modal-savings-advisor'),
 };
 
 // DOM Elements - Wallets Terms & Caps Guide Modal
@@ -509,15 +512,39 @@ function renderStores() {
   const filtered = getFilteredStores();
   matchingCountEl.textContent = filtered.length;
 
-  const hasFilter = state.searchQuery || state.currentCard !== 'all' || state.currentCategory !== 'all' || (state.searchQuery && state.storesSearchInDesc);
+  const hasFilter = state.searchQuery || state.currentCard !== 'all' || state.currentCategory !== 'all' || state.showFavoritesOnly;
   activeFilterBadge.classList.toggle('hidden', !hasFilter);
 
   if (hasFilter) {
-    const parts = [];
-    if (state.searchQuery) parts.push(`"${state.searchQuery}"${state.storesSearchInDesc ? ' (כולל תיאור)' : ''}`);
-    if (state.currentCard !== 'all') parts.push(state.currentCard);
-    if (state.currentCategory !== 'all') parts.push(state.currentCategory);
-    activeFilterText.textContent = parts.join(' • ');
+    let html = '';
+    if (state.searchQuery) {
+      html += `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 text-xs font-semibold mr-1" data-filter-type="search">
+        <span class="truncate max-w-[140px]">"${state.searchQuery}"${state.storesSearchInDesc ? ' (כולל תיאור)' : ''}</span>
+        <button type="button" data-action="remove-filter" data-filter-type="search" class="hover:text-blue-600 dark:hover:text-blue-400 p-0.5 rounded-sm" title="הסר סינון חיפוש"><i data-lucide="x" class="w-3 h-3"></i></button>
+      </span>`;
+    }
+    if (state.currentCard !== 'all') {
+      html += `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 text-xs font-semibold mr-1" data-filter-type="card">
+        <span class="truncate max-w-[120px]">${state.currentCard}</span>
+        <button type="button" data-action="remove-filter" data-filter-type="card" class="hover:text-blue-600 dark:hover:text-blue-400 p-0.5 rounded-sm" title="הסר סינון כרטיס"><i data-lucide="x" class="w-3 h-3"></i></button>
+      </span>`;
+    }
+    if (state.currentCategory !== 'all') {
+      html += `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 text-xs font-semibold mr-1" data-filter-type="category">
+        <span class="truncate max-w-[120px]">${state.currentCategory}</span>
+        <button type="button" data-action="remove-filter" data-filter-type="category" class="hover:text-blue-600 dark:hover:text-blue-400 p-0.5 rounded-sm" title="הסר סינון קטגוריה"><i data-lucide="x" class="w-3 h-3"></i></button>
+      </span>`;
+    }
+    if (state.showFavoritesOnly) {
+      html += `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 text-xs font-semibold mr-1" data-filter-type="favorite">
+        <span>⭐ מועדפים</span>
+        <button type="button" data-action="remove-filter" data-filter-type="favorite" class="hover:text-amber-600 dark:hover:text-amber-400 p-0.5 rounded-sm" title="הסר סינון מועדפים"><i data-lucide="x" class="w-3 h-3"></i></button>
+      </span>`;
+    }
+    activeFilterText.innerHTML = html;
+    if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons({ root: activeFilterText });
+  } else {
+    activeFilterText.innerHTML = '';
   }
 
   if (filtered.length === 0) {
@@ -562,12 +589,42 @@ function renderDeals() {
   activeDealsFilterBadge.classList.toggle('hidden', !hasFilter);
 
   if (hasFilter) {
-    const parts = [];
-    if (state.dealsSearchQuery) parts.push(`"${state.dealsSearchQuery}"${state.dealsSearchInDesc ? ' (כולל תיאור)' : ''}`);
-    if (state.currentDealTag !== 'all') parts.push(state.currentDealTag);
-    if (state.currentDealCategory !== 'all') parts.push(state.currentDealCategory);
-    if (state.currentDealMaxPrice !== 'all') parts.push(state.currentDealMaxPrice === 'over-500' ? 'מעל 500 ₪' : `עד ${state.currentDealMaxPrice} ₪`);
-    activeDealsFilterText.textContent = parts.join(' • ');
+    let html = '';
+    if (state.dealsSearchQuery) {
+      html += `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 text-xs font-semibold mr-1" data-filter-type="search">
+        <span class="truncate max-w-[140px]">"${state.dealsSearchQuery}"${state.dealsSearchInDesc ? ' (כולל תיאור)' : ''}</span>
+        <button type="button" data-action="remove-filter" data-filter-type="search" class="hover:text-emerald-600 dark:hover:text-emerald-400 p-0.5 rounded-sm" title="הסר סינון חיפוש"><i data-lucide="x" class="w-3 h-3"></i></button>
+      </span>`;
+    }
+    if (state.currentDealTag !== 'all') {
+      html += `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 text-xs font-semibold mr-1" data-filter-type="tag">
+        <span class="truncate max-w-[120px]">${state.currentDealTag}</span>
+        <button type="button" data-action="remove-filter" data-filter-type="tag" class="hover:text-emerald-600 dark:hover:text-emerald-400 p-0.5 rounded-sm" title="הסר סינון תגית"><i data-lucide="x" class="w-3 h-3"></i></button>
+      </span>`;
+    }
+    if (state.currentDealCategory !== 'all') {
+      html += `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 text-xs font-semibold mr-1" data-filter-type="category">
+        <span class="truncate max-w-[120px]">${state.currentDealCategory}</span>
+        <button type="button" data-action="remove-filter" data-filter-type="category" class="hover:text-emerald-600 dark:hover:text-emerald-400 p-0.5 rounded-sm" title="הסר סינון קטגוריה"><i data-lucide="x" class="w-3 h-3"></i></button>
+      </span>`;
+    }
+    if (state.currentDealMaxPrice !== 'all') {
+      const priceLabel = state.currentDealMaxPrice === 'over-500' ? 'מעל 500 ₪' : `עד ${state.currentDealMaxPrice} ₪`;
+      html += `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 text-xs font-semibold mr-1" data-filter-type="price">
+        <span class="truncate max-w-[120px]">${priceLabel}</span>
+        <button type="button" data-action="remove-filter" data-filter-type="price" class="hover:text-emerald-600 dark:hover:text-emerald-400 p-0.5 rounded-sm" title="הסר סינון מחיר"><i data-lucide="x" class="w-3 h-3"></i></button>
+      </span>`;
+    }
+    if (state.showFavoritesOnly) {
+      html += `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 text-xs font-semibold mr-1" data-filter-type="favorite">
+        <span>⭐ מועדפים</span>
+        <button type="button" data-action="remove-filter" data-filter-type="favorite" class="hover:text-amber-600 dark:hover:text-amber-400 p-0.5 rounded-sm" title="הסר סינון מועדפים"><i data-lucide="x" class="w-3 h-3"></i></button>
+      </span>`;
+    }
+    activeDealsFilterText.innerHTML = html;
+    if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons({ root: activeDealsFilterText });
+  } else {
+    activeDealsFilterText.innerHTML = '';
   }
 
   if (filtered.length === 0) {
@@ -611,15 +668,40 @@ function renderBillingStores() {
   const filtered = getFilteredBillingStores();
   if (matchingBillingCountEl) matchingBillingCountEl.textContent = filtered.length.toLocaleString('he-IL');
 
-  const hasFilter = state.billingSearchQuery || state.currentBillingCity !== 'all' || state.currentBillingCategory !== 'all' || (state.billingSearchQuery && state.billingSearchInDesc);
+  const hasFilter = state.billingSearchQuery || state.currentBillingCity !== 'all' || state.currentBillingCategory !== 'all' || state.showFavoritesOnly || (state.billingSearchQuery && state.billingSearchInDesc);
   if (activeBillingFilterBadge) activeBillingFilterBadge.classList.toggle('hidden', !hasFilter);
 
   if (hasFilter && activeBillingFilterText) {
-    const parts = [];
-    if (state.billingSearchQuery) parts.push(`"${state.billingSearchQuery}"${state.billingSearchInDesc ? ' (כולל תיאור)' : ''}`);
-    if (state.currentBillingCity !== 'all') parts.push(state.currentBillingCity === 'online' ? 'Online' : state.currentBillingCity);
-    if (state.currentBillingCategory !== 'all') parts.push(state.currentBillingCategory);
-    activeBillingFilterText.textContent = parts.join(' • ');
+    let html = '';
+    if (state.billingSearchQuery) {
+      html += `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200 text-xs font-semibold mr-1" data-filter-type="search">
+        <span class="truncate max-w-[140px]">"${state.billingSearchQuery}"${state.billingSearchInDesc ? ' (כולל תיאור)' : ''}</span>
+        <button type="button" data-action="remove-filter" data-filter-type="search" class="hover:text-purple-600 dark:hover:text-purple-400 p-0.5 rounded-sm" title="הסר סינון חיפוש"><i data-lucide="x" class="w-3 h-3"></i></button>
+      </span>`;
+    }
+    if (state.currentBillingCity !== 'all') {
+      const cityLabel = state.currentBillingCity === 'online' ? 'Online' : state.currentBillingCity;
+      html += `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200 text-xs font-semibold mr-1" data-filter-type="city">
+        <span class="truncate max-w-[120px]">${cityLabel}</span>
+        <button type="button" data-action="remove-filter" data-filter-type="city" class="hover:text-purple-600 dark:hover:text-purple-400 p-0.5 rounded-sm" title="הסר סינון עיר"><i data-lucide="x" class="w-3 h-3"></i></button>
+      </span>`;
+    }
+    if (state.currentBillingCategory !== 'all') {
+      html += `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200 text-xs font-semibold mr-1" data-filter-type="category">
+        <span class="truncate max-w-[120px]">${state.currentBillingCategory}</span>
+        <button type="button" data-action="remove-filter" data-filter-type="category" class="hover:text-purple-600 dark:hover:text-purple-400 p-0.5 rounded-sm" title="הסר סינון קטגוריה"><i data-lucide="x" class="w-3 h-3"></i></button>
+      </span>`;
+    }
+    if (state.showFavoritesOnly) {
+      html += `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 text-xs font-semibold mr-1" data-filter-type="favorite">
+        <span>⭐ מועדפים</span>
+        <button type="button" data-action="remove-filter" data-filter-type="favorite" class="hover:text-amber-600 dark:hover:text-amber-400 p-0.5 rounded-sm" title="הסר סינון מועדפים"><i data-lucide="x" class="w-3 h-3"></i></button>
+      </span>`;
+    }
+    activeBillingFilterText.innerHTML = html;
+    if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons({ root: activeBillingFilterText });
+  } else if (activeBillingFilterText) {
+    activeBillingFilterText.innerHTML = '';
   }
 
   if (filtered.length === 0) {
@@ -2156,6 +2238,18 @@ document.addEventListener('click', (e) => {
     return;
   }
 
+  const favBtn = e.target.closest('[data-action="toggle-favorite"]');
+  if (favBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const type = favBtn.dataset.itemType;
+    const id = favBtn.dataset.itemId;
+    if (type && id) {
+      toggleFavorite(type, id);
+    }
+    return;
+  }
+
   const storeBadge = e.target.closest('[data-action="view-linked-store"]');
   if (storeBadge) {
     e.stopPropagation();
@@ -2232,6 +2326,392 @@ document.addEventListener('keydown', (e) => {
 
 // Initialize
 initTheme();
+
+function updateFavoritesFilterUI() {
+  const favBtn = document.getElementById('favorites-filter-toggle-btn') || document.getElementById('favorites-filter-btn');
+  const favBadge = document.getElementById('favorites-badge-count');
+  const favIcon = document.getElementById('favorites-filter-icon');
+  if (!favBtn) return;
+
+  const total = getFavoritesCount();
+  if (favBadge) {
+    favBadge.textContent = String(total);
+    favBadge.classList.toggle('hidden', total === 0);
+  }
+
+  if (state.showFavoritesOnly) {
+    favBtn.classList.remove('text-slate-600', 'dark:text-slate-400', 'hover:text-slate-900', 'dark:hover:text-white');
+    favBtn.classList.add('bg-amber-100', 'dark:bg-amber-950/60', 'text-amber-800', 'dark:text-amber-300', 'border', 'border-amber-300', 'dark:border-amber-700');
+    if (favIcon) favIcon.classList.add('fill-amber-400');
+  } else {
+    favBtn.classList.remove('bg-amber-100', 'dark:bg-amber-950/60', 'text-amber-800', 'dark:text-amber-300', 'border', 'border-amber-300', 'dark:border-amber-700');
+    favBtn.classList.add('text-slate-600', 'dark:text-slate-400', 'hover:text-slate-900', 'dark:hover:text-white');
+    if (favIcon) favIcon.classList.remove('fill-amber-400');
+  }
+}
+
+const favoritesFilterBtn = document.getElementById('favorites-filter-toggle-btn') || document.getElementById('favorites-filter-btn');
+if (favoritesFilterBtn) {
+  favoritesFilterBtn.addEventListener('click', () => {
+    state.showFavoritesOnly = !state.showFavoritesOnly;
+    updateFavoritesFilterUI();
+    if (state.currentTab === 'stores') renderStores();
+    else if (state.currentTab === 'deals') renderDeals();
+    else if (state.currentTab === 'billing') renderBillingStores();
+    else if (state.currentTab === 'all') {
+      renderStores();
+      renderDeals();
+      if (state.isBillingUnhidden) renderBillingStores();
+    }
+  });
+}
+
+// Removable filter bar click listeners
+const storeFilterBar = document.getElementById('stores-active-filters-bar') || activeFilterBadge;
+if (storeFilterBar) {
+  storeFilterBar.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action="remove-filter"]');
+    if (!btn) return;
+    const filterType = btn.getAttribute('data-filter-type');
+    if (filterType === 'search') {
+      const clearBtn = document.getElementById('clear-search-btn');
+      if (clearBtn) clearBtn.click();
+    } else if (filterType === 'card') {
+      if (cardFilterSelect) {
+        cardFilterSelect.value = 'all';
+        cardFilterSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    } else if (filterType === 'category') {
+      state.currentCategory = 'all';
+      updateCategoryChips(categoryChipsContainer);
+      renderStores();
+    } else if (filterType === 'favorite') {
+      state.showFavoritesOnly = false;
+      updateFavoritesFilterUI();
+      renderStores();
+    }
+  });
+}
+
+// Mobile Map FAB
+const billingMobileMapFab = document.getElementById('billing-mobile-map-fab');
+if (billingMobileMapFab) {
+  billingMobileMapFab.addEventListener('click', () => {
+    const mapWrapper = document.getElementById('billing-map-wrapper');
+    if (mapWrapper && mapWrapper.classList.contains('hidden')) {
+      const toggleMapBtn = document.getElementById('billing-map-toggle-btn');
+      if (toggleMapBtn) toggleMapBtn.click();
+      else mapWrapper.classList.remove('hidden');
+    }
+    const canvas = document.getElementById('billing-map-canvas');
+    if (canvas && typeof canvas.scrollIntoView === 'function') {
+      canvas.scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Search Autocomplete Controller
+function setupAutocomplete({ inputEl, dropdownEl, type, onSelect }) {
+  if (!inputEl || !dropdownEl) return;
+
+  let activeIndex = -1;
+
+  function closeDropdown() {
+    dropdownEl.classList.add('hidden');
+    dropdownEl.innerHTML = '';
+    inputEl.setAttribute('aria-expanded', 'false');
+    inputEl.removeAttribute('aria-activedescendant');
+    activeIndex = -1;
+  }
+
+  function getSuggestions(query) {
+    const raw = String(query).trim().toLowerCase();
+    if (!raw) return [];
+
+    let items = [];
+    if (type === 'stores') {
+      const stores = state.allStores || [];
+      const matches = stores.filter(s => {
+        const name = (s.name || '').toLowerCase();
+        return name.includes(raw);
+      }).slice(0, 5);
+
+      items = matches.map(s => ({
+        type: 'brand',
+        label: s.name,
+        value: s.name,
+        badge: s.max_discount ? `${s.max_discount}%` : null,
+        category: s.category
+      }));
+
+      const matchingCats = [...new Set(stores.map(s => s.category).filter(c => c && c.toLowerCase().includes(raw)))].slice(0, 3);
+      matchingCats.forEach(c => {
+        items.push({
+          type: 'category',
+          label: `קטגוריה: ${c}`,
+          value: c,
+          category: c
+        });
+      });
+    } else if (type === 'deals') {
+      const deals = state.allDeals || [];
+      const matches = deals.filter(d => {
+        const title = (d.title || '').toLowerCase();
+        const supp = (d.supplier || '').toLowerCase();
+        return title.includes(raw) || supp.includes(raw);
+      }).slice(0, 5);
+
+      items = matches.map(d => ({
+        type: 'deal',
+        label: d.title,
+        value: d.title,
+        badge: d.discount_percent ? `${d.discount_percent}%` : null,
+        category: d.category || d.supplier
+      }));
+    } else if (type === 'billing') {
+      const billingStores = state.allBillingStores || [];
+      const matches = billingStores.filter(b => {
+        const name = (b.name || '').toLowerCase();
+        const city = (b.city || '').toLowerCase();
+        return name.includes(raw) || city.includes(raw);
+      }).slice(0, 5);
+
+      items = matches.map(b => ({
+        type: 'billing',
+        label: b.name,
+        value: b.name,
+        badge: b.discount ? `${b.discount}%` : null,
+        category: b.city
+      }));
+    } else if (type === 'all') {
+      const stores = (state.allStores || []).filter(s => (s.name || '').toLowerCase().includes(raw)).slice(0, 3);
+      const deals = (state.allDeals || []).filter(d => (d.title || '').toLowerCase().includes(raw)).slice(0, 3);
+      items = [
+        ...stores.map(s => ({ type: 'brand', label: s.name, value: s.name, badge: s.max_discount ? `${s.max_discount}%` : null, category: s.category })),
+        ...deals.map(d => ({ type: 'deal', label: d.title, value: d.title, badge: d.discount_percent ? `${d.discount_percent}%` : null, category: d.category }))
+      ];
+    }
+
+    return items;
+  }
+
+  function renderDropdown(items) {
+    if (!items || items.length === 0) {
+      closeDropdown();
+      return;
+    }
+
+    activeIndex = -1;
+    let html = '<div class="p-1.5 space-y-1">';
+    items.forEach((item, idx) => {
+      const isCat = item.type === 'category';
+      html += `
+        <div 
+          role="option" 
+          id="${dropdownEl.id}-opt-${idx}" 
+          aria-selected="false" 
+          data-value="${escapeHtml(item.value)}"
+          class="autocomplete-item flex items-center justify-between p-2 rounded-lg cursor-pointer text-xs text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition select-none"
+        >
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-slate-400 dark:text-slate-500">${isCat ? '🏷️' : '🔍'}</span>
+            <span class="font-medium truncate">${escapeHtml(item.label)}</span>
+            ${item.category && !isCat ? `<span class="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">${escapeHtml(item.category)}</span>` : ''}
+          </div>
+          ${item.badge ? `<span class="font-bold text-amber-600 dark:text-amber-400 text-[11px] bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/60">${escapeHtml(item.badge)}</span>` : ''}
+        </div>
+      `;
+    });
+    html += '</div>';
+
+    dropdownEl.innerHTML = html;
+    dropdownEl.classList.remove('hidden');
+    inputEl.setAttribute('aria-expanded', 'true');
+
+    dropdownEl.querySelectorAll('[role="option"]').forEach(opt => {
+      opt.addEventListener('click', () => {
+        const val = opt.getAttribute('data-value');
+        inputEl.value = val;
+        closeDropdown();
+        if (onSelect) onSelect(val);
+      });
+    });
+  }
+
+  function updateActiveOption(options) {
+    options.forEach((opt, idx) => {
+      const isSelected = idx === activeIndex;
+      opt.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+      if (isSelected) {
+        opt.classList.add('bg-blue-50', 'dark:bg-blue-900/40', 'text-blue-700', 'dark:text-blue-300');
+        inputEl.setAttribute('aria-activedescendant', opt.id);
+        if (typeof opt.scrollIntoView === 'function') opt.scrollIntoView({ block: 'nearest' });
+      } else {
+        opt.classList.remove('bg-blue-50', 'dark:bg-blue-900/40', 'text-blue-700', 'dark:text-blue-300');
+      }
+    });
+    if (activeIndex === -1) {
+      inputEl.removeAttribute('aria-activedescendant');
+    }
+  }
+
+  inputEl.addEventListener('input', () => {
+    const val = inputEl.value || '';
+    if (val.trim().length < 2) {
+      closeDropdown();
+      return;
+    }
+    const suggestions = getSuggestions(val);
+    renderDropdown(suggestions);
+  });
+
+  inputEl.addEventListener('keydown', (e) => {
+    const options = dropdownEl.querySelectorAll('[role="option"]');
+    if (dropdownEl.classList.contains('hidden') || options.length === 0) {
+      if (e.key === 'Escape') closeDropdown();
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % options.length;
+      updateActiveOption(options);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIndex = (activeIndex - 1 + options.length) % options.length;
+      updateActiveOption(options);
+    } else if (e.key === 'Enter') {
+      if (activeIndex >= 0 && activeIndex < options.length) {
+        e.preventDefault();
+        const selected = options[activeIndex];
+        const val = selected.getAttribute('data-value');
+        inputEl.value = val;
+        closeDropdown();
+        if (onSelect) onSelect(val);
+      }
+    } else if (e.key === 'Escape') {
+      closeDropdown();
+    } else if (e.key === 'Tab') {
+      closeDropdown();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
+      closeDropdown();
+    }
+  });
+}
+
+const storesAutocompleteDropdown = document.getElementById('stores-autocomplete-dropdown');
+const dealsAutocompleteDropdown = document.getElementById('deals-autocomplete-dropdown');
+const billingAutocompleteDropdown = document.getElementById('billing-autocomplete-dropdown');
+const allAutocompleteDropdown = document.getElementById('all-autocomplete-dropdown');
+
+if (searchInput && storesAutocompleteDropdown) {
+  setupAutocomplete({
+    inputEl: searchInput,
+    dropdownEl: storesAutocompleteDropdown,
+    type: 'stores',
+    onSelect: (val) => {
+      state.searchQuery = val;
+      clearSearchBtn.classList.remove('hidden');
+      state.storesVisibleCount = state.STORES_PAGE_SIZE;
+      renderStores();
+      updateCrossTabBadges();
+    }
+  });
+}
+
+if (dealsSearchInput && dealsAutocompleteDropdown) {
+  setupAutocomplete({
+    inputEl: dealsSearchInput,
+    dropdownEl: dealsAutocompleteDropdown,
+    type: 'deals',
+    onSelect: (val) => {
+      state.dealsSearchQuery = val;
+      clearDealsSearchBtn.classList.remove('hidden');
+      state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
+      renderDeals();
+      updateCrossTabBadges();
+    }
+  });
+}
+
+if (billingSearchInput && billingAutocompleteDropdown) {
+  setupAutocomplete({
+    inputEl: billingSearchInput,
+    dropdownEl: billingAutocompleteDropdown,
+    type: 'billing',
+    onSelect: (val) => {
+      state.billingSearchQuery = val;
+      clearBillingSearchBtn.classList.remove('hidden');
+      state.billingVisibleCount = state.BILLING_PAGE_SIZE;
+      renderBillingStores();
+      updateCrossTabBadges();
+    }
+  });
+}
+
+if (allSearchInput && allAutocompleteDropdown) {
+  setupAutocomplete({
+    inputEl: allSearchInput,
+    dropdownEl: allAutocompleteDropdown,
+    type: 'all',
+    onSelect: (val) => {
+      state.allSearchQuery = val;
+      clearAllSearchBtn.classList.remove('hidden');
+      renderAllTab();
+    }
+  });
+}
+
+window.addEventListener('behatsdaa:favorites-updated', (e) => {
+  updateFavoritesFilterUI();
+
+  const { type, id, isFavorite } = (e && e.detail) || {};
+  if (id && type) {
+    const btns = document.querySelectorAll(`[data-action="toggle-favorite"][data-item-type="${type}"][data-item-id="${id}"]`);
+    btns.forEach(btn => {
+      btn.title = isFavorite ? 'הסר ממועדפים' : 'הוסף למועדפים';
+      btn.setAttribute('aria-label', isFavorite ? 'הסר ממועדפים' : 'הוסף למועדפים');
+      const starIcon = btn.querySelector('i');
+      if (starIcon) {
+        if (isFavorite) {
+          starIcon.classList.add('fill-amber-400', 'text-amber-500');
+          starIcon.classList.remove('text-slate-400', 'dark:text-slate-500');
+        } else {
+          starIcon.classList.remove('fill-amber-400', 'text-amber-500');
+          starIcon.classList.add('text-slate-400', 'dark:text-slate-500');
+        }
+      }
+    });
+  }
+
+  if (state.showFavoritesOnly) {
+    if (state.currentTab === 'stores') renderStores();
+    else if (state.currentTab === 'deals') renderDeals();
+    else if (state.currentTab === 'billing') renderBillingStores();
+    else if (state.currentTab === 'all') {
+      renderStores();
+      renderDeals();
+      if (state.isBillingUnhidden) renderBillingStores();
+    }
+  }
+});
+
+updateFavoritesFilterUI();
+
 if (window.lucide && typeof window.lucide.createIcons === 'function') {
   window.lucide.createIcons();
 }

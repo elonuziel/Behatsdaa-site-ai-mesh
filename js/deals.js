@@ -3,10 +3,11 @@
  */
 
 import { state } from './state.js';
-import { normalizeHebrew, formatILS } from './utils.js';
+import { normalizeHebrew, formatILS, highlightText } from './utils.js';
 import { searchDeals } from './search.js';
 import { fetchDealDetail } from './data.js';
 import { updateChipsControls, scrollActiveChipIntoView } from './chips-carousel.js';
+import { isFavorite, toggleFavorite } from './favorites.js';
 
 export function populateDealsTagsFilter(dealsTagSelect) {
   if (!dealsTagSelect) return;
@@ -71,6 +72,10 @@ export function updateDealsCategoryChips(dealsCategoryChipsContainer) {
 
 export function getFilteredDeals() {
   let result = state.allDeals;
+
+  if (state.showFavoritesOnly) {
+    result = result.filter(d => isFavorite('deal', d.id));
+  }
 
   if (state.currentDealTag !== 'all') {
     result = result.filter(d => d.tags && d.tags.includes(state.currentDealTag));
@@ -208,7 +213,15 @@ export function createDealCardElement(deal) {
     </div>
   ` : '';
 
+  const fav = isFavorite('deal', deal.id);
+  const favBtnHtml = `
+    <button type="button" data-action="toggle-favorite" data-item-type="deal" data-item-id="${deal.id}" title="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" aria-label="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" class="favorite-toggle-btn absolute top-3 left-3 p-1.5 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-700 hover:scale-110 active:scale-95 transition-all z-10 shadow-xs">
+      <i data-lucide="star" class="w-4 h-4 ${fav ? 'fill-amber-400 text-amber-500' : 'text-slate-400 dark:text-slate-500'}"></i>
+    </button>
+  `;
+
   card.innerHTML = `
+    ${favBtnHtml}
     <div>
       <div class="w-full h-44 rounded-xl bg-slate-50 dark:bg-slate-900/60 p-2 mb-3 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-700/50 relative">
         <img
@@ -232,7 +245,7 @@ export function createDealCardElement(deal) {
       </div>
 
       <h3 class="font-bold text-sm text-slate-900 dark:text-white leading-snug mb-2 line-clamp-2" title="${deal.title}">
-        ${deal.title}
+        ${(state.dealsSearchQuery || state.searchQuery) ? highlightText(deal.title, state.dealsSearchQuery || state.searchQuery) : deal.title}
       </h3>
     </div>
 
@@ -309,16 +322,24 @@ export function createDealTableRow(deal) {
     `);
   }
 
+  const fav = isFavorite('deal', deal.id);
+  const favBtnHtml = `
+    <button type="button" data-action="toggle-favorite" data-item-type="deal" data-item-id="${deal.id}" title="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" aria-label="${fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}" class="favorite-toggle-btn p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+      <i data-lucide="star" class="w-4 h-4 ${fav ? 'fill-amber-400 text-amber-500' : 'text-slate-400 dark:text-slate-500'}"></i>
+    </button>
+  `;
+
   tr.innerHTML = `
     <td class="py-3 px-4">
       <div class="flex items-center gap-3">
+        ${favBtnHtml}
         <div class="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-700 p-1 flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-600">
           <img src="${deal.image || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🎁</text></svg>'}"
                alt="${deal.title}" class="max-h-full max-w-full object-contain" loading="lazy" decoding="async" referrerpolicy="no-referrer"
                onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🎁</text></svg>'"/>
         </div>
         <div class="min-w-0">
-          <div class="font-bold text-slate-900 dark:text-white truncate max-w-xs md:max-w-sm" title="${deal.title}">${deal.title}</div>
+          <div class="font-bold text-slate-900 dark:text-white truncate max-w-xs md:max-w-sm" title="${deal.title}">${(state.dealsSearchQuery || state.searchQuery) ? highlightText(deal.title, state.dealsSearchQuery || state.searchQuery) : deal.title}</div>
           <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
             <span>${deal.supplier || 'בהצדעה'}</span>
             ${tagPill}
