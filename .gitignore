@@ -3,6 +3,7 @@
 .env*.local
 behatsdaa_profile/
 chrome_profile/
+.agents/
 
 # Python artifacts
 __pycache__/

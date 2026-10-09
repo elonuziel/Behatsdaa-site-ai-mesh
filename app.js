@@ -9,7 +9,7 @@ import { loadStores, loadDeals, loadBilling, crossLinkAllDatasets, fetchWalletsI
 import { populateCardsFilter, updateCategoryChips, getFilteredStores, createStoreCardElement, createStoreTableRow, openStoreModal, closeStoreModal } from './js/stores.js';
 import { populateDealsTagsFilter, updateDealsCategoryChips, getFilteredDeals, createDealCardElement, createDealTableRow, openDealModal, closeDealModal } from './js/deals.js';
 import { populateBillingCitiesFilter, updateBillingCategoryChips, getFilteredBillingStores, createBillingCardElement, createBillingTableRow, openBillingModal, closeBillingModal } from './js/billing.js';
-import { initBillingMap, updateMapMarkers, centerOnUserLocation, toggleMapMaximize, isMapReady, recenterMapToAllMarkers, setMapCallbacks } from './js/map.js';
+import { initBillingMap, updateMapMarkers, centerOnUserLocation, toggleMapMaximize, isMapReady, recenterMapToAllMarkers, setMapCallbacks, flyToArea } from './js/map.js';
 import { initChipsCarousel, updateAllChipsControls } from './js/chips-carousel.js';
 
 // DOM Elements - Navigation Tabs
@@ -1832,10 +1832,14 @@ async function updateBillingMap(stores) {
         onStoreSelect: (store) => {
           openBillingModal(store, billingModalElements, billingModalCallbacks);
         },
-        onBoundsChange: ({ inViewCount, totalMarkers, hasActiveMarkers }) => {
+        onBoundsChange: (metrics) => {
+          if (!metrics) return;
+          const { totalPhysicalCount, isNationwide, inBoundsCount, badgeText } = metrics;
+          if (billingMapCountBadge && badgeText) {
+            billingMapCountBadge.textContent = badgeText;
+          }
           if (billingMapBoundsEmptyBanner) {
-            // Show banner if markers exist globally, but user moved map to empty area
-            if (hasActiveMarkers && totalMarkers > 0 && inViewCount === 0) {
+            if (!isNationwide && totalPhysicalCount > 0 && inBoundsCount === 0) {
               billingMapBoundsEmptyBanner.classList.remove('hidden');
               if (window.lucide && typeof window.lucide.createIcons === 'function') {
                 window.lucide.createIcons({ root: billingMapBoundsEmptyBanner });
@@ -1857,6 +1861,23 @@ async function updateBillingMap(stores) {
       },
       onStoreSelect: (store) => {
         openBillingModal(store, billingModalElements, billingModalCallbacks);
+      },
+      onBoundsChange: (metrics) => {
+        if (!metrics) return;
+        const { totalPhysicalCount, isNationwide, inBoundsCount, badgeText } = metrics;
+        if (billingMapCountBadge && badgeText) {
+          billingMapCountBadge.textContent = badgeText;
+        }
+        if (billingMapBoundsEmptyBanner) {
+          if (!isNationwide && totalPhysicalCount > 0 && inBoundsCount === 0) {
+            billingMapBoundsEmptyBanner.classList.remove('hidden');
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+              window.lucide.createIcons({ root: billingMapBoundsEmptyBanner });
+            }
+          } else {
+            billingMapBoundsEmptyBanner.classList.add('hidden');
+          }
+        }
       }
     });
 
@@ -1906,21 +1927,6 @@ async function updateBillingMap(stores) {
     if (billingMapEmptyOverlay) billingMapEmptyOverlay.classList.add('hidden');
 
     await updateMapMarkers(storesToMap);
-
-    if (billingMapCountBadge) {
-      const displayed = Math.min(physicalStores.length, 600);
-      let badgeText = `${displayed.toLocaleString('he-IL')} מתוך ${physicalStores.length.toLocaleString('he-IL')} עסקים מוצגים`;
-      if (onlyHighDiscounts) {
-        badgeText += ' • הנחות גבוהות (7%+)';
-      }
-      if (state.currentBillingCategory !== 'all') {
-        badgeText += ` • ${state.currentBillingCategory}`;
-      }
-      if (state.billingSearchQuery) {
-        badgeText += ` • "${state.billingSearchQuery}"`;
-      }
-      billingMapCountBadge.textContent = badgeText;
-    }
   } catch (err) {
     console.warn('Map update warning:', err);
     showBillingMapError(err);
@@ -2027,6 +2033,71 @@ if (billingMapMaximizeBtn) {
       if (window.lucide && typeof window.lucide.createIcons === 'function') {
         window.lucide.createIcons({ root: billingMapMaximizeBtn });
       }
+    }
+  });
+}
+
+/**
+ * Update active highlight across quick map area chips
+ * @param {HTMLElement|null} selectedChip - The chip button element, or null to clear all
+ */
+function setActiveMapAreaChip(selectedChip) {
+  const container = document.getElementById('billing-map-area-chips');
+  if (!container) return;
+
+  container.querySelectorAll('.billing-map-area-chip').forEach(chip => {
+    const isActive = (chip === selectedChip);
+    if (isActive) {
+      chip.classList.add('active', 'bg-purple-600', 'text-white', 'border-purple-600', 'shadow-xs', 'ring-2', 'ring-purple-600/30');
+      chip.classList.remove('bg-white', 'dark:bg-slate-800', 'text-slate-700', 'dark:text-slate-200', 'border-slate-200', 'dark:border-slate-700', 'shadow-2xs');
+      chip.setAttribute('aria-pressed', 'true');
+    } else {
+      chip.classList.remove('active', 'bg-purple-600', 'text-white', 'border-purple-600', 'shadow-xs', 'ring-2', 'ring-purple-600/30');
+      chip.classList.add('bg-white', 'dark:bg-slate-800', 'text-slate-700', 'dark:text-slate-200', 'border-slate-200', 'dark:border-slate-700', 'shadow-2xs');
+      chip.setAttribute('aria-pressed', 'false');
+    }
+  });
+}
+
+// Setup Event Delegation for Quick Area Filter Chips (R1)
+const billingMapAreaChipsContainer = document.getElementById('billing-map-area-chips');
+if (billingMapAreaChipsContainer) {
+  billingMapAreaChipsContainer.addEventListener('click', async (e) => {
+    const chip = e.target.closest('.billing-map-area-chip');
+    if (!chip) return;
+    const areaKey = chip.dataset.area;
+    if (!areaKey) return;
+
+    // 1. Immediately toggle active chip styling
+    setActiveMapAreaChip(chip);
+
+    // 2. Ensure billing map is initialized and unhidden
+    if (!isMapReady()) {
+      const filtered = getFilteredBillingStores();
+      await updateBillingMap(filtered);
+    }
+
+    // 3. Handle user location chip vs preset geographic areas
+    if (areaKey === 'user_loc') {
+      const labelSpan = chip.querySelector('span:last-child');
+      const origText = labelSpan ? labelSpan.textContent : 'קרוב אליי';
+      if (labelSpan) labelSpan.textContent = 'מאתר...';
+
+      await flyToArea('user_loc', {
+        statusCallback: (status) => {
+          if (status.loading && labelSpan) {
+            labelSpan.textContent = 'מאתר...';
+          } else if (status.success && labelSpan) {
+            labelSpan.textContent = 'המיקום אותר!';
+            setTimeout(() => { if (labelSpan) labelSpan.textContent = origText; }, 2500);
+          } else if (status.error) {
+            if (labelSpan) labelSpan.textContent = origText;
+            setActiveMapAreaChip(null);
+          }
+        }
+      });
+    } else {
+      await flyToArea(areaKey);
     }
   });
 }

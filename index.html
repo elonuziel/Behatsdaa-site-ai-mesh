@@ -1042,6 +1042,42 @@
           </div>
         </div>
 
+        <!-- Quick City & Region Area Filter Chips (R1) -->
+        <div id="billing-map-area-chips" class="px-3.5 py-2 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-700/80 flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth flex-nowrap text-xs select-none" role="toolbar" aria-label="ניווט מהיר לפי אזור במפה">
+          <span class="text-xs font-bold text-slate-500 dark:text-slate-400 shrink-0 flex items-center gap-1 pl-1">
+            <i data-lucide="compass" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"></i>
+            <span class="hidden sm:inline">אזור:</span>
+          </span>
+          <button type="button" class="billing-map-area-chip px-3 py-1.5 rounded-xl font-medium transition cursor-pointer shrink-0 flex items-center gap-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-700 dark:hover:text-purple-300 hover:border-purple-300 dark:hover:border-purple-800 shadow-2xs" data-area="user_loc" aria-pressed="false" title="מרכז את המפה סביב המיקום הנוכחי שלך">
+            <span class="text-xs">📍</span>
+            <span>קרוב אליי</span>
+          </button>
+          <button type="button" class="billing-map-area-chip px-3 py-1.5 rounded-xl font-medium transition cursor-pointer shrink-0 flex items-center gap-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-700 dark:hover:text-purple-300 hover:border-purple-300 dark:hover:border-purple-800 shadow-2xs" data-area="tel_aviv" aria-pressed="false" title="התמקד באזור תל אביב">
+            <span>תל אביב</span>
+          </button>
+          <button type="button" class="billing-map-area-chip px-3 py-1.5 rounded-xl font-medium transition cursor-pointer shrink-0 flex items-center gap-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-700 dark:hover:text-purple-300 hover:border-purple-300 dark:hover:border-purple-800 shadow-2xs" data-area="jerusalem" aria-pressed="false" title="התמקד באזור ירושלים">
+            <span>ירושלים</span>
+          </button>
+          <button type="button" class="billing-map-area-chip px-3 py-1.5 rounded-xl font-medium transition cursor-pointer shrink-0 flex items-center gap-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-700 dark:hover:text-purple-300 hover:border-purple-300 dark:hover:border-purple-800 shadow-2xs" data-area="haifa" aria-pressed="false" title="התמקד באזור חיפה">
+            <span>חיפה</span>
+          </button>
+          <button type="button" class="billing-map-area-chip px-3 py-1.5 rounded-xl font-medium transition cursor-pointer shrink-0 flex items-center gap-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-700 dark:hover:text-purple-300 hover:border-purple-300 dark:hover:border-purple-800 shadow-2xs" data-area="rishon_lezion" aria-pressed="false" title="התמקד באזור ראשון לציון">
+            <span>ראשון לציון</span>
+          </button>
+          <button type="button" class="billing-map-area-chip px-3 py-1.5 rounded-xl font-medium transition cursor-pointer shrink-0 flex items-center gap-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-700 dark:hover:text-purple-300 hover:border-purple-300 dark:hover:border-purple-800 shadow-2xs" data-area="beer_sheva" aria-pressed="false" title="התמקד באזור באר שבע">
+            <span>באר שבע</span>
+          </button>
+          <button type="button" class="billing-map-area-chip px-3 py-1.5 rounded-xl font-medium transition cursor-pointer shrink-0 flex items-center gap-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-700 dark:hover:text-purple-300 hover:border-purple-300 dark:hover:border-purple-800 shadow-2xs" data-area="center" aria-pressed="false" title="התמקד באזור המרכז">
+            <span>מרכז</span>
+          </button>
+          <button type="button" class="billing-map-area-chip px-3 py-1.5 rounded-xl font-medium transition cursor-pointer shrink-0 flex items-center gap-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-700 dark:hover:text-purple-300 hover:border-purple-300 dark:hover:border-purple-800 shadow-2xs" data-area="north" aria-pressed="false" title="התמקד באזור הצפון">
+            <span>צפון</span>
+          </button>
+          <button type="button" class="billing-map-area-chip px-3 py-1.5 rounded-xl font-medium transition cursor-pointer shrink-0 flex items-center gap-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-700 dark:hover:text-purple-300 hover:border-purple-300 dark:hover:border-purple-800 shadow-2xs" data-area="south" aria-pressed="false" title="התמקד באזור הדרום">
+            <span>דרום</span>
+          </button>
+        </div>
+
         <!-- Google Maps Canvas & Overlays Container -->
         <div id="billing-map-viewport" class="w-full flex-1 min-h-[460px] relative overflow-hidden bg-slate-100 dark:bg-slate-900">
           <!-- Google Maps Canvas -->

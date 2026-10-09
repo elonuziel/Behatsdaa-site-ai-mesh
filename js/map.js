@@ -14,10 +14,79 @@ const GOOGLE_MAPS_API_KEY = (typeof import.meta !== 'undefined' && import.meta.e
 const MAP_ID = 'DEMO_MAP_ID';
 const ATTRIBUTION_ID = 'gmp_mcp_codeassist_v1_aistudio';
 
+/**
+ * Geographic bounding boxes and center coordinates for quick city area filter chips (R1)
+ */
+export const AREA_BOUNDS = {
+  user_loc: {
+    key: 'user_loc',
+    label: 'קרוב אליי',
+    isGeolocation: true
+  },
+  tel_aviv: {
+    key: 'tel_aviv',
+    label: 'תל אביב',
+    center: { lat: 32.0853, lng: 34.7818 },
+    zoom: 13,
+    bounds: { south: 32.0250, west: 34.7350, north: 32.1450, east: 34.8350 }
+  },
+  jerusalem: {
+    key: 'jerusalem',
+    label: 'ירושלים',
+    center: { lat: 31.7683, lng: 35.2137 },
+    zoom: 13,
+    bounds: { south: 31.7100, west: 35.1500, north: 31.8300, east: 35.2600 }
+  },
+  haifa: {
+    key: 'haifa',
+    label: 'חיפה',
+    center: { lat: 32.7940, lng: 34.9896 },
+    zoom: 13,
+    bounds: { south: 32.7400, west: 34.9300, north: 32.8450, east: 35.0500 }
+  },
+  rishon_lezion: {
+    key: 'rishon_lezion',
+    label: 'ראשון לציון',
+    center: { lat: 31.9730, lng: 34.7925 },
+    zoom: 13,
+    bounds: { south: 31.9250, west: 34.7350, north: 32.0200, east: 34.8450 }
+  },
+  beer_sheva: {
+    key: 'beer_sheva',
+    label: 'באר שבע',
+    center: { lat: 31.2530, lng: 34.7915 },
+    zoom: 13,
+    bounds: { south: 31.2100, west: 34.7400, north: 31.2950, east: 34.8400 }
+  },
+  center: {
+    key: 'center',
+    label: 'מרכז',
+    center: { lat: 32.0500, lng: 34.8500 },
+    zoom: 11,
+    bounds: { south: 31.8000, west: 34.6500, north: 32.3500, east: 35.0500 }
+  },
+  north: {
+    key: 'north',
+    label: 'צפון',
+    center: { lat: 32.8500, lng: 35.2500 },
+    zoom: 10,
+    bounds: { south: 32.4500, west: 34.9000, north: 33.3000, east: 35.7500 }
+  },
+  south: {
+    key: 'south',
+    label: 'דרום',
+    center: { lat: 31.3500, lng: 34.7500 },
+    zoom: 10,
+    bounds: { south: 31.0000, west: 34.3000, north: 31.8000, east: 35.2000 }
+  }
+};
+
 // Internal module state
 let mapInstance = null;
 let markerClustererInstance = null;
 let currentMarkers = [];
+let currentRenderedStoreIds = new Set();
+let activePhysicalStores = [];
 let infoWindowInstance = null;
 let userLocationMarker = null;
 let isMapInitialized = false;
@@ -29,6 +98,15 @@ let onBoundsChangeCallback = null;
 let onMapErrorCallback = null;
 let latestValidBounds = null;
 let idleListener = null;
+
+function getCachedStoreCoordinates(store) {
+  if (store._coords) return store._coords;
+  const coords = getStoreCoordinates(store);
+  if (coords) {
+    store._coords = coords;
+  }
+  return coords;
+}
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -160,27 +238,29 @@ export async function initBillingMap(containerElement, options = {}) {
         }
       }
 
-      // Attach idle listener to report visible markers in current map viewport
+      // Attach idle listener to dynamically filter visible markers in current map viewport
       if (idleListener) google.maps.event.removeListener(idleListener);
       idleListener = google.maps.event.addListener(mapInstance, 'idle', () => {
-        if (!mapInstance || !onBoundsChangeCallback) return;
-        const bounds = mapInstance.getBounds();
-        if (!bounds) return;
+        syncViewportMarkers();
+      });
 
-        let inViewCount = 0;
-        for (let i = 0; i < currentMarkers.length; i++) {
-          const pos = currentMarkers[i].position;
-          if (pos && bounds.contains(pos)) {
-            inViewCount++;
+      // Clear active chip highlight when user manually drags map
+      mapInstance.addListener('dragstart', () => {
+        if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+          const activeChip = document.querySelector('#billing-map-area-chips .billing-map-area-chip.active');
+          if (activeChip) {
+            activeChip.classList.remove('active', 'bg-purple-600', 'text-white', 'border-purple-600', 'shadow-xs', 'ring-2', 'ring-purple-600/30');
+            activeChip.classList.add('bg-white', 'dark:bg-slate-800', 'text-slate-700', 'dark:text-slate-200', 'border-slate-200', 'dark:border-slate-700', 'shadow-2xs');
+            activeChip.setAttribute('aria-pressed', 'false');
           }
         }
-
-        onBoundsChangeCallback({
-          inViewCount,
-          totalMarkers: currentMarkers.length,
-          hasActiveMarkers: currentMarkers.length > 0
-        });
       });
+
+      // Expose map instance for automated test inspection and external access
+      containerElement.__mapInstance = mapInstance;
+      const mapWrapper = containerElement.closest ? containerElement.closest('#billing-map-wrapper') : (typeof document !== 'undefined' ? document.getElementById('billing-map-wrapper') : null);
+      if (mapWrapper) mapWrapper.__mapInstance = mapInstance;
+      if (typeof window !== 'undefined') window.__billingMapInstance = mapInstance;
 
       // Trigger resize after layout paint
       setTimeout(() => {
@@ -292,13 +372,24 @@ function queueOnDemandGeocode(store, marker) {
 }
 
 /**
- * Update map markers with a new set of stores
+ * Renders the given store entries on the map using AdvancedMarkerElement and MarkerClusterer.
+ * Employs diffing to skip redundant marker reconstruction when store IDs are identical.
  */
-export async function updateMapMarkers(stores, options = {}) {
-  if (!mapInstance || !isMapInitialized) return;
+async function renderMarkers(storesToRender) {
+  // Diffing check: if the store IDs are identical, do not destroy and re-create DOM pins
+  let hasChanged = false;
+  if (storesToRender.length !== currentMarkers.length) {
+    hasChanged = true;
+  } else {
+    for (let i = 0; i < storesToRender.length; i++) {
+      if (!currentRenderedStoreIds.has(storesToRender[i].store.id)) {
+        hasChanged = true;
+        break;
+      }
+    }
+  }
 
-  const { AdvancedMarkerElement } = await importLibrary('marker');
-  const { LatLngBounds } = await importLibrary('core');
+  if (!hasChanged) return;
 
   // Clear existing markers & cluster
   if (markerClustererInstance) {
@@ -312,58 +403,38 @@ export async function updateMapMarkers(stores, options = {}) {
     m.map = null;
   });
   currentMarkers = [];
+  currentRenderedStoreIds.clear();
 
-  if (!stores || stores.length === 0) return;
+  if (storesToRender.length === 0) return;
 
-  // We filter out purely online stores and plot physical stores
-  // For supreme performance with 10k items, we take matching stores (up to 600 in active view)
-  const physicalStores = stores.filter(s => {
-    const c = (s.city || '').toLowerCase();
-    return c && c !== 'online' && !c.includes('אונליין');
-  });
-
-  const storesToPlot = physicalStores.slice(0, 600);
-  const bounds = new LatLngBounds();
-  let hasValidCoords = false;
+  const { AdvancedMarkerElement } = await importLibrary('marker');
 
   const markers = [];
   let topZIndexCounter = 3000;
   let activeBadgeElement = null;
 
-  // Group stores by identical/near-identical location so stores in the same building (e.g. malls, towers)
+  // Group stores by identical/near-identical location so stores in the same building
   // never completely cover one another.
   const locationGroups = new Map();
-  const storesWithCoords = [];
-
-  storesToPlot.forEach(store => {
-    const coords = getStoreCoordinates(store);
-    if (!coords) return;
-
-    // Use precise coordinate key rounded to ~10m
-    const coordKey = `${coords.lat.toFixed(5)}_${coords.lng.toFixed(5)}`;
+  storesToRender.forEach(item => {
+    const coordKey = `${item.lat.toFixed(5)}_${item.lng.toFixed(5)}`;
     if (!locationGroups.has(coordKey)) {
       locationGroups.set(coordKey, []);
     }
     const group = locationGroups.get(coordKey);
     const indexInGroup = group.length;
-    group.push(store);
-
-    storesWithCoords.push({
-      store,
-      coords,
-      coordKey,
-      indexInGroup
-    });
+    group.push(item);
+    item.indexInGroup = indexInGroup;
+    item.coordKey = coordKey;
   });
 
-  storesWithCoords.forEach(({ store, coords, coordKey, indexInGroup }) => {
+  storesToRender.forEach(({ store, coords, coordKey, indexInGroup, lat, lng }) => {
     const group = locationGroups.get(coordKey);
     const groupCount = group ? group.length : 1;
 
-    let markerLat = coords.lat;
-    let markerLng = coords.lng;
+    let markerLat = lat;
+    let markerLng = lng;
 
-    // Fan-out/offset identical building coordinates slightly so both badges are visible side-by-side
     if (groupCount > 1) {
       if (groupCount === 2) {
         const offset = indexInGroup === 0 ? -0.00018 : 0.00018;
@@ -377,14 +448,9 @@ export async function updateMapMarkers(stores, options = {}) {
       }
     }
 
-    bounds.extend({ lat: markerLat, lng: markerLng });
-    hasValidCoords = true;
-
-    // Format exact address cleanly
     let exactAddress = store.full_address || formatFullAddress(store);
     if (exactAddress === 'Online / כל הארץ') exactAddress = '';
 
-    // Custom HTML pin marker showing Store Name, Exact Address & Discount %
     const badgeEl = document.createElement('div');
     badgeEl.className = 'group relative flex flex-col items-center cursor-pointer select-none transition-transform duration-150 hover:scale-105 active:scale-95';
     badgeEl.setAttribute('dir', 'rtl');
@@ -409,11 +475,9 @@ export async function updateMapMarkers(stores, options = {}) {
     });
 
     const activateMarkerAndSelect = () => {
-      // 1. Immediately bring to the very top above all other markers
       marker.zIndex = ++topZIndexCounter;
       badgeEl.style.zIndex = String(topZIndexCounter);
 
-      // Highlight active pin
       if (activeBadgeElement && activeBadgeElement !== badgeEl) {
         const prevCard = activeBadgeElement.querySelector('.pin-card-wrapper');
         if (prevCard) {
@@ -426,7 +490,6 @@ export async function updateMapMarkers(stores, options = {}) {
         currentCard.classList.add('ring-2', 'ring-purple-600', 'border-purple-600', 'shadow-2xl', 'bg-purple-50', 'dark:bg-purple-950/70');
       }
 
-      // 2. Open rich InfoWindow
       const addressText = exactAddress || store.city || '';
       const navUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((store.name || '') + ' ' + (addressText || ''))}`;
 
@@ -467,7 +530,6 @@ export async function updateMapMarkers(stores, options = {}) {
         map: mapInstance
       });
 
-      // Hook click on InfoWindow button for detailed modal
       setTimeout(() => {
         const btn = document.getElementById('info-window-view-btn');
         if (btn && onStoreSelectCallback) {
@@ -477,19 +539,16 @@ export async function updateMapMarkers(stores, options = {}) {
         }
       }, 50);
 
-      // 3. Scroll to store in store list below map
       if (onMarkerClickCallback) {
         onMarkerClickCallback(store);
       }
     };
 
-    // Bring marker to top on hover
     badgeEl.addEventListener('mouseenter', () => {
       marker.zIndex = ++topZIndexCounter;
       badgeEl.style.zIndex = String(topZIndexCounter);
     });
 
-    // Handle clicks directly on the DOM element and through Google Maps event
     let lastActionTime = 0;
     const onTrigger = (e) => {
       if (e) {
@@ -512,8 +571,8 @@ export async function updateMapMarkers(stores, options = {}) {
     }
 
     markers.push(marker);
+    currentRenderedStoreIds.add(store.id);
 
-    // If marker is at city fallback but has a specific address, queue it for precise background geocoding
     if (!coords.isExact && store.address && store.city) {
       queueOnDemandGeocode(store, marker);
     }
@@ -524,37 +583,170 @@ export async function updateMapMarkers(stores, options = {}) {
     try {
       markerClustererInstance.addMarkers(markers);
     } catch (e) {
-      console.warn('MarkerClusterer addMarkers error, falling back to direct map markers:', e);
       markers.forEach(m => { m.map = mapInstance; });
     }
   } else {
     markers.forEach(m => { m.map = mapInstance; });
   }
+}
 
-  // Smoothly fit bounds if requested or if search changed
-  if (hasValidCoords && (options.autoFit !== false)) {
-    latestValidBounds = bounds;
-    if (storesToPlot.length === 1) {
-      const c = getStoreCoordinates(storesToPlot[0]);
-      mapInstance.setCenter({ lat: c.lat, lng: c.lng });
-      mapInstance.setZoom(14);
+/**
+ * Synchronizes visible markers and badges with the current map viewport bounds.
+ * Called on Google Maps 'idle' event and after filter updates.
+ */
+export function syncViewportMarkers() {
+  if (!mapInstance || !isMapInitialized) return;
+  const zoom = mapInstance.getZoom() ?? 9;
+  const bounds = mapInstance.getBounds();
+
+  const totalPhysicalCount = activePhysicalStores.length;
+  const isNationwide = (zoom < 10);
+
+  let inBoundsStores = [];
+
+  if (totalPhysicalCount === 0) {
+    inBoundsStores = [];
+  } else if (isNationwide || !bounds) {
+    // Nationwide mode (zoom < 10): all active physical stores are candidates
+    inBoundsStores = activePhysicalStores;
+  } else {
+    // Regional/Local mode (zoom >= 10): filter against viewport bounds
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    const north = typeof ne.lat === 'function' ? ne.lat() : ne.lat;
+    const east = typeof ne.lng === 'function' ? ne.lng() : ne.lng;
+    const south = typeof sw.lat === 'function' ? sw.lat() : sw.lat;
+    const west = typeof sw.lng === 'function' ? sw.lng() : sw.lng;
+
+    for (let i = 0; i < activePhysicalStores.length; i++) {
+      const item = activePhysicalStores[i];
+      if (item.lat >= south && item.lat <= north && item.lng >= west && item.lng <= east) {
+        inBoundsStores.push(item);
+      }
+    }
+  }
+
+  const inBoundsCount = inBoundsStores.length;
+  const isCeilingHit = inBoundsCount > 600;
+  const storesToRender = isCeilingHit ? inBoundsStores.slice(0, 600) : inBoundsStores;
+  const visibleCount = storesToRender.length;
+
+  // Formulate exact Hebrew badge copy
+  let badgeText = '';
+  if (totalPhysicalCount === 0) {
+    badgeText = '0 עסקים תואמים לסינון במפה';
+  } else if (isNationwide) {
+    if (totalPhysicalCount > 600) {
+      badgeText = `${visibleCount.toLocaleString('he-IL')} מתוך ${totalPhysicalCount.toLocaleString('he-IL')} עסקים מוצגים (התקרב במפה להצגת כל העסקים באזור)`;
     } else {
-      mapInstance.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
-      // Don't over-zoom when only 2 close points
-      const listener = google.maps.event.addListener(mapInstance, 'idle', () => {
-        if (mapInstance.getZoom() > 15) mapInstance.setZoom(15);
-        google.maps.event.removeListener(listener);
+      badgeText = `${totalPhysicalCount.toLocaleString('he-IL')} עסקים מוצגים`;
+    }
+  } else {
+    // Regional/Local mode (zoom >= 10)
+    if (inBoundsCount === 0) {
+      badgeText = '0 עסקים באזור המוצג במפה';
+    } else if (isCeilingHit) {
+      badgeText = `600 מתוך ${inBoundsCount.toLocaleString('he-IL')} עסקים באזור המוצג במפה (התקרב במפה להצגת כל העסקים באזור)`;
+    } else {
+      badgeText = `${inBoundsCount.toLocaleString('he-IL')} עסקים באזור המוצג במפה`;
+    }
+  }
+
+  // Render markers if changed
+  renderMarkers(storesToRender);
+
+  // Broadcast metrics through interface contract
+  if (onBoundsChangeCallback) {
+    onBoundsChangeCallback({
+      visibleCount,
+      totalPhysicalCount,
+      isNationwide,
+      inBoundsCount,
+      isCeilingHit,
+      bounds,
+      zoom,
+      badgeText,
+      hasActiveMarkers: visibleCount > 0
+    });
+  }
+}
+
+/**
+ * Update map markers with a new set of stores
+ */
+export async function updateMapMarkers(stores, options = {}) {
+  if (!mapInstance || !isMapInitialized) return;
+
+  const { LatLngBounds } = await importLibrary('core');
+
+  // Filter physical storefronts and cache coordinates
+  const physicalStores = (stores || []).filter(s => {
+    const c = (s.city || '').toLowerCase();
+    return c && c !== 'online' && !c.includes('אונליין');
+  });
+
+  const physicalWithCoords = [];
+  const bounds = new LatLngBounds();
+  let hasValidCoords = false;
+
+  for (let i = 0; i < physicalStores.length; i++) {
+    const store = physicalStores[i];
+    const coords = getCachedStoreCoordinates(store);
+    if (coords) {
+      physicalWithCoords.push({
+        store,
+        coords,
+        lat: coords.lat,
+        lng: coords.lng
+      });
+      bounds.extend({ lat: coords.lat, lng: coords.lng });
+      hasValidCoords = true;
+    }
+  }
+
+  activePhysicalStores = physicalWithCoords;
+
+  if (activePhysicalStores.length === 0) {
+    renderMarkers([]);
+    if (onBoundsChangeCallback) {
+      onBoundsChangeCallback({
+        visibleCount: 0,
+        totalPhysicalCount: 0,
+        isNationwide: true,
+        inBoundsCount: 0,
+        isCeilingHit: false,
+        bounds: null,
+        zoom: mapInstance.getZoom() ?? 9,
+        badgeText: '0 עסקים תואמים לסינון במפה',
+        hasActiveMarkers: false
       });
     }
-  } else if (!stores || stores.length === 0) {
-    latestValidBounds = null;
-    mapInstance.setCenter({ lat: 31.85, lng: 34.85 });
-    mapInstance.setZoom(9);
+    return { plottedCount: 0, physicalCount: 0 };
+  }
+
+  if (options.autoFit !== false && hasValidCoords) {
+    latestValidBounds = bounds;
+    if (activePhysicalStores.length === 1) {
+      mapInstance.setCenter({ lat: activePhysicalStores[0].lat, lng: activePhysicalStores[0].lng });
+      mapInstance.setZoom(14);
+    } else {
+      if (activePhysicalStores.length > 2000) {
+        mapInstance.setCenter({ lat: 31.85, lng: 34.85 });
+        mapInstance.setZoom(9);
+      } else {
+        mapInstance.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
+      }
+    }
+    if (window.google?.maps?.event) {
+      google.maps.event.trigger(mapInstance, 'idle');
+    }
+  } else {
+    syncViewportMarkers();
   }
 
   return {
-    plottedCount: storesToPlot.length,
-    physicalCount: physicalStores.length
+    plottedCount: Math.min(activePhysicalStores.length, 600),
+    physicalCount: activePhysicalStores.length
   };
 }
 
@@ -563,12 +755,66 @@ export async function updateMapMarkers(stores, options = {}) {
  */
 export function recenterMapToAllMarkers() {
   if (!mapInstance) return;
-  if (latestValidBounds && !latestValidBounds.isEmpty()) {
+  if (latestValidBounds && !latestValidBounds.isEmpty() && activePhysicalStores.length <= 2000) {
     mapInstance.fitBounds(latestValidBounds, { top: 40, right: 40, bottom: 40, left: 40 });
   } else {
     mapInstance.setCenter({ lat: 31.85, lng: 34.85 });
     mapInstance.setZoom(9);
+    if (window.google?.maps?.event) {
+      google.maps.event.trigger(mapInstance, 'idle');
+    }
   }
+}
+
+/**
+ * Smoothly fly the map camera to a designated city, region, or user location.
+ * @param {string} areaKey - 'user_loc' | 'tel_aviv' | 'jerusalem' | 'haifa' | 'rishon_lezion' | 'beer_sheva' | 'center' | 'north' | 'south'
+ * @param {Object} [options] - Optional settings
+ * @returns {Promise<boolean>}
+ */
+export async function flyToArea(areaKey, options = {}) {
+  if (!mapInstance) return false;
+
+  if (areaKey === 'user_loc') {
+    return centerOnUserLocation(options.statusCallback);
+  }
+
+  const preset = AREA_BOUNDS[areaKey];
+  if (!preset) {
+    console.warn(`flyToArea: unknown area key "${areaKey}"`);
+    return false;
+  }
+
+  if (preset.center && typeof mapInstance.setCenter === 'function') {
+    mapInstance.setCenter(preset.center);
+  }
+  if (preset.zoom && typeof mapInstance.setZoom === 'function') {
+    mapInstance.setZoom(preset.zoom);
+  }
+
+  if (preset.bounds && typeof mapInstance.fitBounds === 'function') {
+    if (window.google?.maps?.LatLngBounds) {
+      const gBounds = new google.maps.LatLngBounds(
+        { lat: preset.bounds.south, lng: preset.bounds.west },
+        { lat: preset.bounds.north, lng: preset.bounds.east }
+      );
+      mapInstance.fitBounds(gBounds, { top: 35, right: 35, bottom: 35, left: 35 });
+    } else {
+      mapInstance.fitBounds(preset.bounds, { top: 35, right: 35, bottom: 35, left: 35 });
+    }
+    if (preset.zoom && typeof mapInstance.getZoom === 'function' && typeof mapInstance.setZoom === 'function') {
+      if (mapInstance.getZoom() < preset.zoom) {
+        mapInstance.setZoom(preset.zoom);
+      }
+    }
+  }
+
+  // In test environments or headless mocks, trigger idle if animation loop doesn't exist
+  if (options.triggerIdleImmediate || (typeof window !== 'undefined' && !window.google?.maps?.version && window.google?.maps?.event)) {
+    google.maps.event.trigger(mapInstance, 'idle');
+  }
+
+  return true;
 }
 
 /**

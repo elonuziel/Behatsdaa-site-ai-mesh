@@ -18,6 +18,7 @@ const storesData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'store
 const dealsData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'deals.json'), 'utf-8'));
 const billingData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'billing_stores.json'), 'utf-8'));
 const walletsData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'wallets_info.json'), 'utf-8'));
+const geocodedLocationsData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'geocoded_locations.json'), 'utf-8'));
 
 async function runTests() {
   console.log('====================================================');
@@ -49,6 +50,12 @@ async function runTests() {
   // Polyfill scrollIntoView for JSDOM
   window.Element.prototype.scrollIntoView = window.Element.prototype.scrollIntoView || function() {};
 
+  // Polyfill requestAnimationFrame for JSDOM
+  window.requestAnimationFrame = window.requestAnimationFrame || ((cb) => setTimeout(cb, 0));
+  window.cancelAnimationFrame = window.cancelAnimationFrame || ((id) => clearTimeout(id));
+  global.requestAnimationFrame = window.requestAnimationFrame;
+  global.cancelAnimationFrame = window.cancelAnimationFrame;
+
   // Polyfill Lucide icons
   window.lucide = {
     createIcons: () => {}
@@ -65,12 +72,18 @@ async function runTests() {
   };
   global.matchMedia = window.matchMedia;
 
-  // Mock fetch to serve data/stores.json, data/deals.json, data/billing_stores.json, and data/wallets_info.json
+  // Mock fetch to serve data/stores.json, data/deals.json, data/billing_stores.json, data/wallets_info.json, and data/geocoded_locations.json
   const mockFetch = async (url) => {
     if (url.includes('wallets_info.json')) {
       return {
         ok: true,
         json: async () => JSON.parse(JSON.stringify(walletsData))
+      };
+    }
+    if (url.includes('geocoded_locations.json')) {
+      return {
+        ok: true,
+        json: async () => JSON.parse(JSON.stringify(geocodedLocationsData))
       };
     }
     if (url.includes('billing_stores.json')) {
@@ -95,6 +108,268 @@ async function runTests() {
   };
   window.fetch = mockFetch;
   global.fetch = mockFetch;
+
+  // Headless Google Maps Platform Mock Harness for Milestone M1
+  class LatLngBoundsMock {
+    constructor(sw = null, ne = null) {
+      if (sw && ne) {
+        const swLat = typeof sw.lat === 'function' ? sw.lat() : sw.lat;
+        const swLng = typeof sw.lng === 'function' ? sw.lng() : sw.lng;
+        const neLat = typeof ne.lat === 'function' ? ne.lat() : ne.lat;
+        const neLng = typeof ne.lng === 'function' ? ne.lng() : ne.lng;
+        this.south = Math.min(swLat, neLat);
+        this.north = Math.max(swLat, neLat);
+        this.west = Math.min(swLng, neLng);
+        this.east = Math.max(swLng, neLng);
+      } else {
+        this.south = null;
+        this.north = null;
+        this.west = null;
+        this.east = null;
+      }
+    }
+
+    isEmpty() {
+      return this.south === null || this.north === null || this.west === null || this.east === null;
+    }
+
+    extend(point) {
+      if (!point) return this;
+      const lat = typeof point.lat === 'function' ? point.lat() : point.lat;
+      const lng = typeof point.lng === 'function' ? point.lng() : point.lng;
+      if (this.isEmpty()) {
+        this.south = lat;
+        this.north = lat;
+        this.west = lng;
+        this.east = lng;
+      } else {
+        this.south = Math.min(this.south, lat);
+        this.north = Math.max(this.north, lat);
+        this.west = Math.min(this.west, lng);
+        this.east = Math.max(this.east, lng);
+      }
+      return this;
+    }
+
+    contains(point) {
+      if (this.isEmpty() || !point) return false;
+      const lat = typeof point.lat === 'function' ? point.lat() : point.lat;
+      const lng = typeof point.lng === 'function' ? point.lng() : point.lng;
+      return lat >= this.south && lat <= this.north && lng >= this.west && lng <= this.east;
+    }
+
+    getCenter() {
+      if (this.isEmpty()) return { lat: () => 0, lng: () => 0, latVal: 0, lngVal: 0 };
+      const lat = (this.south + this.north) / 2;
+      const lng = (this.west + this.east) / 2;
+      return { lat: () => lat, lng: () => lng, latVal: lat, lngVal: lng };
+    }
+
+    getNorthEast() {
+      return { lat: () => this.north, lng: () => this.east };
+    }
+
+    getSouthWest() {
+      return { lat: () => this.south, lng: () => this.west };
+    }
+  }
+
+  const mapEventListeners = [];
+  const eventMock = {
+    addListener(instance, eventName, handler) {
+      const record = { instance, eventName, handler };
+      mapEventListeners.push(record);
+      return record;
+    },
+    addListenerOnce(instance, eventName, handler) {
+      const record = {
+        instance,
+        eventName,
+        handler: (...args) => {
+          eventMock.removeListener(record);
+          handler(...args);
+        }
+      };
+      mapEventListeners.push(record);
+      return record;
+    },
+    removeListener(listenerRecord) {
+      const idx = mapEventListeners.indexOf(listenerRecord);
+      if (idx !== -1) {
+        mapEventListeners.splice(idx, 1);
+      }
+    },
+    clearInstanceListeners(instance) {
+      for (let i = mapEventListeners.length - 1; i >= 0; i--) {
+        if (mapEventListeners[i].instance === instance) {
+          mapEventListeners.splice(i, 1);
+        }
+      }
+    },
+    trigger(instance, eventName, ...args) {
+      const matching = mapEventListeners.filter(l => l.instance === instance && l.eventName === eventName);
+      matching.forEach(l => {
+        try {
+          l.handler(...args);
+        } catch (err) {
+          console.error(`Mock google.maps.event error in [${eventName}]:`, err);
+        }
+      });
+    }
+  };
+
+  class MapMock {
+    constructor(container, options = {}) {
+      this.container = container;
+      this.options = options;
+      this._center = options.center || { lat: 31.85, lng: 34.85 };
+      this._zoom = options.zoom !== undefined ? options.zoom : 9;
+      this._updateBounds();
+    }
+
+    _updateBounds() {
+      const span = 180 / Math.pow(2, this._zoom);
+      const lat = typeof this._center.lat === 'function' ? this._center.lat() : this._center.lat;
+      const lng = typeof this._center.lng === 'function' ? this._center.lng() : this._center.lng;
+      this._bounds = new LatLngBoundsMock(
+        { lat: lat - span, lng: lng - span },
+        { lat: lat + span, lng: lng + span }
+      );
+    }
+
+    getBounds() {
+      return this._bounds;
+    }
+
+    setBounds(bounds) {
+      this._bounds = bounds;
+      if (bounds && !bounds.isEmpty()) {
+        const c = bounds.getCenter();
+        this._center = { lat: c.lat(), lng: c.lng() };
+        const spanLat = Math.abs(bounds.north - bounds.south);
+        const spanLng = Math.abs(bounds.east - bounds.west);
+        const maxSpan = Math.max(spanLat, spanLng);
+        if (maxSpan > 0) {
+          const computedZoom = Math.floor(Math.log2(360 / maxSpan));
+          this._zoom = Math.max(1, Math.min(18, computedZoom));
+        }
+      }
+      eventMock.trigger(this, 'bounds_changed');
+    }
+
+    getCenter() {
+      const lat = typeof this._center.lat === 'function' ? this._center.lat() : this._center.lat;
+      const lng = typeof this._center.lng === 'function' ? this._center.lng() : this._center.lng;
+      return { lat: () => lat, lng: () => lng, latVal: lat, lngVal: lng };
+    }
+
+    setCenter(center) {
+      this._center = center;
+      this._updateBounds();
+      eventMock.trigger(this, 'center_changed');
+      eventMock.trigger(this, 'bounds_changed');
+    }
+
+    getZoom() {
+      return this._zoom;
+    }
+
+    setZoom(zoom) {
+      this._zoom = zoom;
+      this._updateBounds();
+      eventMock.trigger(this, 'zoom_changed');
+      eventMock.trigger(this, 'bounds_changed');
+    }
+
+    panTo(center) {
+      this.setCenter(center);
+      eventMock.trigger(this, 'idle');
+    }
+
+    fitBounds(bounds, padding) {
+      this.setBounds(bounds);
+      eventMock.trigger(this, 'idle');
+    }
+
+    addListener(eventName, handler) {
+      return eventMock.addListener(this, eventName, handler);
+    }
+
+    getProjection() {
+      return {
+        fromLatLngToPoint: () => ({ x: 0, y: 0 }),
+        fromPointToLatLng: () => ({ lat: () => 31.85, lng: () => 34.85 })
+      };
+    }
+  }
+
+  class InfoWindowMock {
+    constructor(options = {}) {
+      this.options = options;
+      this.content = '';
+      this.isOpen = false;
+      this.anchor = null;
+    }
+    setContent(content) { this.content = content; }
+    getContent() { return this.content; }
+    open({ anchor, map }) { this.anchor = anchor; this.isOpen = true; }
+    close() { this.isOpen = false; }
+  }
+
+  function OverlayViewMock() {}
+  OverlayViewMock.prototype.setMap = function(map) { this.map = map; };
+  OverlayViewMock.prototype.getMap = function() { return this.map; };
+  OverlayViewMock.prototype.draw = function() {};
+  OverlayViewMock.prototype.onAdd = function() {};
+  OverlayViewMock.prototype.onRemove = function() {};
+  OverlayViewMock.prototype.getPanes = function() { return {}; };
+  OverlayViewMock.prototype.getProjection = function() {
+    return {
+      fromLatLngToDivPixel: () => ({ x: 0, y: 0 }),
+      fromDivPixelToLatLng: () => ({ lat: () => 31.85, lng: () => 34.85 })
+    };
+  };
+
+  class AdvancedMarkerElementMock extends window.EventTarget {
+    constructor(options = {}) {
+      super();
+      this.map = options.map || null;
+      this.position = options.position || null;
+      this.title = options.title || '';
+      this.content = options.content || null;
+      this.zIndex = options.zIndex !== undefined ? options.zIndex : 0;
+    }
+
+    addListener(eventName, handler) {
+      const gmpEvent = eventName.startsWith('gmp-') ? eventName : (eventName === 'click' ? 'gmp-click' : eventName);
+      this.addEventListener(gmpEvent, handler);
+      return {
+        remove: () => this.removeEventListener(gmpEvent, handler)
+      };
+    }
+  }
+
+  const googleMapsMock = {
+    Map: MapMock,
+    LatLngBounds: LatLngBoundsMock,
+    LatLng: function(lat, lng) { return { lat: () => lat, lng: () => lng, latVal: lat, lngVal: lng }; },
+    InfoWindow: InfoWindowMock,
+    OverlayView: OverlayViewMock,
+    ControlPosition: { LEFT_BOTTOM: 9, RIGHT_BOTTOM: 8, TOP_CENTER: 2 },
+    event: eventMock,
+    marker: {
+      AdvancedMarkerElement: AdvancedMarkerElementMock
+    },
+    importLibrary: async (name) => {
+      if (name === 'maps') return { Map: MapMock, InfoWindow: InfoWindowMock };
+      if (name === 'marker') return { AdvancedMarkerElement: AdvancedMarkerElementMock };
+      if (name === 'core') return { LatLngBounds: LatLngBoundsMock, LatLng: googleMapsMock.LatLng };
+      return {};
+    }
+  };
+
+  window.google = { maps: googleMapsMock };
+  global.google = window.google;
 
   // Intercept uncaught console errors
   const consoleErrors = [];
@@ -960,12 +1235,163 @@ async function runTests() {
 
   console.log('  -> PASS (Category chips carousel, scroll controls, and expand toggle validated across all tabs)');
 
-  console.log('[Test 23] Checking for console errors...');
+  // --- Test 24: Map Viewport Dynamic Sync & Bounds Recalculation (Pan & Zoom) ---
+  console.log('[Test 24] Testing Map Viewport Dynamic Sync & Bounds Recalculation...');
+  {
+    const tabBillingBtnEl = document.getElementById('tab-billing-btn');
+    const billingToggleMapBtn = document.getElementById('billing-toggle-map-btn');
+    const billingMapWrapper = document.getElementById('billing-map-wrapper');
+    const billingMapCountBadge = document.getElementById('billing-map-count-badge');
+    const billingMapBoundsEmptyBanner = document.getElementById('billing-map-bounds-empty-banner');
+
+    // 1. Switch to Billing Tab and Open Map
+    tabBillingBtnEl.click();
+    await new Promise(r => setTimeout(r, 50));
+    assert.ok(billingMapWrapper.classList.contains('hidden'), 'Map wrapper should initially be hidden');
+
+    billingToggleMapBtn.click();
+    await new Promise(r => setTimeout(r, 200));
+    assert.ok(!billingMapWrapper.classList.contains('hidden'), 'Map wrapper should be visible after toggle click');
+
+    // 2. Initial Nationwide View (Zoom < 10)
+    assert.ok(billingMapCountBadge, 'billingMapCountBadge must exist');
+    assert.ok(
+      billingMapCountBadge.textContent.includes('מוצגים') || billingMapCountBadge.textContent.includes('עסקים'),
+      `Count badge should show nationwide store count, got: "${billingMapCountBadge.textContent}"`
+    );
+    assert.ok(billingMapBoundsEmptyBanner.classList.contains('hidden'), 'Empty bounds banner should be hidden initially');
+
+    // 3. Zoom into Central Region (Zoom >= 10, Tel Aviv Center)
+    const mapInst = billingMapWrapper.__mapInstance || window.__billingMapInstance;
+    if (mapInst) {
+      mapInst.setZoom(13);
+      mapInst.setCenter({ lat: 32.0853, lng: 34.7818 });
+      google.maps.event.trigger(mapInst, 'idle');
+      await new Promise(r => setTimeout(r, 80));
+
+      // Assert that bounds changed and recalculation occurred
+      const bounds = mapInst.getBounds();
+      assert.ok(bounds, 'Map bounds should exist');
+      assert.strictEqual(mapInst.getZoom(), 13, 'Zoom should be 13');
+      assert.ok(bounds.contains({ lat: 32.0853, lng: 34.7818 }), 'Bounds should contain Tel Aviv center');
+
+      // Live count badge must update with "באזור המוצג במפה"
+      assert.ok(
+        billingMapCountBadge.textContent.includes('באזור המוצג במפה') || billingMapCountBadge.textContent.includes('עסקים'),
+        `Badge should display visible storefronts in viewport: "${billingMapCountBadge.textContent}"`
+      );
+      const countInView = parseInt(billingMapCountBadge.textContent, 10);
+      assert.ok(countInView > 0, `Expected positive count in Tel Aviv viewport, got ${countInView}`);
+    }
+  }
+  console.log('  -> PASS (Map viewport dynamic bounds calculation and zoom sync validated)');
+
+  // --- Test 25: Dynamic Map Count Badge Updates & Empty Region Guidance Message ---
+  console.log('[Test 25] Testing Dynamic Map Count Badge & Empty Region Guidance Banner...');
+  {
+    const billingMapWrapper = document.getElementById('billing-map-wrapper');
+    const billingMapCountBadge = document.getElementById('billing-map-count-badge');
+    const billingMapBoundsEmptyBanner = document.getElementById('billing-map-bounds-empty-banner');
+    const billingMapRecenterBtn = document.getElementById('billing-map-recenter-btn');
+
+    const mapInst = billingMapWrapper.__mapInstance || window.__billingMapInstance;
+    if (mapInst) {
+      // 1. Pan camera to empty Mediterranean Sea region (32.1, 33.5) with local zoom 14
+      mapInst.setZoom(14);
+      mapInst.setCenter({ lat: 32.1, lng: 33.5 });
+      google.maps.event.trigger(mapInst, 'idle');
+      await new Promise(r => setTimeout(r, 80));
+
+      // 2. Assert zero visible stores and badge text
+      assert.ok(
+        billingMapCountBadge.textContent.includes('0 עסקים') || billingMapCountBadge.textContent.includes('0'),
+        `Badge must indicate 0 stores in empty region: "${billingMapCountBadge.textContent}"`
+      );
+
+      // 3. Assert empty bounds guidance banner is visible
+      assert.ok(
+        !billingMapBoundsEmptyBanner.classList.contains('hidden'),
+        'billingMapBoundsEmptyBanner must be visible when viewport contains 0 stores'
+      );
+      assert.ok(billingMapRecenterBtn, 'Recenter button must exist inside empty bounds banner');
+
+      // 4. Click recenter button and verify recovery
+      billingMapRecenterBtn.click();
+      await new Promise(r => setTimeout(r, 100));
+
+      // Empty banner should hide once back to populated center
+      assert.ok(
+        billingMapBoundsEmptyBanner.classList.contains('hidden'),
+        'billingMapBoundsEmptyBanner should be hidden after recentering'
+      );
+      const restoredCount = parseInt(billingMapCountBadge.textContent, 10);
+      assert.ok(restoredCount > 0, `Restored viewport count should be > 0, got ${restoredCount}`);
+    }
+  }
+  console.log('  -> PASS (Empty region badge text "0 עסקים", banner display, and recenter recovery validated)');
+
+  // --- Test 26: Quick City Area Chips Camera Transition & Dynamic Bounds Sync ---
+  console.log('[Test 26] Testing Quick City Area Chips Navigation & Bounds Sync...');
+  {
+    const cityChipsContainer = document.getElementById('billing-map-area-chips');
+    assert.ok(cityChipsContainer, 'billing-map-area-chips container should exist in DOM');
+
+    const chips = cityChipsContainer.querySelectorAll('[data-area]');
+    const expectedAreas = ['user_loc', 'tel_aviv', 'jerusalem', 'haifa', 'rishon_lezion', 'beer_sheva', 'center', 'north', 'south'];
+
+    assert.strictEqual(chips.length, expectedAreas.length, `Expected 9 area filter chips, found ${chips.length}`);
+    expectedAreas.forEach(areaKey => {
+      const chip = cityChipsContainer.querySelector(`[data-area="${areaKey}"]`);
+      assert.ok(chip, `Chip for area "${areaKey}" must exist`);
+    });
+
+    const billingMapWrapper = document.getElementById('billing-map-wrapper');
+    const billingMapCountBadge = document.getElementById('billing-map-count-badge');
+    const mapInst = billingMapWrapper.__mapInstance || window.__billingMapInstance;
+
+    // 1. Click Jerusalem Chip
+    const jerusalemChip = cityChipsContainer.querySelector('[data-area="jerusalem"]');
+    jerusalemChip.click();
+    await new Promise(r => setTimeout(r, 120));
+
+    if (mapInst) {
+      const center = mapInst.getCenter();
+      const lat = center.lat();
+      const lng = center.lng();
+
+      // Verify map centered on Jerusalem (approx lat 31.768, lng 35.213)
+      assert.ok(Math.abs(lat - 31.7683) < 0.05, `Map latitude should be near Jerusalem (31.7683), got ${lat}`);
+      assert.ok(Math.abs(lng - 35.2137) < 0.05, `Map longitude should be near Jerusalem (35.2137), got ${lng}`);
+      assert.ok(mapInst.getZoom() >= 11, `Zoom should be at least 11 for city chip, got ${mapInst.getZoom()}`);
+
+      // Verify Jerusalem in-bounds badge count
+      const jerusalemCount = parseInt(billingMapCountBadge.textContent, 10);
+      assert.ok(jerusalemCount > 0, `Jerusalem viewport count should be > 0, got ${jerusalemCount}`);
+    }
+
+    // 2. Click Haifa Chip
+    const haifaChip = cityChipsContainer.querySelector('[data-area="haifa"]');
+    haifaChip.click();
+    await new Promise(r => setTimeout(r, 120));
+
+    if (mapInst) {
+      const center = mapInst.getCenter();
+      const lat = center.lat();
+      const lng = center.lng();
+
+      // Verify map centered on Haifa (approx lat 32.794, lng 34.989)
+      assert.ok(Math.abs(lat - 32.7940) < 0.05, `Map latitude should be near Haifa (32.7940), got ${lat}`);
+      assert.ok(Math.abs(lng - 34.9896) < 0.05, `Map longitude should be near Haifa (34.9896), got ${lng}`);
+    }
+  }
+  console.log('  -> PASS (Quick city area chips navigation, camera centering, and bounds sync validated)');
+
+  console.log('[Test 27] Checking for console errors...');
   assert.strictEqual(consoleErrors.length, 0, `Expected 0 console errors, but found: ${consoleErrors.join(', ')}`);
   console.log('  -> PASS (Zero errors during entire session)');
 
   console.log('\n====================================================');
-  console.log('   ALL 23 UI & DOM INTEGRATION TESTS PASSED!       ');
+  console.log('   ALL 27 UI & DOM INTEGRATION TESTS PASSED!       ');
   console.log('====================================================\n');
   process.exit(0);
 }
