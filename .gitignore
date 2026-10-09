@@ -62,4 +62,4 @@ deals_raw.json
 # Generated Static API split data (built automatically on the fly on CI by npm run build)
 public/data/
 
-
+jules_session_*/
