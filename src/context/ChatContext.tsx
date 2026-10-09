@@ -95,6 +95,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           timestamp: Date.now(),
           recommendedStores: data.recommendedStores || [],
           recommendedDeals: data.recommendedDeals || [],
+          recommendedBilling: data.recommendedBilling || [],
           followUps: data.suggestedFollowUps || [],
         };
 

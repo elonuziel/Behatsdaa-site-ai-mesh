@@ -98,34 +98,91 @@ interface DealItem {
 let cachedStores: StoreItem[] = [];
 let cachedDeals: DealItem[] = [];
 
+interface BillingStoreItem {
+  id: number | string;
+  name: string;
+  discount: number;
+  city?: string;
+  address?: string;
+  category?: string;
+  description?: string;
+  logo?: string;
+  detail_url?: string;
+  full_address?: string;
+}
+
+let cachedBillingStores: BillingStoreItem[] = [];
+let lexiconSynonyms: Record<string, string[]> = {};
+
 function loadCatalogData() {
   try {
     const storesPath = path.resolve(__dirname, 'public/data/stores.json');
     const dealsPath = path.resolve(__dirname, 'public/data/deals.json');
+    const billingPath = path.resolve(__dirname, 'public/data/billing_stores.json');
+    const lexiconPath = path.resolve(__dirname, 'data/search_lexicon.json');
 
     if (fs.existsSync(storesPath)) {
       const storesRaw = fs.readFileSync(storesPath, 'utf8');
       const storesJson = JSON.parse(storesRaw);
-      cachedStores = storesJson.stores || [];
+      cachedStores = storesJson.stores || (Array.isArray(storesJson) ? storesJson : []);
     } else {
       const fallbackStores = path.resolve(__dirname, 'data/stores.json');
       if (fs.existsSync(fallbackStores)) {
-        cachedStores = JSON.parse(fs.readFileSync(fallbackStores, 'utf8'));
+        const fallbackRaw = JSON.parse(fs.readFileSync(fallbackStores, 'utf8'));
+        cachedStores = fallbackRaw.stores || (Array.isArray(fallbackRaw) ? fallbackRaw : []);
       }
     }
 
     if (fs.existsSync(dealsPath)) {
       const dealsRaw = fs.readFileSync(dealsPath, 'utf8');
       const dealsJson = JSON.parse(dealsRaw);
-      cachedDeals = dealsJson.deals || [];
+      cachedDeals = dealsJson.deals || (Array.isArray(dealsJson) ? dealsJson : []);
     } else {
       const fallbackDeals = path.resolve(__dirname, 'data/deals.json');
       if (fs.existsSync(fallbackDeals)) {
-        cachedDeals = JSON.parse(fs.readFileSync(fallbackDeals, 'utf8'));
+        const fallbackRaw = JSON.parse(fs.readFileSync(fallbackDeals, 'utf8'));
+        cachedDeals = fallbackRaw.deals || (Array.isArray(fallbackRaw) ? fallbackRaw : []);
       }
     }
 
-    console.log(` Loaded ${cachedStores.length} stores and ${cachedDeals.length} deals for AI natural language search grounding.`);
+    // Load full 10,000+ billing stores
+    const billingPathToUse = fs.existsSync(billingPath)
+      ? billingPath
+      : path.resolve(__dirname, 'data/billing_stores.json');
+
+    if (fs.existsSync(billingPathToUse)) {
+      const billingRaw = fs.readFileSync(billingPathToUse, 'utf8');
+      const billingJson = JSON.parse(billingRaw);
+      cachedBillingStores = billingJson.stores || (Array.isArray(billingJson) ? billingJson : []);
+    }
+
+    // Load search lexicon synonyms & transliterations
+    if (fs.existsSync(lexiconPath)) {
+      try {
+        const lexRaw = JSON.parse(fs.readFileSync(lexiconPath, 'utf8'));
+        const syns: Record<string, string[]> = {};
+        if (lexRaw.synonyms) {
+          for (const [k, v] of Object.entries(lexRaw.synonyms)) {
+            syns[k.toLowerCase()] = Array.isArray(v) ? v.map((s: any) => String(s).toLowerCase()) : [];
+          }
+        }
+        if (lexRaw.transliterations) {
+          for (const [k, v] of Object.entries(lexRaw.transliterations)) {
+            const keyLower = k.toLowerCase();
+            const arr = Array.isArray(v) ? v.map((s: any) => String(s).toLowerCase()) : [];
+            syns[keyLower] = [...(syns[keyLower] || []), ...arr];
+            for (const item of arr) {
+              syns[item] = [...(syns[item] || []), keyLower];
+            }
+          }
+        }
+        lexiconSynonyms = syns;
+      } catch (e) {
+        console.warn('Failed parsing search_lexicon.json', e);
+      }
+    }
+
+    console.log(` Loaded ${cachedStores.length} stores, ${cachedDeals.length} deals, and ${cachedBillingStores.length} billing stores (10,000+ businesses) for AI search.`);
   } catch (err) {
     console.error('Error loading catalog data in server:', err);
   }
@@ -145,17 +202,36 @@ function normalizeHebrew(text: string): string {
     .trim();
 }
 
-// Find relevant stores & deals from query
+const HEBREW_STOP_WORDS = new Set([
+  'איפה', 'הכי', 'משתלם', 'יש', 'של', 'על', 'את', 'מה', 'איזה', 'אילו', 'האם',
+  'כדאי', 'אפשר', 'רוצה', 'מחפש', 'הנחה', 'הנחות', 'מבצע', 'מבצעים', 'מועדון',
+  'מועדונים', 'חנות', 'רשת', 'חבר', 'חברי', 'למצוא', 'לקנות', 'באיזה', 'כמה',
+  'טוב', 'טובה', 'טובים', 'שלום', 'היי', 'תודה', 'בבקשה', 'ספר', 'לי', 'בשבילי'
+]);
+
+// Find relevant stores & deals from query across all 10,000+ businesses
 function findRelevantCatalog(query: string, activeClubs?: string[]) {
   const qNorm = normalizeHebrew(query);
-  const words = qNorm.split(/\s+/).filter(w => w.length > 1);
+  const rawWords = qNorm.split(/\s+/).filter(w => w.length > 1);
+  const keywords = rawWords.filter(w => !HEBREW_STOP_WORDS.has(w));
+  const activeWords = keywords.length > 0 ? keywords : rawWords;
+
+  // Expand with synonyms and related terms
+  const searchTerms = new Set<string>(activeWords);
+  for (const word of activeWords) {
+    if (lexiconSynonyms[word]) {
+      for (const syn of lexiconSynonyms[word]) {
+        searchTerms.add(normalizeHebrew(syn));
+      }
+    }
+  }
+  const expandedWords = Array.from(searchTerms);
 
   const matchedStores: { store: StoreItem; score: number }[] = [];
   const matchedDeals: { deal: DealItem; score: number }[] = [];
 
-  // Filter stores
+  // 1. Filter primary club stores
   for (const s of cachedStores) {
-    // Check club filter if provided
     if (activeClubs && activeClubs.length > 0) {
       const hasClub = (s.clubs || []).some(c => activeClubs.includes(c));
       if (!hasClub) continue;
@@ -169,25 +245,23 @@ function findRelevantCatalog(query: string, activeClubs?: string[]) {
     );
 
     let score = 0;
-    // Exact or phrase match
-    if (nameNorm.includes(qNorm)) score += 50;
-    if (catNorm.includes(qNorm)) score += 20;
+    if (nameNorm.includes(qNorm)) score += 60;
+    if (catNorm.includes(qNorm)) score += 25;
 
-    for (const w of words) {
-      if (nameNorm.includes(w)) score += 15;
-      if (catNorm.includes(w)) score += 8;
-      if (cardsNorm.includes(w)) score += 5;
+    for (const w of expandedWords) {
+      if (nameNorm.includes(w)) score += 18;
+      if (catNorm.includes(w)) score += 10;
+      if (cardsNorm.includes(w)) score += 6;
       if (condNorm.includes(w)) score += 3;
     }
 
-    // Boost stores with higher discount
     if (score > 0) {
       score += (s.max_discount || 0) * 0.5;
       matchedStores.push({ store: s, score });
     }
   }
 
-  // Filter deals
+  // 2. Filter deals & vouchers
   for (const d of cachedDeals) {
     if (activeClubs && activeClubs.length > 0) {
       if (d.club && !activeClubs.includes(d.club)) continue;
@@ -200,14 +274,14 @@ function findRelevantCatalog(query: string, activeClubs?: string[]) {
     const tagsNorm = normalizeHebrew((d.tags || []).join(' '));
 
     let score = 0;
-    if (titleNorm.includes(qNorm)) score += 40;
-    if (suppNorm.includes(qNorm)) score += 30;
-    if (catNorm.includes(qNorm)) score += 15;
+    if (titleNorm.includes(qNorm)) score += 50;
+    if (suppNorm.includes(qNorm)) score += 35;
+    if (catNorm.includes(qNorm)) score += 18;
 
-    for (const w of words) {
-      if (titleNorm.includes(w)) score += 12;
-      if (suppNorm.includes(w)) score += 10;
-      if (catNorm.includes(w)) score += 6;
+    for (const w of expandedWords) {
+      if (titleNorm.includes(w)) score += 14;
+      if (suppNorm.includes(w)) score += 12;
+      if (catNorm.includes(w)) score += 8;
       if (tagsNorm.includes(w)) score += 5;
       if (descNorm.includes(w)) score += 3;
     }
@@ -218,12 +292,42 @@ function findRelevantCatalog(query: string, activeClubs?: string[]) {
     }
   }
 
+  // 3. Filter 10,000+ billing stores directory
+  const matchedBilling: { store: BillingStoreItem; score: number }[] = [];
+  for (const b of cachedBillingStores) {
+    const nameNorm = normalizeHebrew(b.name || '');
+    const catNorm = normalizeHebrew(b.category || '');
+    const cityNorm = normalizeHebrew(b.city || '');
+    const addrNorm = normalizeHebrew(b.full_address || b.address || '');
+    const descNorm = normalizeHebrew(b.description || '');
+
+    let score = 0;
+    if (nameNorm.includes(qNorm)) score += 60;
+    if (catNorm.includes(qNorm)) score += 30;
+    if (cityNorm && cityNorm.includes(qNorm)) score += 35;
+
+    for (const w of expandedWords) {
+      if (nameNorm.includes(w)) score += 20;
+      if (cityNorm && cityNorm.includes(w)) score += 15;
+      if (catNorm.includes(w)) score += 10;
+      if (addrNorm.includes(w)) score += 8;
+      if (descNorm.includes(w)) score += 5;
+    }
+
+    if (score > 0) {
+      score += (b.discount || 0) * 0.8;
+      matchedBilling.push({ store: b, score });
+    }
+  }
+
   matchedStores.sort((a, b) => b.score - a.score);
   matchedDeals.sort((a, b) => b.score - a.score);
+  matchedBilling.sort((a, b) => b.score - a.score);
 
   return {
     topStores: matchedStores.slice(0, 8).map(m => m.store),
     topDeals: matchedDeals.slice(0, 8).map(m => m.deal),
+    topBilling: matchedBilling.slice(0, 12).map(m => m.store),
   };
 }
 
@@ -271,7 +375,7 @@ app.post('/api/chat', async (req, res) => {
     const userPromptText = latestUserMessage ? latestUserMessage.content : '';
 
     // Search catalog for grounded knowledge
-    const { topStores, topDeals } = findRelevantCatalog(userPromptText, activeClubs);
+    const { topStores, topDeals, topBilling } = findRelevantCatalog(userPromptText, activeClubs);
 
     // Build catalog context summary
     let catalogContext = '';
@@ -289,6 +393,13 @@ app.post('/api/chat', async (req, res) => {
         const discStr = d.discount_percent ? ` (${d.discount_percent}% הנחה)` : '';
         const couponStr = d.coupon_code ? `, קוד קופון: ${d.coupon_code}` : '';
         return `${idx + 1}. "${d.title}" - ספק: ${d.supplier || 'בהצדעה'}, מועדון: ${d.club || 'behatsdaa'}, מחיר: ${priceStr}${discStr}${couponStr}`;
+      }).join('\n');
+    }
+
+    if (topBilling.length > 0) {
+      catalogContext += '\n\nעסקים וחנויות מהקטלוג המורחב (הנחות במעמד החיוב באשראי בהצדעה מתוך 10,000+ סניפים):\n' + topBilling.map((b, idx) => {
+        const locStr = b.full_address || b.city || '';
+        return `${idx + 1}. "${b.name}" - ${b.discount}% הנחה במעמד החיוב באשראי${locStr ? ' (' + locStr + ')' : ''}, תחום: ${b.category || 'כללי'}`;
       }).join('\n');
     }
 
@@ -346,11 +457,11 @@ ${catalogContext ? `נתונים חיים שנמצאו בקטלוג עבור ה�
       } catch (geminiError: any) {
         console.error('Gemini API call failed, using smart catalog fallback:', geminiError?.message || geminiError);
         // Graceful fallback response
-        replyText = generateFallbackResponse(userPromptText, topStores, topDeals);
+        replyText = generateFallbackResponse(userPromptText, topStores, topDeals, topBilling);
       }
     } else {
       // Local or fallback mode when API key is not configured
-      replyText = generateFallbackResponse(userPromptText, topStores, topDeals);
+      replyText = generateFallbackResponse(userPromptText, topStores, topDeals, topBilling);
     }
 
     const followUps = generateFollowUps(userPromptText, topStores, topDeals);
@@ -383,6 +494,18 @@ ${catalogContext ? `נתונים חיים שנמצאו בקטלוג עבור ה�
         image: d.image,
         url: d.url,
       })),
+      recommendedBilling: topBilling.map(b => ({
+        id: b.id,
+        name: b.name,
+        discount: b.discount,
+        city: b.city,
+        address: b.address,
+        category: b.category,
+        description: b.description,
+        logo: b.logo,
+        detail_url: b.detail_url,
+        full_address: b.full_address,
+      })),
       suggestedFollowUps: followUps,
     });
   } catch (error: any) {
@@ -395,16 +518,21 @@ ${catalogContext ? `נתונים חיים שנמצאו בקטלוג עבור ה�
 });
 
 // Fallback intelligent responder when offline or API key missing
-function generateFallbackResponse(query: string, stores: StoreItem[], deals: DealItem[]): string {
-  if (stores.length === 0 && deals.length === 0) {
+function generateFallbackResponse(
+  query: string,
+  stores: StoreItem[],
+  deals: DealItem[],
+  billingStores: BillingStoreItem[] = []
+): string {
+  if (stores.length === 0 && deals.length === 0 && billingStores.length === 0) {
     return `לא מצאתי תוצאות מדויקות עבור "${query}".
-אפשר לחפש רשתות מוכרות (כמו מגה ספורט, פוקס, קרפור, סטימצקי), או קטגוריות כלליות כגון: אוכל ומסעדות, אופנה, מוצרי חשמל, נופש ומלונות.`;
+אפשר לחפש רשתות מוכרות (כמו מגה ספורט, פוקס, קרפור, סטימצקי), ערים (תל אביב, חיפה, ירושלים), או קטגוריות כלליות כגון: אוכל ומסעדות, אופנה, רופאי שיניים, מוסכים, מוצרי חשמל, נופש ומלונות.`;
   }
 
   let text = `מצאתי עבורך מספר אפשרויות מצוינות בקטלוג המועדונים עבור **"${query}"**:\n\n`;
 
   if (stores.length > 0) {
-    text += `###  רשתות וחנויות מתאימות:\n`;
+    text += `### 🏢 רשתות וחנויות מתאימות מהקטלוג הראשי:\n`;
     for (const s of stores.slice(0, 5)) {
       const clubsHeb = (s.clubs || []).map(c => c === 'behatsdaa' ? 'בהצדעה' : c === 'uniq' ? 'UNIQ' : 'Mastercard Day').join(', ');
       text += `* **${s.name}** (${s.category || 'כללי'}): הנחה של עד **${s.max_discount || 0}%** במועדון **${clubsHeb}**.\n`;
@@ -413,15 +541,25 @@ function generateFallbackResponse(query: string, stores: StoreItem[], deals: Dea
   }
 
   if (deals.length > 0) {
-    text += `###  מבצעים ושוברים רלוונטיים:\n`;
+    text += `### 🏷️ מבצעים ושוברים רלוונטיים:\n`;
     for (const d of deals.slice(0, 4)) {
       const priceText = d.price ? `ב-₪${d.price}` : '';
       const discText = d.discount_percent ? ` (${d.discount_percent}% הנחה)` : '';
       text += `* **${d.title}** ${priceText}${discText} דרך מועדון ${d.club === 'behatsdaa' ? 'בהצדעה' : d.club || 'בהצדעה'}.\n`;
     }
+    text += `\n`;
   }
 
-  text += `\n **טיפ לחיסכון מרבי:** בדוק תמיד אם ניתן להטעין ארנק רשתות בהצדעה של 20% או כרטיס נטען UNIQ של 15% לפני ביצוע ההזמנה!`;
+  if (billingStores.length > 0) {
+    text += `### 💳 עסקים וסניפים בהנחה במעמד החיוב באשראי (מתוך 10,000+ סניפים):\n`;
+    for (const b of billingStores.slice(0, 5)) {
+      const locText = b.full_address || b.city ? ` (${b.full_address || b.city})` : '';
+      text += `* **${b.name}**${locText} – **${b.discount}%** הנחה אוטומטית במעמד החיוב באשראי בהצדעה [${b.category || 'כללי'}].\n`;
+    }
+    text += `\n`;
+  }
+
+  text += `💡 **טיפ לחיסכון מרבי:** בדוק תמיד אם ניתן להטעין ארנק רשתות בהצדעה של 20% או כרטיס נטען UNIQ של 15% לפני ביצוע ההזמנה, או לשלם ישירות בכרטיס האשראי של המועדון להנחה אוטומטית במעמד החיוב!`;
   return text;
 }
 

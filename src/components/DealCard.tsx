@@ -3,6 +3,7 @@ import { UnifiedDeal } from '../types/deal';
 import { ClubBadge } from './ClubBadge';
 import { useToast } from '../context/ToastContext';
 import { useFavorites } from '../context/FavoritesContext';
+import { useSearch } from '../context/SearchContext';
 import { Copy, Ticket, Check, Star, Store, ExternalLink } from 'lucide-react';
 
 interface DealCardProps {
@@ -14,6 +15,7 @@ interface DealCardProps {
 export const DealCard: React.FC<DealCardProps> = ({ deal, onSelect, onSelectStore }) => {
   const { showToast } = useToast();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { uiDensity } = useSearch();
   const [copied, setCopied] = useState(false);
   const [imgError, setImgError] = useState(false);
 
@@ -72,7 +74,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, onSelect, onSelectStor
                 {discountText}
               </span>
             )}
-            {tag && (
+            {uiDensity === 'detailed' && tag && (
               <span className="font-semibold text-[10px] px-2 py-0.5 rounded-md bg-slate-900/80 text-white backdrop-blur-xs">
                 {tag}
               </span>
@@ -111,8 +113,8 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, onSelect, onSelectStor
           {deal.title}
         </h3>
 
-        {/* Linked Store Badge */}
-        {deal.linked_store && (
+        {/* Linked Store Badge (shown in detailed mode or if no pricing) */}
+        {deal.linked_store && (uiDensity === 'detailed' || !deal.price) && (
           <div
             onClick={(e) => {
               if (onSelectStore && deal.linked_store?.slug) {

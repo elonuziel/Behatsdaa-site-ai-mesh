@@ -5,7 +5,21 @@ export interface ChatMessage {
   timestamp: number;
   recommendedStores?: RecommendedStore[];
   recommendedDeals?: RecommendedDeal[];
+  recommendedBilling?: RecommendedBilling[];
   followUps?: string[];
+}
+
+export interface RecommendedBilling {
+  id: number | string;
+  name: string;
+  discount: number;
+  city?: string;
+  address?: string;
+  category?: string;
+  description?: string;
+  logo?: string;
+  detail_url?: string;
+  full_address?: string;
 }
 
 export interface RecommendedStore {
@@ -40,6 +54,7 @@ export interface ChatResponse {
   reply: string;
   recommendedStores?: RecommendedStore[];
   recommendedDeals?: RecommendedDeal[];
+  recommendedBilling?: RecommendedBilling[];
   suggestedFollowUps?: string[];
   error?: string;
 }

@@ -8,9 +8,18 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        hebrew: ['Rubik', 'Heebo', 'system-ui', 'sans-serif'],
+        serif: ['"Frank Ruhl Libre"', '"Cormorant Garamond"', 'Georgia', 'serif'],
+        mono: ['"Space Mono"', 'monospace'],
+        sans: ['Inter', 'Rubik', 'system-ui', 'sans-serif'],
+        hebrew: ['Inter', 'Rubik', 'system-ui', 'sans-serif'],
       },
       colors: {
+        accent: {
+          DEFAULT: '#d4af37',
+          hover: '#b89528',
+          light: '#fdf9ee',
+          dark: '#3d3210'
+        },
         slate: {
           750: '#243044',
           850: '#151e2e',

@@ -3,8 +3,9 @@ import { UnifiedStore } from '../types/store';
 import { ClubBadge } from './ClubBadge';
 import { useClubs } from '../context/ClubContext';
 import { useFavorites } from '../context/FavoritesContext';
+import { useSearch } from '../context/SearchContext';
 import { getStoreActiveDiscount } from '../hooks/useMiniSearch';
-import { ChevronLeft, CreditCard, Sparkles, Star, Tag, ShoppingBag } from 'lucide-react';
+import { ChevronLeft, ChevronDown, CreditCard, Sparkles, Star, Tag, ShoppingBag } from 'lucide-react';
 
 interface StoreCardProps {
   store: UnifiedStore;
@@ -15,7 +16,9 @@ interface StoreCardProps {
 export const StoreCard: React.FC<StoreCardProps> = ({ store, onSelect, onSelectDeal }) => {
   const { activeClubs } = useClubs();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { uiDensity } = useSearch();
   const [imgError, setImgError] = useState(false);
+  const [showDetailsLocally, setShowDetailsLocally] = useState(false);
 
   const clubs = store.clubs || ['behatsdaa'];
   const userAffiliatedClubs = clubs.filter(c => activeClubs.has(c));
@@ -33,6 +36,7 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onSelect, onSelectD
 
   const extraCardsCount = (store.cards || []).length > 3 ? (store.cards || []).length - 3 : 0;
   const isGold = activeDiscount >= 25;
+  const showFullDetails = uiDensity === 'detailed' || showDetailsLocally;
 
   return (
     <div
@@ -41,9 +45,9 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onSelect, onSelectD
     >
       {/* Top Header: Favorite Button, Logo, Badges */}
       <div>
-        <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-start justify-between gap-3 mb-2.5">
           {/* Logo container */}
-          <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 p-1.5 border border-slate-100 dark:border-slate-700/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden">
+          <div className="w-13 h-13 rounded-2xl bg-slate-50 dark:bg-slate-800 p-1.5 border border-slate-100 dark:border-slate-700/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden">
             {store.logo && !imgError ? (
               <img
                 src={store.logo}
@@ -82,7 +86,7 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onSelect, onSelectD
               )}
             </div>
 
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[140px]">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[150px]">
               {store.category || 'כללי'}
             </span>
           </div>
@@ -106,9 +110,51 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onSelect, onSelectD
           {store.name}
         </h3>
 
-        {/* Cards Breakdown List */}
-        {cardsList.length > 0 && (
-          <div className="mt-3 space-y-1 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/80">
+        {/* Clean Mode Highlights or Full Breakdown List */}
+        {!showFullDetails ? (
+          <div className="mt-2.5 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <div className="truncate flex items-center gap-1.5 text-[11px]">
+              {cardsList.length > 0 && (
+                <span>
+                  {cardsList[0].name} {cardsList[0].discount && `(${cardsList[0].discount})`}
+                </span>
+              )}
+              {store.linked_billing && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="text-purple-600 dark:text-purple-400 font-medium">
+                    {store.linked_billing.discount}% באשראי
+                  </span>
+                </>
+              )}
+              {store.linked_deals && store.linked_deals.length > 0 && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                    {store.linked_deals.length} שוברים
+                  </span>
+                </>
+              )}
+            </div>
+
+            {cardsList.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDetailsLocally(true);
+                }}
+                className="text-[10px] text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 shrink-0 flex items-center gap-0.5 cursor-pointer"
+                title="הצג פירוט כרטיסים"
+              >
+                <span>עוד</span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        ) : (
+          /* Detailed Mode Breakdown List */
+          <div className="mt-3 space-y-1 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/80 animate-in fade-in-50 duration-150">
             {cardsList.map((card, idx) => {
               const is20 = card.discount.includes('20') || card.name.includes('20%') || card.name.includes('זהב');
               const is15 = card.discount.includes('15') || card.name.includes('15%') || card.name.includes('כסף');
@@ -152,46 +198,61 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onSelect, onSelectD
                 <span>מינ׳ 100 ₪</span>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Linked Deals Banner */}
-        {store.linked_deals && store.linked_deals.length > 0 && (
-          <div
-            onClick={(e) => {
-              if (onSelectDeal && store.linked_deals?.[0]?.id) {
-                e.stopPropagation();
-                onSelectDeal(String(store.linked_deals[0].id));
-              }
-            }}
-            className="mt-2.5 flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/40 px-2.5 py-1.5 rounded-xl hover:bg-emerald-100/80 transition"
-          >
-            <span className="flex items-center gap-1 font-semibold truncate">
-              <Tag className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span className="truncate">שובר/מבצע פעיל ({store.linked_deals.length})</span>
-            </span>
-            <span className="text-[11px] underline shrink-0 mr-1">הצג</span>
-          </div>
-        )}
+            {/* Linked Deals Banner */}
+            {store.linked_deals && store.linked_deals.length > 0 && (
+              <div
+                onClick={(e) => {
+                  if (onSelectDeal && store.linked_deals?.[0]?.id) {
+                    e.stopPropagation();
+                    onSelectDeal(String(store.linked_deals[0].id));
+                  }
+                }}
+                className="mt-2 flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/40 px-2 py-1 rounded-lg hover:bg-emerald-100/80 transition"
+              >
+                <span className="flex items-center gap-1 font-semibold truncate text-[11px]">
+                  <Tag className="w-3 h-3 text-emerald-600 shrink-0" />
+                  <span className="truncate">שובר/מבצע פעיל ({store.linked_deals.length})</span>
+                </span>
+                <span className="text-[10px] underline shrink-0 mr-1">הצג</span>
+              </div>
+            )}
 
-        {/* Linked Billing Discount Banner */}
-        {store.linked_billing && (
-          <div className="mt-1.5 flex items-center justify-between text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-900/40 px-2.5 py-1.5 rounded-xl">
-            <span className="flex items-center gap-1 font-semibold truncate">
-              <CreditCard className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-              <span className="truncate">הנחה במעמד החיוב ({store.linked_billing.discount}% באשראי)</span>
-            </span>
+            {/* Linked Billing Discount Banner */}
+            {store.linked_billing && (
+              <div className="mt-1 flex items-center justify-between text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-900/40 px-2 py-1 rounded-lg">
+                <span className="flex items-center gap-1 font-semibold truncate text-[11px]">
+                  <CreditCard className="w-3 h-3 text-purple-600 shrink-0" />
+                  <span className="truncate">הנחה במעמד החיוב ({store.linked_billing.discount}% באשראי)</span>
+                </span>
+              </div>
+            )}
+
+            {uiDensity === 'clean' && showDetailsLocally && (
+              <div className="pt-1 text-center">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDetailsLocally(false);
+                  }}
+                  className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+                >
+                  הסתר פירוט ▲
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* Footer: Best Payment Advisor Link */}
-      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-        <span className="flex items-center gap-1">
+      <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+        <span className="flex items-center gap-1 text-[11px]">
           <CreditCard className="w-3.5 h-3.5 text-slate-400" />
           <span>יועץ מסלול תשלום</span>
         </span>
-        <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5 group-hover:-translate-x-1 transition-transform">
+        <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5 group-hover:-translate-x-1 transition-transform text-[11px]">
           השוואת מסלולים
           <ChevronLeft className="w-3.5 h-3.5" />
         </span>

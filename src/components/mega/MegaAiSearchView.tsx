@@ -119,7 +119,7 @@ export const MegaAiSearchView: React.FC<MegaAiSearchViewProps> = ({
           </h2>
 
           <p className="text-emerald-100 text-xs sm:text-sm leading-relaxed">
-            לא בטוח איזה מועדון מכבד, איך להטעין או איפה יש את ההנחה הכי גדולה? שאל את סייר ה-AI בכל שפה או ניסוח ותקבל השוואה מלאה וכרטיסים אינטראקטיביים ישירות מהקטלוג.
+            חיפוש חכם ביותר מ-<strong>10,000</strong> בתי עסק וסניפים, 1,041 רשתות ו-2,600+ שוברים ומבצעים של בהצדעה, UNIQ ו-Mastercard Day. שאל בכל שפה או ניסוח ותקבל המלצות מדויקות וכרטיסים אינטראקטיביים ישירות מהקטלוג.
           </p>
         </div>
       </div>
@@ -218,6 +218,7 @@ export const MegaAiSearchView: React.FC<MegaAiSearchViewProps> = ({
                       <ChatCards
                         stores={msg.recommendedStores}
                         deals={msg.recommendedDeals}
+                        billing={msg.recommendedBilling}
                         onSelectStore={slug => onSelectStore(slug)}
                         onSelectDeal={id => onSelectDeal(id)}
                       />

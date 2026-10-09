@@ -289,6 +289,7 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
                       <ChatCards
                         stores={msg.recommendedStores}
                         deals={msg.recommendedDeals}
+                        billing={msg.recommendedBilling}
                         onSelectStore={slug => {
                           closeChat();
                           onSelectStore(slug);

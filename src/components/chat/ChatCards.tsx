@@ -1,11 +1,12 @@
 import React from 'react';
-import { RecommendedStore, RecommendedDeal } from '../../types/chat';
+import { RecommendedStore, RecommendedDeal, RecommendedBilling } from '../../types/chat';
 import { ClubBadge } from '../ClubBadge';
-import { Store, Tag, CreditCard, ChevronLeft } from 'lucide-react';
+import { Store, Tag, CreditCard, ChevronLeft, MapPin, Building2, ExternalLink } from 'lucide-react';
 
 interface ChatCardsProps {
   stores?: RecommendedStore[];
   deals?: RecommendedDeal[];
+  billing?: RecommendedBilling[];
   onSelectStore: (slug: string) => void;
   onSelectDeal: (id: string) => void;
 }
@@ -13,10 +14,11 @@ interface ChatCardsProps {
 export const ChatCards: React.FC<ChatCardsProps> = ({
   stores = [],
   deals = [],
+  billing = [],
   onSelectStore,
   onSelectDeal,
 }) => {
-  if (stores.length === 0 && deals.length === 0) return null;
+  if (stores.length === 0 && deals.length === 0 && billing.length === 0) return null;
 
   return (
     <div className="mt-3.5 space-y-3.5">
@@ -158,6 +160,85 @@ export const ChatCards: React.FC<ChatCardsProps> = ({
                 <div className="mt-2 pt-1.5 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[10px] font-semibold text-amber-600 dark:text-amber-400">
                   <span>פרטי שובר ותנאי מימוש</span>
                   <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recommended 10,000+ Billing Stores Section */}
+      {billing.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+            <div className="flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-blue-500" />
+              <span>עסקים וסניפים בהנחה במעמד החיוב באשראי ({billing.length}):</span>
+            </div>
+            <span className="text-[10px] font-semibold text-slate-400">
+              מתוך 10,000+ עסקים
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {billing.map(store => (
+              <div
+                key={store.id}
+                className="group bg-white dark:bg-slate-800/90 rounded-xl p-2.5 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs hover:shadow-md hover:border-blue-500/70 transition flex flex-col justify-between"
+              >
+                <div className="flex items-start gap-2.5">
+                  <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200/40 dark:border-blue-800/40 flex items-center justify-center shrink-0 text-blue-600 dark:text-blue-400 font-bold text-xs">
+                    {store.logo ? (
+                      <img
+                        src={store.logo}
+                        alt={store.name}
+                        className="w-full h-full object-contain p-0.5 rounded-lg"
+                        onError={(e: any) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Building2 className="w-4 h-4" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                        {store.name}
+                      </h4>
+                      <span className="shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-300/40">
+                        {store.discount}% בהצדעה
+                      </span>
+                    </div>
+
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                      {store.category || 'כללי'}
+                    </p>
+
+                    {(store.city || store.address || store.full_address) && (
+                      <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                        <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="truncate">{store.full_address || `${store.address || ''} ${store.city || ''}`}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-2 pt-1.5 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                  <span>הנחה ישירה בחשבון האשראי</span>
+                  {store.detail_url && (
+                    <a
+                      href={store.detail_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-0.5 hover:underline"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <span>פרטי בית עסק</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  )}
                 </div>
               </div>
             ))}

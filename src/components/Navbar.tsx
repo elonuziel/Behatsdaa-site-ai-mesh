@@ -24,7 +24,8 @@ import {
   Clock,
   Zap,
   Flame,
-  Bot
+  Bot,
+  SlidersHorizontal
 } from 'lucide-react';
 
 const POPULAR_SEARCHES = [
@@ -47,7 +48,7 @@ interface SubTabItem {
 }
 
 export const Navbar: React.FC = () => {
-  const { query, setQuery, primaryTab, setPrimaryTab, subTab, setSubTab } = useSearch();
+  const { query, setQuery, primaryTab, setPrimaryTab, subTab, setSubTab, uiDensity, toggleUiDensity } = useSearch();
   const { theme, toggleTheme } = useTheme();
   const { favoritesCount } = useFavorites();
   const { openChat } = useChat();
@@ -321,27 +322,59 @@ export const Navbar: React.FC = () => {
             )}
           </div>
 
-          {/* Controls: AI Assistant, Theme Toggle & Quick Favorites */}
-          <div className="flex items-center gap-2">
+          {/* Controls: Density Mode Toggle, AI Assistant, Favorites & Theme Toggle */}
+          <div className="flex items-center gap-1.5 md:gap-2">
+            {/* Clean vs Detailed Mode Toggle */}
+            <button
+              type="button"
+              onClick={toggleUiDensity}
+              title={
+                uiDensity === 'clean'
+                  ? 'מצב נוכחי: תצוגה נקייה וממוקדת. לחץ כדי להציג את כל הסרגלים, המסננים והתגים המלאים'
+                  : 'מצב נוכחי: תצוגה מפורטת ומלאה. לחץ כדי לחזור לתצוגה נקייה, מקצועית וממוקדת'
+              }
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs cursor-pointer ${
+                uiDensity === 'clean'
+                  ? 'bg-emerald-50/80 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                  : 'bg-indigo-50/80 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+              }`}
+            >
+              {uiDensity === 'clean' ? (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span className="hidden sm:inline">תצוגה נקייה</span>
+                  <span className="sm:hidden">נקייה</span>
+                </>
+              ) : (
+                <>
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span className="hidden sm:inline">תצוגה מלאה</span>
+                  <span className="sm:hidden">הכל</span>
+                </>
+              )}
+            </button>
+
             <button
               onClick={() => openChat(query)}
               title="סייר ההטבות והחיפוש החופשי עם Gemini"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-gradient-to-r from-indigo-50 to-emerald-50 dark:from-indigo-950/60 dark:to-emerald-950/60 text-indigo-700 dark:text-indigo-300 hover:from-indigo-100 hover:to-emerald-100 dark:hover:from-indigo-900/60 dark:hover:to-emerald-900/60 text-xs font-bold transition shadow-2xs cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold transition shadow-2xs cursor-pointer"
             >
               <Bot className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
               <span className="hidden sm:inline">סייר AI</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-indigo-600 text-white">
-                חדש
-              </span>
+              {uiDensity === 'detailed' && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-indigo-600 text-white">
+                  חדש
+                </span>
+              )}
             </button>
 
             <button
               onClick={() => setPrimaryTab('favorites')}
               title="מועדפים"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs cursor-pointer ${
                 primaryTab === 'favorites'
                   ? 'bg-amber-500 text-white border-amber-600 shadow-amber-500/20'
-                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'
+                  : 'bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
@@ -360,7 +393,7 @@ export const Navbar: React.FC = () => {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition border border-transparent hover:border-slate-200 dark:border-slate-700"
+              className="p-1.5 md:p-2 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition border border-transparent hover:border-slate-200 dark:border-slate-700"
               aria-label={theme === 'dark' ? 'עבור למצב בהיר' : 'עבור למצב כהה'}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
@@ -370,22 +403,22 @@ export const Navbar: React.FC = () => {
 
         {/* Middle Row: Primary Club Tabs */}
         <div className="py-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2 overflow-x-auto">
-          <nav className="flex items-center gap-2 overflow-x-auto py-0.5">
+          <nav className="flex items-center gap-1.5 md:gap-2 overflow-x-auto py-0.5 scrollbar-none">
             {primaryTabs.map(tab => {
               const isActive = primaryTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setPrimaryTab(tab.id)}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition cursor-pointer border ${
+                  className={`flex items-center gap-1.5 md:gap-2 px-3 py-1.5 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition cursor-pointer border ${
                     isActive
                       ? tab.activeClasses
-                      : 'bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200/60 dark:border-slate-750 hover:bg-slate-200/80 dark:hover:bg-slate-700/80'
+                      : 'bg-slate-100/70 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300 border-slate-200/60 dark:border-slate-750 hover:bg-slate-200/80 dark:hover:bg-slate-700/80'
                   }`}
                 >
                   {tab.icon}
                   <span>{tab.label}</span>
-                  {tab.badge && (
+                  {uiDensity === 'detailed' && tab.badge && (
                     <span
                       className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold ${
                         isActive
@@ -402,16 +435,16 @@ export const Navbar: React.FC = () => {
           </nav>
         </div>
 
-        {/* Bottom Row: Contextual Sub-Tabs */}
-        {subTabs.length > 0 && (
-          <div className="py-2 border-t border-slate-100 dark:border-slate-800/50 flex items-center gap-1.5 overflow-x-auto">
+        {/* Bottom Row: Contextual Sub-Tabs (Shown in Detailed Mode or when primary tab is not mega) */}
+        {uiDensity === 'detailed' && subTabs.length > 0 && (
+          <div className="py-1.5 border-t border-slate-100 dark:border-slate-800/50 flex items-center gap-1 md:gap-1.5 overflow-x-auto scrollbar-none">
             {subTabs.map(sub => {
               const isActive = subTab === sub.id;
               return (
                 <button
                   key={sub.id}
                   onClick={() => setSubTab(sub.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                     isActive
                       ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xs font-bold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'

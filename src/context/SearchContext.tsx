@@ -12,6 +12,7 @@ export type SubTab = MegaSubTab | BehatsdaaSubTab | UniqSubTab | MastercardSubTa
 export type MainTab = string; // For backward compatibility
 export type SortOption = 'discount' | 'name' | 'relevant';
 export type ViewMode = 'grid' | 'table';
+export type UiDensity = 'clean' | 'detailed';
 
 export const DEFAULT_SUB_TABS: Record<PrimaryTab, string> = {
   mega: 'all',
@@ -32,6 +33,9 @@ interface SearchContextType {
   setActiveTab: (tab: string) => void;
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
+  uiDensity: UiDensity;
+  setUiDensity: (density: UiDensity) => void;
+  toggleUiDensity: () => void;
   selectedCategory: string;
   setSelectedCategory: (cat: string) => void;
   selectedCity: string;
@@ -61,9 +65,27 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return saved === 'table' ? 'table' : 'grid';
   });
 
+  const [uiDensity, setUiDensityState] = useState<UiDensity>(() => {
+    const saved = localStorage.getItem('app_ui_density');
+    return saved === 'detailed' ? 'detailed' : 'clean';
+  });
+
   const setViewMode = (mode: ViewMode) => {
     setViewModeState(mode);
     localStorage.setItem('app_view_mode', mode);
+  };
+
+  const setUiDensity = (density: UiDensity) => {
+    setUiDensityState(density);
+    localStorage.setItem('app_ui_density', density);
+  };
+
+  const toggleUiDensity = () => {
+    setUiDensityState(prev => {
+      const next = prev === 'clean' ? 'detailed' : 'clean';
+      localStorage.setItem('app_ui_density', next);
+      return next;
+    });
   };
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedCity, setSelectedCity] = useState<string>('all');
@@ -167,6 +189,9 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setActiveTab: setSubTab,
         viewMode,
         setViewMode,
+        uiDensity,
+        setUiDensity,
+        toggleUiDensity,
         selectedCategory,
         setSelectedCategory,
         selectedCity,

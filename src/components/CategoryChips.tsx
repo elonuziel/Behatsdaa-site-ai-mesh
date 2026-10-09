@@ -11,13 +11,15 @@ interface CategoryChipsProps {
   selectedCategory: string;
   onSelectCategory: (cat: string) => void;
   totalCount: number;
+  compact?: boolean;
 }
 
 export const CategoryChips: React.FC<CategoryChipsProps> = ({
   categories,
   selectedCategory,
   onSelectCategory,
-  totalCount
+  totalCount,
+  compact = false
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -48,22 +50,30 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({
         {/* All Categories Chip */}
         <button
           onClick={() => onSelectCategory('all')}
-          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-medium whitespace-nowrap transition-all shadow-2xs shrink-0 ${
+          className={`flex items-center gap-1.5 ${
+            compact ? 'px-3 py-1 text-xs rounded-xl' : 'px-3.5 py-1.5 rounded-full'
+          } font-medium whitespace-nowrap transition-all shadow-2xs shrink-0 ${
             selectedCategory === 'all'
               ? 'bg-emerald-600 text-white font-bold shadow-emerald-600/20'
-              : 'bg-white dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700/80'
+              : 'bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800'
           }`}
         >
           <span>הכל</span>
-          <span
-            className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-              selectedCategory === 'all'
-                ? 'bg-emerald-700/80 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-            }`}
-          >
-            {totalCount.toLocaleString()}
-          </span>
+          {compact ? (
+            <span className={`text-[11px] ${selectedCategory === 'all' ? 'text-emerald-100' : 'text-slate-400'}`}>
+              ({totalCount.toLocaleString()})
+            </span>
+          ) : (
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                selectedCategory === 'all'
+                  ? 'bg-emerald-700/80 text-white'
+                  : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              {totalCount.toLocaleString()}
+            </span>
+          )}
         </button>
 
         {/* Individual Category Chips */}
@@ -73,22 +83,30 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({
             <button
               key={cat.name}
               onClick={() => onSelectCategory(cat.name)}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-medium whitespace-nowrap transition-all shadow-2xs shrink-0 ${
+              className={`flex items-center gap-1.5 ${
+                compact ? 'px-2.5 py-1 text-xs rounded-xl' : 'px-3.5 py-1.5 rounded-full'
+              } font-medium whitespace-nowrap transition-all shadow-2xs shrink-0 ${
                 isSelected
                   ? 'bg-emerald-600 text-white font-bold shadow-emerald-600/20'
-                  : 'bg-white dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700/80'
+                  : 'bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800'
               }`}
             >
               <span>{cat.name}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  isSelected
-                    ? 'bg-emerald-700/80 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-                }`}
-              >
-                {cat.count}
-              </span>
+              {compact ? (
+                <span className={`text-[11px] ${isSelected ? 'text-emerald-100' : 'text-slate-400'}`}>
+                  ({cat.count})
+                </span>
+              ) : (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isSelected
+                      ? 'bg-emerald-700/80 text-white'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  {cat.count}
+                </span>
+              )}
             </button>
           );
         })}
