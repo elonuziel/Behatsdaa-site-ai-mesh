@@ -4,6 +4,7 @@ import { App } from './App';
 import { ClubProvider } from './context/ClubContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SearchProvider } from './context/SearchContext';
+import { FavoritesProvider } from './context/FavoritesContext';
 import { ToastProvider } from './context/ToastContext';
 import './index.css';
 
@@ -12,9 +13,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <ClubProvider>
         <SearchProvider>
-          <ToastProvider>
-            <App />
-          </ToastProvider>
+          <FavoritesProvider>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </FavoritesProvider>
         </SearchProvider>
       </ClubProvider>
     </ThemeProvider>

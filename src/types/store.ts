@@ -55,7 +55,7 @@ export interface UnifiedStore {
   logo: string | null;
   website: string | null;
   conditions: string;
-  cards: (string | { card_id?: string; card_name?: string })[];
+  cards: (string | { card_id?: string; card_name?: string; discount?: string; discount_numeric?: number; notes?: string })[];
   discounts: CardDiscount[];
   payment_options: PaymentOption[];
   linked_deals?: StoreDealSummary[];
