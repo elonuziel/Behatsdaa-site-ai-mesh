@@ -90,6 +90,9 @@ assert(storesWithBilling.length > 0, `Stores with pre-linked billing exist (foun
 const billingWithStores = billingData.stores.filter(b => b.linked_store);
 assert(billingWithStores.length > 0, `Billing businesses with linked stores exist (found ${billingWithStores.length})`);
 
+const billingIndexData = JSON.parse(fs.readFileSync(path.join(publicDataDir, 'billing-index.json'), 'utf-8'));
+assert(billingIndexData.stores.every(b => Boolean(b.full_address)), 'All billing stores in billing-index.json have pre-computed full_address');
+
 // 4. Wallets Terms & Caps Metadata Verification
 console.log('\n💳 4. Testing Wallets Terms, Caps & Store Count Metadata:');
 const walletsInfoPath = path.join(publicDataDir, 'wallets_info.json');

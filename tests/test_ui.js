@@ -521,6 +521,14 @@ async function runTests() {
   const billingModalTitle = document.getElementById('billing-modal-title').textContent;
   assert.ok(billingModalTitle.length > 0, 'Billing modal title should be populated');
 
+  const billingModalAddressText = document.getElementById('billing-modal-address').textContent;
+  assert.ok(billingModalAddressText.length > 0, 'Billing modal address should be populated with full address');
+
+  const gmapsLink = document.getElementById('billing-modal-gmaps-link');
+  const wazeLink = document.getElementById('billing-modal-waze-link');
+  assert.ok(gmapsLink, 'Google Maps navigation link element exists');
+  assert.ok(wazeLink, 'Waze navigation link element exists');
+
   const billingModalDiscount = document.getElementById('billing-modal-discount').textContent;
   assert.ok(billingModalDiscount.includes('%'), 'Billing modal discount should include %');
 

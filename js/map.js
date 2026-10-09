@@ -6,6 +6,7 @@
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import * as markerClustererPkg from '@googlemaps/markerclusterer';
 const MarkerClusterer = markerClustererPkg.MarkerClusterer || (markerClustererPkg['default'] && markerClustererPkg['default'].MarkerClusterer) || markerClustererPkg['default'];
+import { formatFullAddress } from './utils.js';
 import { getStoreCoordinates, loadGeocodedLocations } from './israel_cities.js';
 
 // Configuration
@@ -380,16 +381,8 @@ export async function updateMapMarkers(stores, options = {}) {
     hasValidCoords = true;
 
     // Format exact address cleanly
-    let exactAddress = '';
-    if (store.address && store.city) {
-      if (store.address.includes(store.city)) {
-        exactAddress = store.address;
-      } else {
-        exactAddress = `${store.address}, ${store.city}`;
-      }
-    } else {
-      exactAddress = store.address || store.city || '';
-    }
+    let exactAddress = store.full_address || formatFullAddress(store);
+    if (exactAddress === 'Online / כל הארץ') exactAddress = '';
 
     // Custom HTML pin marker showing Store Name, Exact Address & Discount %
     const badgeEl = document.createElement('div');

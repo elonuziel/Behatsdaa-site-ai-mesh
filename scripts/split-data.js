@@ -46,6 +46,30 @@ const allBilling = billingRaw.stores || [];
 
 console.log(`📊 Raw counts: ${allStores.length} Stores, ${allDeals.length} Deals, ${allBilling.length} Billing businesses.`);
 
+function formatFullAddress(address, city) {
+  let cleanAddr = address ? String(address).trim().replace(/[\s,]+$/, "") : "";
+  let cleanCity = city ? String(city).trim() : "";
+
+  const invalidPlaceholders = ["0", "לקוח אונליין", "city2", "null", "none", "-", "ללא", "כל הארץ"];
+
+  if (invalidPlaceholders.includes(cleanAddr.toLowerCase())) {
+    cleanAddr = "";
+  }
+  if (invalidPlaceholders.includes(cleanCity.toLowerCase()) || cleanCity.toLowerCase() === "online") {
+    cleanCity = "";
+  }
+
+  if (cleanAddr && cleanCity) {
+    if (cleanAddr.toLowerCase().includes(cleanCity.toLowerCase())) {
+      return cleanAddr;
+    }
+    return `${cleanAddr}, ${cleanCity}`;
+  }
+  if (cleanAddr) return cleanAddr;
+  if (cleanCity) return cleanCity;
+  return "Online / כל הארץ";
+}
+
 function escapeCsv(val) {
   if (val === null || val === undefined) return '';
   const str = String(val);
@@ -186,6 +210,7 @@ allStores.forEach(s => {
 // Index billing stores
 const billingByCore = new Map();
 allBilling.forEach(b => {
+  b.full_address = b.full_address || formatFullAddress(b.address, b.city);
   b.slug = createSlug(b.name, b.id);
   const core = getCoreBrand(b.name);
   b._core = core;
@@ -446,6 +471,7 @@ const billingIndexStores = allBilling.map(b => {
     category: b.category || 'כללי',
     discount: b.discount || 0,
     address: b.address || '',
+    full_address: b.full_address || formatFullAddress(b.address, b.city),
     lat: b.lat || null,
     lng: b.lng || null,
     store_id: b.linked_store ? b.linked_store.id : null,

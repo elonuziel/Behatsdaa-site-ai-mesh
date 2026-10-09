@@ -3,7 +3,7 @@
  */
 
 import { state } from './state.js';
-import { normalizeHebrew, formatILS } from './utils.js';
+import { normalizeHebrew, formatILS, formatFullAddress } from './utils.js';
 import { searchBilling } from './search.js';
 
 export function populateBillingCitiesFilter(billingCitySelect) {
@@ -325,6 +325,7 @@ export function createBillingTableRow(store) {
   tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-700/40 transition cursor-pointer billing-table-row';
   tr.dataset.billingId = store.id;
 
+  const fullAddr = store.full_address || formatFullAddress(store);
   const cityLabel = store.city && store.city.toLowerCase() !== 'online' ? store.city : 'Online / כל הארץ';
 
   const logoHtml = store.logo ? `
@@ -365,7 +366,7 @@ export function createBillingTableRow(store) {
         </div>
         <div class="min-w-0">
           <div class="font-bold text-slate-900 dark:text-white truncate max-w-xs md:max-w-sm" title="${store.name}">${store.name}</div>
-          <div class="text-xs text-slate-500 dark:text-slate-400 truncate max-w-xs">${store.address || cityLabel}</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 truncate max-w-xs">${fullAddr}</div>
         </div>
       </div>
     </td>
@@ -406,11 +407,27 @@ export function openBillingModal(store, elements, callbacks) {
   elements.billingModalCategory.textContent = store.category || 'כללי';
   elements.billingModalCityBadge.textContent = store.city === 'online' ? 'Online / אונליין' : (store.city || 'סניפים');
 
-  if (store.address) {
-    elements.billingModalAddressWrapper.classList.remove('hidden');
-    elements.billingModalAddress.textContent = store.address;
+  const fullAddr = store.full_address || formatFullAddress(store);
+  const isPhysical = fullAddr && fullAddr !== 'Online / כל הארץ';
+
+  if (isPhysical) {
+    if (elements.billingModalAddressWrapper) elements.billingModalAddressWrapper.classList.remove('hidden');
+    if (elements.billingModalAddress) elements.billingModalAddress.textContent = fullAddr;
+
+    const navSearch = encodeURIComponent(`${store.name} ${fullAddr}`);
+    if (elements.billingModalGmapsLink) {
+      elements.billingModalGmapsLink.href = `https://www.google.com/maps/search/?api=1&query=${navSearch}`;
+    }
+    if (elements.billingModalWazeLink) {
+      elements.billingModalWazeLink.href = `https://waze.com/ul?q=${navSearch}&navigate=yes`;
+    }
+    if (elements.billingModalNavLinks) {
+      elements.billingModalNavLinks.classList.remove('hidden');
+    }
   } else {
-    elements.billingModalAddressWrapper.classList.add('hidden');
+    if (elements.billingModalAddressWrapper) elements.billingModalAddressWrapper.classList.remove('hidden');
+    if (elements.billingModalAddress) elements.billingModalAddress.textContent = 'Online / כל הארץ';
+    if (elements.billingModalNavLinks) elements.billingModalNavLinks.classList.add('hidden');
   }
 
   elements.billingModalDiscount.textContent = `${store.discount}%`;
