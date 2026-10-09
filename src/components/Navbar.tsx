@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useSearch, PrimaryTab } from '../context/SearchContext';
 import { useTheme } from '../context/ThemeContext';
 import { useFavorites } from '../context/FavoritesContext';
+import { useChat } from '../context/ChatContext';
 import { expandSmartTerms } from '../hooks/useMiniSearch';
 import {
   Search,
@@ -22,7 +23,8 @@ import {
   Receipt,
   Clock,
   Zap,
-  Flame
+  Flame,
+  Bot
 } from 'lucide-react';
 
 const POPULAR_SEARCHES = [
@@ -48,6 +50,7 @@ export const Navbar: React.FC = () => {
   const { query, setQuery, primaryTab, setPrimaryTab, subTab, setSubTab } = useSearch();
   const { theme, toggleTheme } = useTheme();
   const { favoritesCount } = useFavorites();
+  const { openChat } = useChat();
   const [isFocused, setIsFocused] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
@@ -122,6 +125,7 @@ export const Navbar: React.FC = () => {
       case 'mega':
         return [
           { id: 'all', label: 'חיפוש אוניברסלי', icon: <Sparkles className="w-3.5 h-3.5" /> },
+          { id: 'ai-search', label: 'סייר AI וחיפוש חופשי', icon: <Bot className="w-3.5 h-3.5 text-indigo-500" />, badge: 'Gemini' },
           { id: 'comparison', label: 'השוואת מועדונים (מטריקס)', icon: <Scale className="w-3.5 h-3.5 text-emerald-500" /> },
           { id: 'map', label: 'מפת כל הסניפים', icon: <MapPin className="w-3.5 h-3.5" /> },
           { id: 'top-deals', label: 'מבצעי שיא', icon: <Flame className="w-3.5 h-3.5 text-amber-500" /> }
@@ -219,6 +223,38 @@ export const Navbar: React.FC = () => {
             {/* Smart Search Suggestions Popover */}
             {isFocused && (
               <div className="absolute top-full mt-2 left-0 right-0 z-50 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl p-3 space-y-3 animate-in fade-in-50 duration-150">
+                {/* AI Search Quick Direct Action */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    openChat(query);
+                    setIsFocused(false);
+                  }}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-indigo-50/90 via-emerald-50/80 to-teal-50/90 dark:from-indigo-950/50 dark:via-emerald-950/40 dark:to-teal-950/50 border border-indigo-200/80 dark:border-indigo-800/80 text-right cursor-pointer hover:shadow-xs hover:border-indigo-400 transition"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                      <Bot className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+                        <span>סייר ההטבות AI (חיפוש חופשי)</span>
+                        {query ? (
+                          <span className="text-emerald-700 dark:text-emerald-400 font-extrabold truncate max-w-[140px]">
+                            : "{query}"
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                        {query
+                          ? 'קבל תשובה מפורטת והמלצות מותאמות אישית'
+                          : 'שאל כל שאלה על רשתות, שוברים והנחות בכל המועדונים'}
+                      </div>
+                    </div>
+                  </div>
+                  <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                </button>
+
                 {!query.trim() ? (
                   <div>
                     <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 mb-2 flex items-center gap-1.5">
@@ -285,8 +321,20 @@ export const Navbar: React.FC = () => {
             )}
           </div>
 
-          {/* Controls: Theme Toggle & Quick Favorites */}
+          {/* Controls: AI Assistant, Theme Toggle & Quick Favorites */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => openChat(query)}
+              title="סייר ההטבות והחיפוש החופשי עם Gemini"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-gradient-to-r from-indigo-50 to-emerald-50 dark:from-indigo-950/60 dark:to-emerald-950/60 text-indigo-700 dark:text-indigo-300 hover:from-indigo-100 hover:to-emerald-100 dark:hover:from-indigo-900/60 dark:hover:to-emerald-900/60 text-xs font-bold transition shadow-2xs cursor-pointer"
+            >
+              <Bot className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span className="hidden sm:inline">סייר AI</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-indigo-600 text-white">
+                חדש
+              </span>
+            </button>
+
             <button
               onClick={() => setPrimaryTab('favorites')}
               title="מועדפים"

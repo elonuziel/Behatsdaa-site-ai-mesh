@@ -6,6 +6,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { SearchProvider } from './context/SearchContext';
 import { FavoritesProvider } from './context/FavoritesContext';
 import { ToastProvider } from './context/ToastContext';
+import { ChatProvider } from './context/ChatContext';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -15,7 +16,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <SearchProvider>
           <FavoritesProvider>
             <ToastProvider>
-              <App />
+              <ChatProvider>
+                <App />
+              </ChatProvider>
             </ToastProvider>
           </FavoritesProvider>
         </SearchProvider>

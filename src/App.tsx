@@ -27,13 +27,18 @@ import { MastercardTermsView } from './components/mastercard/MastercardTermsView
 // Mega Search Hub Sub-Tab Views
 import { MegaComparisonView } from './components/mega/MegaComparisonView';
 import { MegaTopDealsView } from './components/mega/MegaTopDealsView';
+import { MegaAiSearchView } from './components/mega/MegaAiSearchView';
 
 // Favorites View
 import { FavoritesView } from './components/favorites/FavoritesView';
 
+// AI Chat Assistant
+import { AiChatModal } from './components/chat/AiChatModal';
+
 import { useSearch } from './context/SearchContext';
 import { useClubs } from './context/ClubContext';
 import { useFavorites } from './context/FavoritesContext';
+import { useChat } from './context/ChatContext';
 import { useMiniSearch, normalizeHebrew, expandSmartTerms } from './hooks/useMiniSearch';
 import {
   Store,
@@ -45,7 +50,8 @@ import {
   Frown,
   Search,
   X,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Bot
 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -74,6 +80,7 @@ export const App: React.FC = () => {
 
   const { activeClubs } = useClubs();
   const { isFavorite, showFavoritesOnly } = useFavorites();
+  const { openChat } = useChat();
 
   const {
     isLoading,
@@ -205,6 +212,13 @@ export const App: React.FC = () => {
         {/* ========================================================================= */}
         {primaryTab === 'mega' && (
           <>
+            {subTab === 'ai-search' && (
+              <MegaAiSearchView
+                onSelectStore={slug => setSelectedStoreSlug(slug)}
+                onSelectDeal={id => setSelectedDealId(id)}
+              />
+            )}
+
             {subTab === 'comparison' && (
               <MegaComparisonView
                 stores={allStores}
@@ -356,6 +370,18 @@ export const App: React.FC = () => {
                     >
                       <span>📝 חיפוש בתיאור ובתקנון</span>
                       <span className={`w-2 h-2 rounded-full ${searchInDesc ? 'bg-white' : 'bg-slate-400'}`} />
+                    </button>
+
+                    {/* Natural Language AI Search Quick Button */}
+                    <button
+                      type="button"
+                      onClick={() => openChat(query)}
+                      title="חיפוש טבעי בעזרת Gemini AI - שאל כל שאלה וקבל המלצות מדויקות"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border bg-gradient-to-r from-indigo-50 to-emerald-50 dark:from-indigo-950/60 dark:to-emerald-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:border-indigo-400 shadow-2xs"
+                    >
+                      <Bot className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                      <span>🤖 שאל את סייר ה-AI (שפה חופשית)</span>
+                      <span className="text-[10px] px-1 py-0.2 rounded-full font-bold bg-indigo-600 text-white">Gemini</span>
                     </button>
                   </div>
                 </div>
@@ -865,6 +891,30 @@ export const App: React.FC = () => {
           }}
         />
       )}
+
+      {/* Floating AI Assistant Trigger Button */}
+      <div className="fixed bottom-5 left-5 z-40">
+        <button
+          onClick={() => openChat(query)}
+          className="group flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-600/30 hover:shadow-emerald-600/50 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/20"
+          aria-label="פתח סייר הטבות AI"
+        >
+          <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+            <Bot className="w-4 h-4 text-white" />
+          </div>
+          <span className="font-extrabold tracking-wide">סייר AI</span>
+          <span className="hidden sm:inline text-[11px] font-normal text-emerald-100">
+            · חיפוש חופשי
+          </span>
+          <span className="w-2 h-2 rounded-full bg-amber-300 animate-pulse" />
+        </button>
+      </div>
+
+      {/* AI Chat Modal Dialog */}
+      <AiChatModal
+        onSelectStore={slug => setSelectedStoreSlug(slug)}
+        onSelectDeal={id => setSelectedDealId(id)}
+      />
     </div>
   );
 };
