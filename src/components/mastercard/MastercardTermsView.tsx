@@ -122,6 +122,41 @@ export const MastercardTermsView: React.FC = () => {
           </span>
         </div>
       </div>
+
+      {/* External Catalog Source Footer */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-500 shadow-2xs">
+        <div>
+          קטלוג Mastercard Day מבוסס על פרויקט הקוד הפתוח{' '}
+          <a
+            href="https://github.com/elonuziel/mastercarday"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-red-600 dark:text-red-400 hover:underline"
+          >
+            elonuziel/mastercarday
+          </a>
+        </div>
+        <div className="flex items-center gap-3">
+          <a
+            href="https://elonuziel.github.io/mastercarday/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-slate-700 dark:text-slate-300 hover:text-red-600 flex items-center gap-1"
+          >
+            <span>אתר הפרויקט העצמאי</span>
+            ↗
+          </a>
+          <a
+            href="https://github.com/elonuziel/mastercarday"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-slate-700 dark:text-slate-300 hover:text-red-600 flex items-center gap-1"
+          >
+            <span>GitHub</span>
+            ↗
+          </a>
+        </div>
+      </div>
     </div>
   );
 };

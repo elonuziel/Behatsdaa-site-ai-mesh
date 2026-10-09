@@ -42,6 +42,12 @@ interface SearchContextType {
   setSelectedStoreSlug: (slug: string | null) => void;
   selectedDealId: string | null;
   setSelectedDealId: (id: string | null) => void;
+  smartSearch: boolean;
+  setSmartSearch: (val: boolean) => void;
+  fuzzySearch: boolean;
+  setFuzzySearch: (val: boolean) => void;
+  searchInDesc: boolean;
+  setSearchInDesc: (val: boolean) => void;
 }
 
 const SearchContext = createContext<SearchContextType | undefined>(undefined);
@@ -56,6 +62,35 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [sortBy, setSortBy] = useState<SortOption>('discount');
   const [selectedStoreSlug, setSelectedStoreSlug] = useState<string | null>(null);
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
+
+  // Search enhancement options
+  const [smartSearch, setSmartSearchState] = useState<boolean>(() => {
+    const saved = localStorage.getItem('mc_search_smart');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [fuzzySearch, setFuzzySearchState] = useState<boolean>(() => {
+    const saved = localStorage.getItem('mc_search_fuzzy');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [searchInDesc, setSearchInDescState] = useState<boolean>(() => {
+    const saved = localStorage.getItem('mc_search_indesc');
+    return saved !== null ? saved === 'true' : false;
+  });
+
+  const setSmartSearch = (val: boolean) => {
+    setSmartSearchState(val);
+    localStorage.setItem('mc_search_smart', String(val));
+  };
+
+  const setFuzzySearch = (val: boolean) => {
+    setFuzzySearchState(val);
+    localStorage.setItem('mc_search_fuzzy', String(val));
+  };
+
+  const setSearchInDesc = (val: boolean) => {
+    setSearchInDescState(val);
+    localStorage.setItem('mc_search_indesc', String(val));
+  };
 
   // Sync initial hash if present
   useEffect(() => {
@@ -133,7 +168,13 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         selectedStoreSlug,
         setSelectedStoreSlug,
         selectedDealId,
-        setSelectedDealId
+        setSelectedDealId,
+        smartSearch,
+        setSmartSearch,
+        fuzzySearch,
+        setFuzzySearch,
+        searchInDesc,
+        setSearchInDesc
       }}
     >
       {children}

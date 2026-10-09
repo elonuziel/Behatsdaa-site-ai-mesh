@@ -13,6 +13,25 @@ const GOOGLE_MAPS_API_KEY =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY) ||
   'AIzaSyDgwgC8GjCKP9_vGTluGFiECIq15Nz9BeQ';
 
+const darkMapStyles = [
+  { elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#0f172a' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#cbd5e1' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#142928' }] },
+  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#6ee7b7' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#334155' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1e293b' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#cbd5e1' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#475569' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#1e293b' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#f8fafc' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] }
+];
+
 export function useGoogleMap(
   containerRef: React.RefObject<HTMLDivElement | null>,
   stores: BillingStore[],
@@ -47,15 +66,27 @@ export function useGoogleMap(
 
         const israelCenter = { lat: 31.95, lng: 34.9 };
 
+        const isDark = document.documentElement.classList.contains('dark');
+
         const map = new mapsLib.Map(containerRef.current, {
           center: israelCenter,
           zoom: 8,
           mapId: 'DEMO_MAP_ID',
+          styles: isDark ? darkMapStyles : [],
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: true,
           gestureHandling: 'greedy'
         });
+
+        // Observe theme changes on documentElement
+        const observer = new MutationObserver(() => {
+          const currentlyDark = document.documentElement.classList.contains('dark');
+          if (map) {
+            map.setOptions({ styles: currentlyDark ? darkMapStyles : [] });
+          }
+        });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
         mapRef.current = map;
         infoWindowRef.current = new mapsLib.InfoWindow();
@@ -115,11 +146,12 @@ export function useGoogleMap(
 
         marker.addListener('click', () => {
           if (infoWindowRef.current) {
+            const isDark = document.documentElement.classList.contains('dark');
             const content = `
-              <div dir="rtl" style="font-family: system-ui, sans-serif; padding: 6px; max-width: 240px; text-align: right;">
-                <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px; color: #0f172a;">${store.name}</div>
-                <div style="font-size: 12px; color: #475569; margin-bottom: 6px;">${store.full_address || store.address || store.city || ''}</div>
-                ${store.discount ? `<div style="display: inline-block; font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 9999px; background-color: #d1fae5; color: #065f46;">${store.discount}% הנחה במעמד החיוב</div>` : ''}
+              <div dir="rtl" style="font-family: system-ui, sans-serif; padding: 6px; max-width: 240px; text-align: right; background-color: ${isDark ? '#0f172a' : '#ffffff'}; color: ${isDark ? '#f8fafc' : '#0f172a'}; border-radius: 8px;">
+                <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px; color: ${isDark ? '#f8fafc' : '#0f172a'};">${store.name}</div>
+                <div style="font-size: 12px; color: ${isDark ? '#94a3b8' : '#475569'}; margin-bottom: 6px;">${store.full_address || store.address || store.city || ''}</div>
+                ${store.discount ? `<div style="display: inline-block; font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 9999px; background-color: ${isDark ? '#064e3b' : '#d1fae5'}; color: ${isDark ? '#a7f3d0' : '#065f46'};">${store.discount}% הנחה במעמד החיוב</div>` : ''}
               </div>
             `;
             infoWindowRef.current.setContent(content);

@@ -11,6 +11,10 @@ export default {
         hebrew: ['Rubik', 'Heebo', 'system-ui', 'sans-serif'],
       },
       colors: {
+        slate: {
+          750: '#243044',
+          850: '#151e2e',
+        },
         behatsdaa: {
           50: '#ecfdf5',
           100: '#d1fae5',
@@ -48,6 +52,14 @@ export default {
           700: '#c2410c',
           red: '#eb001b',
           amber: '#f79e1b'
+        },
+        mc: {
+          red: '#EB001B',
+          orange: '#FF5F00',
+          yellow: '#F79E1B',
+          dark: '#0B0F19',
+          cardDark: '#161F30',
+          borderDark: '#223048'
         }
       }
     },
