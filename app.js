@@ -264,7 +264,8 @@ const billingModalElements = {
 function setBillingUnhidden(unhidden) {
   state.isBillingUnhidden = unhidden;
   try {
-    localStorage.setItem('behatsdaa_billing_unhidden', unhidden ? 'true' : 'false');
+    sessionStorage.setItem('behatsdaa_billing_unhidden', unhidden ? 'true' : 'false');
+    localStorage.removeItem('behatsdaa_billing_unhidden');
   } catch (e) {}
 
   if (unhidden) {

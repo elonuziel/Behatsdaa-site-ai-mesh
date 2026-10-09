@@ -59,9 +59,13 @@ export const state = {
   dealsLoaded: false,
   billingLoaded: false,
 
-  // Billing Tab Visibility (Hidden by default for max performance)
-  isBillingUnhidden: (typeof localStorage !== 'undefined' && localStorage.getItem('behatsdaa_billing_unhidden') === 'true') || false,
+  // Billing Tab Visibility (Hidden by default for max performance; session-scoped)
+  isBillingUnhidden: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('behatsdaa_billing_unhidden') === 'true') || false,
 };
+
+if (typeof localStorage !== 'undefined') {
+  try { localStorage.removeItem('behatsdaa_billing_unhidden'); } catch (e) {}
+}
 
 if (window.location.hash === '#deals') state.currentTab = 'deals';
 else if (window.location.hash === '#billing') state.currentTab = 'all';
