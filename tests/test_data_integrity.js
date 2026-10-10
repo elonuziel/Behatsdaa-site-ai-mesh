@@ -170,6 +170,60 @@ const memMB = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
 console.log(`  🧠 Heap memory used: ${memMB} MB`);
 assert(Number(memMB) < 120, `Heap memory used is well under 120MB threshold (actual: ${memMB}MB)`);
 
+
+// 7. Testing fetchJsonWithFallback Utility & Fallback Logic
+console.log("\n🔄 7. Testing fetchJsonWithFallback Utility & Fallback Logic:");
+
+if (typeof window === "undefined") {
+  global.window = {
+    location: { hash: "", search: "" },
+    matchMedia: () => ({ matches: false }),
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+}
+if (typeof localStorage === "undefined") {
+  global.localStorage = {
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {}
+  };
+}
+
+const originalFetch = global.fetch;
+
+// Case 1: Successful JSON fetch
+global.fetch = async (url) => ({
+  ok: true,
+  json: async () => ({ success: true })
+});
+
+const { fetchJsonWithFallback } = await import("../js/data.js");
+
+const successRes = await fetchJsonWithFallback("data/test.json", { success: false }, "Test Success");
+assert(successRes && successRes.success === true, "fetchJsonWithFallback returns data on HTTP OK");
+
+// Case 2: HTTP error (e.g. 404)
+global.fetch = async (url) => ({
+  ok: false,
+  status: 404
+});
+const originalWarn = console.warn;
+console.warn = () => {};
+const fallbackHttpRes = await fetchJsonWithFallback("data/missing.json", { fallback: true }, null);
+assert(fallbackHttpRes && fallbackHttpRes.fallback === true, "fetchJsonWithFallback returns fallback value on HTTP error");
+
+// Case 3: Network exception
+global.fetch = async (url) => {
+  throw new Error("Network offline");
+};
+const fallbackNetRes = await fetchJsonWithFallback("data/missing.json", { fallback: true }, null);
+console.warn = originalWarn;
+assert(fallbackNetRes && fallbackNetRes.fallback === true, "fetchJsonWithFallback returns fallback value on network error");
+
+// Restore fetch
+global.fetch = originalFetch;
+
 console.log(`\n===========================================`);
 console.log(`🎉 Results: ${passedTests} / ${totalTests} tests passed successfully!`);
 console.log(`===========================================\n`);

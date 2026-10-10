@@ -135,32 +135,49 @@ let walletsInfoCache = null;
  */
 export async function fetchWalletsInfo() {
   if (walletsInfoCache) return walletsInfoCache;
-  try {
-    const res = await fetch('data/wallets_info.json');
-    if (res.ok) {
-      walletsInfoCache = await res.json();
-      state.walletsInfo = walletsInfoCache;
-      return walletsInfoCache;
-    }
-  } catch (err) {
-    console.warn('Dynamic fetch failed for wallets_info.json:', err);
+  const data = await fetchJsonWithFallback(
+    "data/wallets_info.json",
+    null,
+    "Dynamic fetch failed for wallets_info.json"
+  );
+  if (data) {
+    walletsInfoCache = data;
+    state.walletsInfo = data;
+    return data;
   }
   return null;
+}
+
+
+/**
+ * Generic fetch wrapper for JSON resources with fallback handling.
+ *
+ * @param {string} url - URL to fetch
+ * @param {any} fallbackValue - Value returned if fetch fails or response is not ok
+ * @param {string} [label="Fetch fallback"] - Context label for console.warn logging
+ * @returns {Promise<any>}
+ */
+export async function fetchJsonWithFallback(url, fallbackValue = null, label = "Fetch fallback") {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch ${url}`);
+    return await res.json();
+  } catch (err) {
+    console.warn(label ? `${label}:` : "Fetch fallback:", err);
+    return fallbackValue;
+  }
 }
 
 /**
  * Lightweight initial search index loader (< 400KB)
  */
 export async function loadSearchIndex() {
-  try {
-    const res = await fetch('data/search-index.json');
-    if (!res.ok) throw new Error('Failed to load search-index.json');
-    state.searchIndexData = await res.json();
-    return state.searchIndexData;
-  } catch (err) {
-    console.warn('search-index fallback:', err);
-    return null;
-  }
+  state.searchIndexData = await fetchJsonWithFallback(
+    "data/search-index.json",
+    null,
+    "search-index fallback"
+  );
+  return state.searchIndexData;
 }
 
 export function getCoreBrand(name) {
@@ -377,14 +394,11 @@ export function crossLinkAllDatasets() {
 
 export async function loadStores(onStoresLoaded) {
   initSearchLexicon();
-  try {
-    const response = await fetch('data/stores.json');
-    if (!response.ok) throw new Error('Failed to load stores.json');
-    state.storeData = await response.json();
-  } catch (err) {
-    console.warn('Stores fallback:', err);
-    state.storeData = { metadata: { total_stores: 0, available_cards: [] }, stores: [] };
-  }
+  state.storeData = await fetchJsonWithFallback(
+    "data/stores.json",
+    { metadata: { total_stores: 0, available_cards: [] }, stores: [] },
+    "Stores fallback"
+  );
 
   state.allStores = state.storeData.stores || [];
   state.allStores.forEach(s => {
@@ -410,14 +424,11 @@ export async function loadStores(onStoresLoaded) {
 }
 
 export async function loadDeals(onDealsLoaded) {
-  try {
-    const dResponse = await fetch('data/deals.json');
-    if (!dResponse.ok) throw new Error('Failed to load deals.json');
-    state.dealsData = await dResponse.json();
-  } catch (err) {
-    console.warn('Deals fallback:', err);
-    state.dealsData = { metadata: { total_deals: 0, tags: [], categories: [] }, deals: [] };
-  }
+  state.dealsData = await fetchJsonWithFallback(
+    "data/deals.json",
+    { metadata: { total_deals: 0, tags: [], categories: [] }, deals: [] },
+    "Deals fallback"
+  );
 
   state.allDeals = state.dealsData.deals || [];
   state.allDeals.forEach(d => {
@@ -444,14 +455,11 @@ export async function loadDeals(onDealsLoaded) {
 }
 
 export async function loadBilling(onBillingLoaded) {
-  try {
-    const bResponse = await fetch('data/billing_stores.json');
-    if (!bResponse.ok) throw new Error('Failed to load billing_stores.json');
-    state.billingData = await bResponse.json();
-  } catch (err) {
-    console.warn('Billing fallback:', err);
-    state.billingData = { metadata: { total_stores: 0 }, stores: [] };
-  }
+  state.billingData = await fetchJsonWithFallback(
+    "data/billing_stores.json",
+    { metadata: { total_stores: 0 }, stores: [] },
+    "Billing fallback"
+  );
 
   state.allBillingStores = state.billingData.stores || [];
   state.allBillingStores.forEach(s => {
