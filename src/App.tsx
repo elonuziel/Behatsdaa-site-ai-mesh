@@ -68,6 +68,8 @@ export const App: React.FC = () => {
     toggleUiDensity,
     selectedCategory,
     setSelectedCategory,
+    selectedCard,
+    setSelectedCard,
     sortBy,
     setSortBy,
     selectedStoreSlug,
@@ -96,6 +98,7 @@ export const App: React.FC = () => {
     allDeals,
     filteredStores,
     filteredDeals,
+    availableCards,
     storeCategories,
     didYouMean
   } = useMiniSearch(
@@ -291,6 +294,23 @@ export const App: React.FC = () => {
 
                       {/* 2. Filters & View Controls */}
                       <div className="flex items-center gap-2 flex-wrap">
+
+                      {/* Card Filter Dropdown */}
+                      <div className="relative">
+                        <select
+                          value={selectedCard}
+                          onChange={e => setSelectedCard(e.target.value)}
+                          className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 pl-3 pr-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer text-xs max-w-[190px] truncate"
+                        >
+                          <option value="all">💳 כל כרטיסי בהצדעה</option>
+                          {availableCards.map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} ({c.count})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
                         {/* Category Filter Dropdown */}
                         <div className="relative">
                           <select
@@ -1009,6 +1029,22 @@ export const App: React.FC = () => {
                       </button>
                     )}
                   </div>
+
+
+                  {/* Behatsdaa Card Filter */}
+                  <select
+                    value={selectedCard}
+                    onChange={e => setSelectedCard(e.target.value)}
+                    className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer text-xs max-w-[200px] truncate"
+                  >
+                    <option value="all">💳 כל ארנקי בהצדעה</option>
+                    {availableCards.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.count})
+                      </option>
+                    ))}
+                  </select>
+
 
                   <div className="flex items-center gap-2 text-xs md:text-sm font-medium text-slate-600 dark:text-slate-300">
                     <Store className="w-4 h-4 text-emerald-500 shrink-0" />

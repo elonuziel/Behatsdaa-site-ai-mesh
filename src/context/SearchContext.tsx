@@ -38,6 +38,8 @@ interface SearchContextType {
   toggleUiDensity: () => void;
   selectedCategory: string;
   setSelectedCategory: (cat: string) => void;
+  selectedCard: string;
+  setSelectedCard: (card: string) => void;
   selectedCity: string;
   setSelectedCity: (city: string) => void;
   sortBy: SortOption;
@@ -88,6 +90,7 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCard, setSelectedCard] = useState<string>('all');
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortOption>('discount');
   const [selectedStoreSlug, setSelectedStoreSlug] = useState<string | null>(null);
@@ -194,6 +197,8 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toggleUiDensity,
         selectedCategory,
         setSelectedCategory,
+        selectedCard,
+        setSelectedCard,
         selectedCity,
         setSelectedCity,
         sortBy,
