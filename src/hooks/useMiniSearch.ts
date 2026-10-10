@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import MiniSearch from 'minisearch';
+import MiniSearch, { SearchOptions, Query } from 'minisearch';
 import { UnifiedStore } from '../types/store';
 import { UnifiedDeal } from '../types/deal';
 import { ClubId } from '../types/club';
@@ -532,7 +532,7 @@ export function useMiniSearch(
         ? ['nameNorm', 'catNorm', 'cardsNorm', 'branchesNorm', 'suppNorm', 'tagsNorm', 'descNorm', 'tokens']
         : ['nameNorm', 'catNorm', 'cardsNorm', 'branchesNorm', 'suppNorm', 'tagsNorm', 'tokens'];
 
-      const searchOpts: any = {
+      const searchOpts: SearchOptions = {
         prefix: (term: string) => term.length >= 3,
         fuzzy: fuzzySearch ? (term: string) => (term.length > 4 ? 0.2 : false) : false,
         fields: searchFields,
@@ -542,7 +542,7 @@ export function useMiniSearch(
 
       const queryWords = q.split(/\s+/).filter(Boolean);
 
-      let finalQuery: any = q;
+      let finalQuery: Query = q;
       if (smartSearch) {
         const expandedSynonyms = expandSmartTerms(q);
         if (expandedSynonyms.length > 0) {
@@ -550,7 +550,7 @@ export function useMiniSearch(
             combineWith: 'OR',
             queries: [
               q,
-              ...expandedSynonyms.map(t => ({ queries: [t], boost: 0.6 }))
+              ...expandedSynonyms.map(t => ({ queries: [t], boostTerm: () => 0.6 }))
             ]
           };
         }
