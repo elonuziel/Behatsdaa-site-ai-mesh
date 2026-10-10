@@ -311,14 +311,33 @@ for (const s of (behStoresRaw.stores || [])) {
   const paymentOptions = [];
 
   // Parse existing card discounts
-  if (Array.isArray(s.discounts) && s.discounts.length > 0) {
+  if (Array.isArray(s.cards) && s.cards.length > 0) {
+    for (const c of s.cards) {
+      const cardName = c.card_name || c.name || 'כרטיס נטען בהצדעה';
+      const rate = Number(c.discount_numeric || parseFloat(c.discount) || s.max_discount || 0);
+      paymentOptions.push({
+        club: 'behatsdaa',
+        type: 'loaded_card',
+        rate: rate,
+        rateType: 'percent',
+        label: `כרטיס נטען ${cardName} (${rate}%)`,
+        card_name: cardName,
+        card_id: c.card_id,
+        url: 'https://www.behatsdaa.org.il/card/chargingCard',
+        description: `טעינת ${cardName} בהנחה של ${rate}%`,
+        terms: s.conditions || ''
+      });
+    }
+  } else if (Array.isArray(s.discounts) && s.discounts.length > 0) {
     for (const d of s.discounts) {
       paymentOptions.push({
         club: 'behatsdaa',
         type: 'loaded_card',
         rate: Number(d.discount_rate || 0),
         rateType: 'percent',
-        label: `${d.card_name} (${d.discount_rate}%)`,
+        label: `כרטיס נטען ${d.card_name} (${d.discount_rate}%)`,
+        card_name: d.card_name,
+        url: 'https://www.behatsdaa.org.il/card/chargingCard',
         description: `טעינת ${d.card_name} בהנחה של ${d.discount_rate}%`,
         terms: s.conditions || ''
       });
@@ -330,6 +349,7 @@ for (const s of (behStoresRaw.stores || [])) {
       rate: Number(s.max_discount),
       rateType: 'percent',
       label: `כרטיס נטען בהצדעה (${s.max_discount}%)`,
+      url: 'https://www.behatsdaa.org.il/card/chargingCard',
       description: `הנחה של עד ${s.max_discount}% ברשת זו`,
       terms: s.conditions || ''
     });

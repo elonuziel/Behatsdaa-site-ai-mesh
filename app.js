@@ -937,15 +937,15 @@ function switchTab(tab, options = {}) {
 
   const inactiveClass = 'main-tab-btn items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800';
   if (tabAllBtn) tabAllBtn.className = `${inactiveClass} flex`;
-  tabStoresBtn.className = `${inactiveClass} flex`;
-  tabDealsBtn.className = `${inactiveClass} flex`;
+  if (tabStoresBtn) tabStoresBtn.className = `${inactiveClass} flex`;
+  if (tabDealsBtn) tabDealsBtn.className = `${inactiveClass} flex`;
   if (tabBillingBtn) {
     tabBillingBtn.className = `${inactiveClass} ${state.isBillingUnhidden ? 'flex' : 'hidden'}`;
   }
 
   if (allTabSection) allTabSection.classList.add('hidden');
-  storesTabSection.classList.add('hidden');
-  dealsTabSection.classList.add('hidden');
+  if (storesTabSection) storesTabSection.classList.add('hidden');
+  if (dealsTabSection) dealsTabSection.classList.add('hidden');
   if (billingTabSection) billingTabSection.classList.add('hidden');
 
   if (viewModeToggleWrapper) {
@@ -1186,8 +1186,8 @@ async function loadAllData() {
 
 // Event Listeners
 if (tabAllBtn) tabAllBtn.addEventListener('click', () => switchTab('all'));
-tabStoresBtn.addEventListener('click', () => switchTab('stores'));
-tabDealsBtn.addEventListener('click', () => switchTab('deals'));
+if (tabStoresBtn) tabStoresBtn.addEventListener('click', () => switchTab('stores'));
+if (tabDealsBtn) tabDealsBtn.addEventListener('click', () => switchTab('deals'));
 if (tabBillingBtn) tabBillingBtn.addEventListener('click', () => switchTab('billing'));
 
 window.addEventListener('hashchange', () => {
@@ -1319,11 +1319,11 @@ if (allWalletsGuideBtn) {
   });
 }
 
-searchInput.addEventListener('input', (e) => {
+if (searchInput) searchInput.addEventListener('input', (e) => {
   debouncedCrossTabSearch(e.target.value, 'stores');
 });
 
-clearSearchBtn.addEventListener('click', () => {
+if (clearSearchBtn) clearSearchBtn.addEventListener('click', () => {
   handleClearSearch('stores');
 });
 
@@ -1337,21 +1337,21 @@ if (storesSearchDescToggle) {
   });
 }
 
-cardFilterSelect.addEventListener('change', (e) => {
+if (cardFilterSelect) cardFilterSelect.addEventListener('change', (e) => {
   state.currentCard = e.target.value;
   state.storesVisibleCount = state.STORES_PAGE_SIZE;
   updateCategoryChips(categoryChipsContainer);
   renderStores();
 });
 
-sortSelect.addEventListener('change', (e) => {
+if (sortSelect) sortSelect.addEventListener('change', (e) => {
   state.currentSort = e.target.value;
   state.userHasSortedStores = e.target.value !== 'default';
   state.storesVisibleCount = state.STORES_PAGE_SIZE;
   renderStores();
 });
 
-categoryChipsContainer.addEventListener('click', (e) => {
+if (categoryChipsContainer) categoryChipsContainer.addEventListener('click', (e) => {
   const chip = e.target.closest('.category-chip');
   if (!chip) return;
   state.currentCategory = chip.dataset.category;
@@ -1373,26 +1373,26 @@ function resetStoresFilters() {
   renderStores();
 }
 
-resetFiltersBtn.addEventListener('click', resetStoresFilters);
-clearFiltersBtn.addEventListener('click', resetStoresFilters);
+if (resetFiltersBtn) resetFiltersBtn.addEventListener('click', resetStoresFilters);
+if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', resetStoresFilters);
 
-viewGridBtn.addEventListener('click', () => applyViewMode('grid'));
-viewTableBtn.addEventListener('click', () => applyViewMode('table'));
-themeToggleBtn.addEventListener('click', toggleTheme);
+if (viewGridBtn) viewGridBtn.addEventListener('click', () => applyViewMode('grid'));
+if (viewTableBtn) viewTableBtn.addEventListener('click', () => applyViewMode('table'));
+if (themeToggleBtn) themeToggleBtn.addEventListener('click', toggleTheme);
 
 // Store Modal
-storeModalElements.modalCloseBtn.addEventListener('click', () => closeStoreModal(storeModalElements.storeModal));
-storeModalElements.modalDismissBtn.addEventListener('click', () => closeStoreModal(storeModalElements.storeModal));
-storeModalElements.storeModal.addEventListener('click', (e) => {
+if (storeModalElements?.modalCloseBtn) storeModalElements.modalCloseBtn.addEventListener('click', () => closeStoreModal(storeModalElements.storeModal));
+if (storeModalElements?.modalDismissBtn) storeModalElements.modalDismissBtn.addEventListener('click', () => closeStoreModal(storeModalElements.storeModal));
+if (storeModalElements?.storeModal) storeModalElements.storeModal.addEventListener('click', (e) => {
   if (e.target === storeModalElements.storeModal) closeStoreModal(storeModalElements.storeModal);
 });
 
 // Deals Search & Filters
-dealsSearchInput.addEventListener('input', (e) => {
+if (dealsSearchInput) dealsSearchInput.addEventListener('input', (e) => {
   debouncedCrossTabSearch(e.target.value, 'deals');
 });
 
-clearDealsSearchBtn.addEventListener('click', () => {
+if (clearDealsSearchBtn) clearDealsSearchBtn.addEventListener('click', () => {
   handleClearSearch('deals');
 });
 
@@ -1406,26 +1406,26 @@ if (dealsSearchDescToggle) {
   });
 }
 
-dealsTagSelect.addEventListener('change', (e) => {
+if (dealsTagSelect) dealsTagSelect.addEventListener('change', (e) => {
   state.currentDealTag = e.target.value;
   state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
   renderDeals();
 });
 
-dealsPriceFilterSelect.addEventListener('change', (e) => {
+if (dealsPriceFilterSelect) dealsPriceFilterSelect.addEventListener('change', (e) => {
   state.currentDealMaxPrice = e.target.value;
   state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
   renderDeals();
 });
 
-dealsSortSelect.addEventListener('change', (e) => {
+if (dealsSortSelect) dealsSortSelect.addEventListener('change', (e) => {
   state.currentDealSort = e.target.value;
   state.userHasSortedDeals = e.target.value !== 'default';
   state.dealsVisibleCount = state.DEALS_PAGE_SIZE;
   renderDeals();
 });
 
-dealsCategoryChipsContainer.addEventListener('click', (e) => {
+if (dealsCategoryChipsContainer) dealsCategoryChipsContainer.addEventListener('click', (e) => {
   const chip = e.target.closest('.deal-category-chip');
   if (!chip) return;
   state.currentDealCategory = chip.dataset.category;
@@ -1446,13 +1446,13 @@ function resetDealsFilters() {
   updateDealsCategoryChips(dealsCategoryChipsContainer);
 }
 
-resetDealsFiltersBtn.addEventListener('click', resetDealsFilters);
-clearDealsFiltersBtn.addEventListener('click', resetDealsFilters);
+if (resetDealsFiltersBtn) resetDealsFiltersBtn.addEventListener('click', resetDealsFilters);
+if (clearDealsFiltersBtn) clearDealsFiltersBtn.addEventListener('click', resetDealsFilters);
 
 // Deal Modal
-dealModalElements.dealModalCloseBtn.addEventListener('click', () => closeDealModal(dealModalElements.dealModal));
-dealModalElements.dealModalDismissBtn.addEventListener('click', () => closeDealModal(dealModalElements.dealModal));
-dealModalElements.dealModal.addEventListener('click', (e) => {
+if (dealModalElements?.dealModalCloseBtn) dealModalElements.dealModalCloseBtn.addEventListener('click', () => closeDealModal(dealModalElements.dealModal));
+if (dealModalElements?.dealModalDismissBtn) dealModalElements.dealModalDismissBtn.addEventListener('click', () => closeDealModal(dealModalElements.dealModal));
+if (dealModalElements?.dealModal) dealModalElements.dealModal.addEventListener('click', (e) => {
   if (e.target === dealModalElements.dealModal) closeDealModal(dealModalElements.dealModal);
 });
 

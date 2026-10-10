@@ -12,6 +12,8 @@ export interface PaymentOption {
   terms?: string;
   code?: string;
   url?: string;
+  card_name?: string;
+  card_id?: string;
 }
 
 export interface PaymentStrategy {

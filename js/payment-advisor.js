@@ -105,11 +105,8 @@ function escapeHtml(value) {
 function buildCardLabel(cardName) {
   const clean = firstString(cardName);
   if (!clean) return 'כרטיס נטען בהצדעה';
-  // Card names in the dataset sometimes embed the rate ('ארנק רשתות 20%').
-  const withoutRate = clean.replace(/\s*\d+([.,]\d+)?\s*%$/, '').trim();
-  if (!withoutRate) return 'כרטיס נטען בהצדעה';
-  if (withoutRate.startsWith('כרטיס')) return withoutRate;
-  return `כרטיס נטען ${withoutRate}`;
+  if (clean.startsWith('כרטיס')) return clean;
+  return `כרטיס נטען: ${clean}`;
 }
 
 /** Channel A — rechargeable club cards. Returns null when absent. */
@@ -365,5 +362,6 @@ export function renderPaymentAdvisorHtml(store) {
       <i data-lucide="info" class="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
       <span class="payment-advisor-tip-text">${escapeHtml(advice.adviceTip)}</span>
     </p>
+    ${advice.bestMethod === 'card' ? `<div class="pt-1"><a href="https://www.behatsdaa.org.il/card/chargingCard" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition shadow-xs"><span>לרכישת / טעינת כרטיס באתר בהצדעה</span><span aria-hidden="true">🔗</span></a></div>` : ''}
   </section>`;
 }
