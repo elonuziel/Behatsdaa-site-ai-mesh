@@ -105,19 +105,26 @@ export function tokenizeHebrew(text) {
   return Array.from(tokens);
 }
 
-export function initStoresSearch(stores) {
-  storesMiniSearch = new MiniSearch({
-    fields: ['nameNorm', 'catNorm', 'cardsNorm', 'descNorm', 'tokens'],
-    storeFields: ['id', 'name', 'slug'],
+function createMiniSearch(fields, boost, storeFields = ['id', 'name', 'slug']) {
+  return new MiniSearch({
+    fields,
+    storeFields,
     tokenize: tokenizeHebrew,
     processTerm: (term) => normalizeHebrew(term),
     searchOptions: {
       prefix: (term) => term.length >= 3,
       fuzzy: (term) => (term.length > 4 ? 0.2 : false),
-      boost: { nameNorm: 3.0, cardsNorm: 1.5, catNorm: 1.2, descNorm: 0.5 },
+      boost,
       processTerm: (term) => normalizeHebrew(term)
     }
   });
+}
+
+export function initStoresSearch(stores) {
+  storesMiniSearch = createMiniSearch(
+    ['nameNorm', 'catNorm', 'cardsNorm', 'descNorm', 'tokens'],
+    { nameNorm: 3.0, cardsNorm: 1.5, catNorm: 1.2, descNorm: 0.5 }
+  );
 
   const docs = stores.map(s => ({
     id: s.id,
@@ -177,18 +184,11 @@ export function searchStores(query, options = {}) {
 }
 
 export function initDealsSearch(deals) {
-  dealsMiniSearch = new MiniSearch({
-    fields: ['titleNorm', 'suppNorm', 'catNorm', 'tagNorm', 'descNorm', 'termsNorm', 'tokens'],
-    storeFields: ['id', 'title', 'slug'],
-    tokenize: tokenizeHebrew,
-    processTerm: (term) => normalizeHebrew(term),
-    searchOptions: {
-      prefix: (term) => term.length >= 3,
-      fuzzy: (term) => (term.length > 4 ? 0.2 : false),
-      boost: { titleNorm: 3.0, suppNorm: 2.0, catNorm: 1.2, tagNorm: 1.0, descNorm: 0.5, termsNorm: 0.5 },
-      processTerm: (term) => normalizeHebrew(term)
-    }
-  });
+  dealsMiniSearch = createMiniSearch(
+    ['titleNorm', 'suppNorm', 'catNorm', 'tagNorm', 'descNorm', 'termsNorm', 'tokens'],
+    { titleNorm: 3.0, suppNorm: 2.0, catNorm: 1.2, tagNorm: 1.0, descNorm: 0.5, termsNorm: 0.5 },
+    ['id', 'title', 'slug']
+  );
 
   const docs = deals.map(d => ({
     id: String(d.id),
@@ -250,18 +250,10 @@ export function searchDeals(query, options = {}) {
 }
 
 export function initBillingSearch(billingStores) {
-  billingMiniSearch = new MiniSearch({
-    fields: ['nameNorm', 'cityNorm', 'catNorm', 'addrNorm', 'descNorm', 'tokens'],
-    storeFields: ['id', 'name', 'slug'],
-    tokenize: tokenizeHebrew,
-    processTerm: (term) => normalizeHebrew(term),
-    searchOptions: {
-      prefix: (term) => term.length >= 3,
-      fuzzy: (term) => (term.length > 4 ? 0.2 : false),
-      boost: { nameNorm: 3.0, cityNorm: 1.5, catNorm: 1.2, addrNorm: 0.8, descNorm: 0.5 },
-      processTerm: (term) => normalizeHebrew(term)
-    }
-  });
+  billingMiniSearch = createMiniSearch(
+    ['nameNorm', 'cityNorm', 'catNorm', 'addrNorm', 'descNorm', 'tokens'],
+    { nameNorm: 3.0, cityNorm: 1.5, catNorm: 1.2, addrNorm: 0.8, descNorm: 0.5 }
+  );
 
   const docs = billingStores.map(b => ({
     id: String(b.id),
