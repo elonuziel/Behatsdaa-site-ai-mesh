@@ -7,6 +7,26 @@ import { useSearch } from '../context/SearchContext';
 import { getStoreActiveDiscount } from '../hooks/useMiniSearch';
 import { ChevronLeft, ChevronDown, CreditCard, Sparkles, Star, Tag, ShoppingBag } from 'lucide-react';
 
+
+export function getCardBadge(name: string, discount: string) {
+  const is20 = discount.includes("20") || name.includes("20%");
+  const is15 = discount.includes("15") || name.includes("15%");
+  const is10 = discount.includes("10") || name.includes("10%");
+  const is7 = discount.includes("7") || name.includes("7%");
+  const isFighter = name.includes("פייטר");
+  const isRestaurants = name.includes("מסעדות");
+  const isCarrefour = name.includes("קרפור");
+
+  if (is20 && isRestaurants) return { label: "מסעדות 20%", bg: "bg-rose-500 text-white" };
+  if (is20) return { label: "רשתות 20%", bg: "bg-emerald-600 text-white font-bold" };
+  if (is15 && isFighter) return { label: "פייטר 15%", bg: "bg-amber-500 text-amber-950 font-black" };
+  if (is15) return { label: "רשתות 15%", bg: "bg-indigo-600 text-white font-bold" };
+  if (is10 || isCarrefour) return { label: "קרפור 10%", bg: "bg-blue-600 text-white" };
+  if (is7) return { label: "מזון 7%", bg: "bg-teal-600 text-white" };
+
+  return { label: name || "כרטיס מועדון", bg: "bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200" };
+}
+
 interface StoreCardProps {
   store: UnifiedStore;
   onSelect: (slug: string) => void;
@@ -156,31 +176,19 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onSelect, onSelectD
           /* Detailed Mode Breakdown List */
           <div className="mt-3 space-y-1 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/80 animate-in fade-in-50 duration-150">
             {cardsList.map((card, idx) => {
-              const is20 = card.discount.includes('20') || card.name.includes('20%') || card.name.includes('זהב');
-              const is15 = card.discount.includes('15') || card.name.includes('15%') || card.name.includes('כסף');
-              const isWallet = card.name.includes('ארנק') || card.name.toLowerCase().includes('wallet');
+              const badge = getCardBadge(card.name, card.discount);
               return (
-                <div key={idx} className="flex items-center justify-between text-xs py-0.5">
-                  <div className="flex items-center gap-1.5 truncate max-w-[170px]">
-                    {is20 ? (
-                      <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-amber-400 text-amber-950 shrink-0">
-                        זהב 20%
-                      </span>
-                    ) : is15 ? (
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 shrink-0">
-                        כסף 15%
-                      </span>
-                    ) : isWallet ? (
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200 shrink-0">
-                        ארנק
-                      </span>
-                    ) : null}
-                    <span className="text-slate-600 dark:text-slate-300 truncate">
+                <div key={idx} className="flex items-center justify-between text-xs py-1 px-1.5 rounded-lg bg-white/70 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-1.5 truncate max-w-[180px]">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${badge.bg}`}>
+                      {badge.label}
+                    </span>
+                    <span className="text-slate-700 dark:text-slate-200 truncate font-medium text-[11px]">
                       {card.name}
                     </span>
                   </div>
                   {card.discount && (
-                    <span className="font-bold text-slate-900 dark:text-slate-100 shrink-0">
+                    <span className="font-black text-slate-900 dark:text-white shrink-0 text-xs">
                       {card.discount}
                     </span>
                   )}

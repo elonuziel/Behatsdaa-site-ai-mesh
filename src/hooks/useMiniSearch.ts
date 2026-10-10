@@ -453,6 +453,37 @@ export function useMiniSearch(
     };
   }, []);
 
+
+  // Compute dynamic list of available cards from loaded stores
+  const availableCards = useMemo(() => {
+    const cardMap = new Map<string, { id: string; name: string; discount: string; count: number }>();
+    stores.forEach(s => {
+      if (!s.cards || !Array.isArray(s.cards)) return;
+      s.cards.forEach(c => {
+        if (!c) return;
+        let id = "";
+        let name = "";
+        let discount = "";
+        if (typeof c === "string") {
+          name = c;
+          id = c;
+        } else {
+          id = c.card_id || c.card_name || "";
+          name = c.card_name || "";
+          discount = c.discount || (c.discount_numeric ? `${c.discount_numeric}%` : "");
+        }
+        if (!id && !name) return;
+        const key = id || name;
+        if (!cardMap.has(key)) {
+          cardMap.set(key, { id: key, name: name || id, discount, count: 1 });
+        } else {
+          cardMap.get(key)!.count += 1;
+        }
+      });
+    });
+    return Array.from(cardMap.values()).sort((a, b) => b.count - a.count);
+  }, [stores]);
+
   // Compute category lists with counts
   const storeCategories = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -699,6 +730,7 @@ export function useMiniSearch(
     allDeals: deals,
     filteredStores,
     filteredDeals,
+    availableCards,
     storeCategories,
     dealCategories,
     didYouMean,
