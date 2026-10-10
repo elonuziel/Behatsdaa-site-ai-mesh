@@ -5,7 +5,7 @@
 import { state } from './state.js';
 import { normalizeHebrew, formatILS, highlightText } from './utils.js';
 import { searchDeals } from './search.js';
-import { fetchDealDetail } from './data.js';
+import { fetchDealDetail, resolveDealStore } from './data.js';
 import { updateChipsControls, scrollActiveChipIntoView } from './chips-carousel.js';
 import { isFavorite, toggleFavorite } from './favorites.js';
 
@@ -186,11 +186,7 @@ export function createDealCardElement(deal) {
     <span class="text-xs line-through text-slate-400 dark:text-slate-500">${formatILS(deal.original_price)}</span>
   ` : '';
 
-  const matchedStore = deal.linkedStore || state.allStores.find(s =>
-    (deal.matched_store_id && s.id === deal.matched_store_id) ||
-    (deal.matched_store_name && s.name === deal.matched_store_name) ||
-    normalizeHebrew(s.name) === normalizeHebrew(deal.supplier)
-  );
+  const matchedStore = deal.linkedStore || resolveDealStore(deal);
 
   const storeLinkBadge = matchedStore ? `
     <div class="mt-2 pt-2 border-t border-blue-100 dark:border-blue-900/50 flex items-center justify-between text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1.5 rounded-xl hover:bg-blue-100 transition-colors mb-2.5" data-action="view-linked-store" data-store-name="${encodeURIComponent(matchedStore.name)}">
@@ -410,11 +406,7 @@ function populateDealModal(deal, elements, callbacks) {
     }
   }
 
-  const matchedStore = deal.linkedStore || state.allStores.find(s =>
-    (deal.matched_store_id && s.id === deal.matched_store_id) ||
-    (deal.matched_store_name && s.name === deal.matched_store_name) ||
-    normalizeHebrew(s.name) === normalizeHebrew(deal.supplier)
-  );
+  const matchedStore = deal.linkedStore || resolveDealStore(deal);
 
   if (matchedStore) {
     elements.dealModalLinkedStoreBanner.classList.remove('hidden');

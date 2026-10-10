@@ -126,14 +126,14 @@ test('derives the card discount from card entries when max_discount is missing',
   });
   assert.strictEqual(advice.bestMethod, 'card');
   assert.strictEqual(advice.bestDiscount, 18);
-  assert.strictEqual(advice.options[0].name, 'כרטיס נטען מועדון Y');
+  assert.strictEqual(advice.options[0].name, 'כרטיס נטען: מועדון Y');
 });
 
-test('parses string card discounts and strips an embedded rate from card names', () => {
+test('parses string card discounts and retains exact card names', () => {
   const advice = calculateBestPayment({ cards: [{ card_name: 'חבר טעמים 16.5%', discount: '16.5%' }] });
   assert.strictEqual(advice.bestMethod, 'card');
   assert.strictEqual(advice.bestDiscount, 16.5);
-  assert.strictEqual(advice.options[0].name, 'כרטיס נטען חבר טעמים');
+  assert.strictEqual(advice.options[0].name, 'כרטיס נטען: חבר טעמים 16.5%');
 });
 
 /* ------------------------------------------------------------------ *
