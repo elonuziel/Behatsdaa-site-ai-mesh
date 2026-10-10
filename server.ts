@@ -221,6 +221,18 @@ function normalizeHebrew(text: string): string {
     .trim();
 }
 
+// Whitelist of strictly permitted AI model names to prevent unvalidated model injection
+const ALLOWED_MODELS = new Set<string>([
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-3.8-flash',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+]);
+
 const HEBREW_STOP_WORDS = new Set([
   'איפה', 'הכי', 'משתלם', 'יש', 'של', 'על', 'את', 'מה', 'איזה', 'אילו', 'האם',
   'כדאי', 'אפשר', 'רוצה', 'מחפש', 'הנחה', 'הנחות', 'מבצע', 'מבצעים', 'מועדון',
@@ -665,14 +677,19 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
     let replyText = '';
     const activeKey = getGeminiApiKey();
 
+    // Validate requested model parameter against whitelist
+    const requestedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
+      ? model
+      : 'gemini-3.1-flash-lite';
+
     if (activeKey && !activeKey.startsWith('MY_')) {
       // Prioritize confirmed high-speed working models: gemini-3.1-flash-lite & gemini-3.5-flash
       const candidateModels = [
         'gemini-3.1-flash-lite',
         'gemini-3.5-flash',
-        model,
+        requestedModel,
         'gemini-3.8-flash'
-      ].filter((v, i, a) => a.indexOf(v) === i);
+      ].filter((v, i, a) => a.indexOf(v) === i && ALLOWED_MODELS.has(v));
 
       let success = false;
       const ai = getGeminiClient();
