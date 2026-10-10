@@ -112,7 +112,7 @@ export function initStoresSearch(stores) {
     tokenize: tokenizeHebrew,
     processTerm: (term) => normalizeHebrew(term),
     searchOptions: {
-      prefix: true,
+      prefix: (term) => term.length >= 3,
       fuzzy: (term) => (term.length > 4 ? 0.2 : false),
       boost: { nameNorm: 3.0, cardsNorm: 1.5, catNorm: 1.2, descNorm: 0.5 },
       processTerm: (term) => normalizeHebrew(term)
@@ -183,7 +183,7 @@ export function initDealsSearch(deals) {
     tokenize: tokenizeHebrew,
     processTerm: (term) => normalizeHebrew(term),
     searchOptions: {
-      prefix: true,
+      prefix: (term) => term.length >= 3,
       fuzzy: (term) => (term.length > 4 ? 0.2 : false),
       boost: { titleNorm: 3.0, suppNorm: 2.0, catNorm: 1.2, tagNorm: 1.0, descNorm: 0.5, termsNorm: 0.5 },
       processTerm: (term) => normalizeHebrew(term)
@@ -256,7 +256,7 @@ export function initBillingSearch(billingStores) {
     tokenize: tokenizeHebrew,
     processTerm: (term) => normalizeHebrew(term),
     searchOptions: {
-      prefix: true,
+      prefix: (term) => term.length >= 3,
       fuzzy: (term) => (term.length > 4 ? 0.2 : false),
       boost: { nameNorm: 3.0, cityNorm: 1.5, catNorm: 1.2, addrNorm: 0.8, descNorm: 0.5 },
       processTerm: (term) => normalizeHebrew(term)

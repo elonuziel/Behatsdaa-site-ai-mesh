@@ -206,7 +206,7 @@ export function stripHebrewPrefixes(term: string): string[] {
     results.add(norm.slice(1));
   }
 
-  return Array.from(results).filter(w => w.length >= 2);
+  return Array.from(results).filter(w => w.length >= 3);
 }
 
 export function expandSmartTerms(query: string): string[] {
@@ -389,8 +389,8 @@ export function useMiniSearch(
           tokenize: tokenizeHebrew,
           processTerm: (term) => normalizeHebrew(term),
           searchOptions: {
-            prefix: true,
-            fuzzy: (term) => (term.length > 3 ? 0.2 : false),
+            prefix: (term) => term.length >= 3,
+            fuzzy: (term) => (term.length > 4 ? 0.2 : false),
             boost: { nameNorm: 3.5, suppNorm: 3.0, catNorm: 2.0, cardsNorm: 1.8, branchesNorm: 1.5, tagsNorm: 1.3, tokens: 1.0, descNorm: 0.6 },
             processTerm: (term) => normalizeHebrew(term)
           }
@@ -501,8 +501,8 @@ export function useMiniSearch(
         : ['nameNorm', 'catNorm', 'cardsNorm', 'branchesNorm', 'suppNorm', 'tagsNorm', 'tokens'];
 
       const searchOpts: any = {
-        prefix: true,
-        fuzzy: fuzzySearch ? (term: string) => (term.length > 3 ? 0.2 : false) : false,
+        prefix: (term: string) => term.length >= 3,
+        fuzzy: fuzzySearch ? (term: string) => (term.length > 4 ? 0.2 : false) : false,
         fields: searchFields,
         boost: { nameNorm: 3.5, suppNorm: 3.0, catNorm: 2.0, cardsNorm: 1.8, branchesNorm: 1.5, tagsNorm: 1.3, tokens: 1.0, descNorm: 0.6 },
         processTerm: (term: string) => normalizeHebrew(term)
