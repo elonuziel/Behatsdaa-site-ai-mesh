@@ -6,20 +6,8 @@ import { ClubId } from '../types/club';
 import { SortOption } from '../context/SearchContext';
 import rawLexicon from '../data/search_lexicon.json';
 
-export function normalizeHebrew(text: string | null | undefined): string {
-  if (!text) return '';
-  return String(text)
-    .toLowerCase()
-    .replace(/[\u0591-\u05C7]/g, '')
-    .replace(/ך/g, 'כ')
-    .replace(/ם/g, 'מ')
-    .replace(/ן/g, 'נ')
-    .replace(/ף/g, 'פ')
-    .replace(/ץ/g, 'צ')
-    .replace(/["'״׳\-–_.,()/]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+import { normalizeHebrew } from '../utils/hebrew';
+export { normalizeHebrew };
 
 /**
  * Hebrew-aware tokenizer:

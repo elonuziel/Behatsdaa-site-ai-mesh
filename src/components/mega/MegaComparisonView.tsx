@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { UnifiedStore } from '../../types/store';
-import { normalizeHebrew } from '../../hooks/useMiniSearch';
+import { normalizeHebrew } from '../../utils/hebrew';
 import {
   Scale,
   Crown,
