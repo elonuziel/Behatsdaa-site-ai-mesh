@@ -10,6 +10,60 @@ import { initStoresSearch, initDealsSearch, initBillingSearch, initSearchLexicon
 const storeDetailCache = new Map();
 const dealDetailCache = new Map();
 
+const storeLookupById = new Map();
+const storeLookupByNormalizedName = new Map();
+const storeLookupByCore = new Map();
+
+export function rebuildStoreLookupMaps() {
+  storeLookupById.clear();
+  storeLookupByNormalizedName.clear();
+  storeLookupByCore.clear();
+
+  state.allStores.forEach(store => {
+    if (!store) return;
+    if (store.id != null) {
+      storeLookupById.set(String(store.id), store);
+    }
+
+    const normalizedName = normalizeHebrew(store.name || '');
+    if (normalizedName) {
+      storeLookupByNormalizedName.set(normalizedName, store);
+    }
+
+    const core = store._coreBrand || getCoreBrand(store.name);
+    if (core) {
+      storeLookupByCore.set(core, store);
+    }
+  });
+}
+
+export function resolveDealStore(deal) {
+  if (!deal) return null;
+  if (deal.linkedStore) return deal.linkedStore;
+
+  const matchedStoreId = deal.matched_store_id != null ? String(deal.matched_store_id) : null;
+  if (matchedStoreId && storeLookupById.has(matchedStoreId)) {
+    return storeLookupById.get(matchedStoreId);
+  }
+
+  if (deal.matched_store_name) {
+    const normalizedMatchedName = normalizeHebrew(deal.matched_store_name);
+    if (normalizedMatchedName && storeLookupByNormalizedName.has(normalizedMatchedName)) {
+      return storeLookupByNormalizedName.get(normalizedMatchedName);
+    }
+  }
+
+  const supplier = deal.supplier || '';
+  if (supplier) {
+    const supplierCore = getCoreBrand(supplier);
+    if (supplierCore && storeLookupByCore.has(supplierCore)) {
+      return storeLookupByCore.get(supplierCore);
+    }
+  }
+
+  return null;
+}
+
 /**
  * On-demand dynamic fetcher for dedicated [slug].json store files
  */
@@ -131,6 +185,7 @@ export function crossLinkAllDatasets() {
   }
 
   const cleanKey = (str) => (str || '').toLowerCase().replace(/[^א-תa-z0-9]/g, '');
+  rebuildStoreLookupMaps();
 
   // 1. Map: core brand -> array of billing stores
   const billingByCore = new Map();
@@ -296,7 +351,7 @@ export function crossLinkAllDatasets() {
     const suppCore = deal._suppCore;
     let matchedStore = null;
     if (deal.matched_store_id) {
-      matchedStore = state.allStores.find(s => s.id === deal.matched_store_id) || null;
+      matchedStore = storeLookupById.get(String(deal.matched_store_id)) || null;
     }
     if (!matchedStore && deal.matched_store_name) {
       matchedStore = storeByNormalizedName.get(normalizeHebrew(deal.matched_store_name)) || null;
@@ -304,7 +359,7 @@ export function crossLinkAllDatasets() {
     if (!matchedStore && suppCore) {
       matchedStore = storeByCore.get(suppCore) || null;
     }
-    deal.linkedStore = matchedStore;
+    deal.linkedStore = matchedStore || resolveDealStore(deal);
 
     let bestBilling = findBestBillingMatch(deal.supplier);
     if (!bestBilling && deal.linkedStore && deal.linkedStore.linkedBillingStore) {
@@ -312,6 +367,9 @@ export function crossLinkAllDatasets() {
     }
     deal.linkedBillingStore = bestBilling;
   });
+
+  // Rebuild again after cross-linking so UI rendering always sees safe direct lookup maps.
+  rebuildStoreLookupMaps();
 
   if (hasDeals) crossLinkedWithDeals = true;
   if (hasBilling) crossLinkedWithBilling = true;
@@ -337,6 +395,7 @@ export async function loadStores(onStoresLoaded) {
     s._searchStr = `${s._nameNorm} ${s._catNorm} ${s._cardsNorm}`.trim();
     s._searchWithDescStr = `${s._searchStr} ${s._condNorm}`.trim();
   });
+  rebuildStoreLookupMaps();
   state.availableCards = state.storeData.metadata?.available_cards || [];
   state.storesLoaded = true;
 
