@@ -108,7 +108,7 @@ export const App: React.FC = () => {
     selectedCategory,
     showFavoritesOnly,
     isFavorite,
-    { smartSearch, fuzzySearch, searchInDesc }
+    { smartSearch, fuzzySearch, searchInDesc, selectedCard }
   );
 
   const [visibleStoreLimit, setVisibleStoreLimit] = useState(36);
@@ -149,6 +149,15 @@ export const App: React.FC = () => {
 
   const filteredBehStores = useMemo(() => {
     let list = behStores;
+    if (selectedCard && selectedCard !== 'all') {
+      list = list.filter(s =>
+        s.cards && s.cards.some(c =>
+          typeof c === 'string'
+            ? c === selectedCard
+            : c.card_name === selectedCard || c.card_id === selectedCard || (c.card_name && c.card_name.includes(selectedCard))
+        )
+      );
+    }
     if (selectedCategory !== 'all') {
       list = list.filter(s => (s.category || 'כללי') === selectedCategory);
     }
@@ -177,7 +186,7 @@ export const App: React.FC = () => {
       if (sortBy === 'discount') return (b.max_discount || 0) - (a.max_discount || 0);
       return (a.name || '').localeCompare(b.name || '', 'he');
     });
-  }, [behStores, selectedCategory, sortBy, behStoreSearch, query, smartSearch, searchInDesc]);
+  }, [behStores, selectedCard, selectedCategory, sortBy, behStoreSearch, query, smartSearch, searchInDesc]);
 
   const filteredBehDeals = useMemo(() => {
     let list = behDeals;
@@ -1301,6 +1310,10 @@ export const App: React.FC = () => {
         <PaymentAdvisorModal
           slug={selectedStoreSlug}
           onClose={() => setSelectedStoreSlug(null)}
+          onSelectCard={cardName => {
+            setSelectedCard(cardName);
+            setSelectedStoreSlug(null);
+          }}
           onSelectDeal={dealId => {
             setSelectedStoreSlug(null);
             setSelectedDealId(dealId);

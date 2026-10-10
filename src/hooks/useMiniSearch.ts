@@ -329,6 +329,7 @@ export function useMiniSearch(
     smartSearch?: boolean;
     fuzzySearch?: boolean;
     searchInDesc?: boolean;
+    selectedCard?: string;
   }
 ) {
   const [stores, setStores] = useState<UnifiedStore[]>([]);
@@ -624,6 +625,16 @@ export function useMiniSearch(
         return false;
       }
 
+      if (options?.selectedCard && options.selectedCard !== 'all') {
+        const sc = options.selectedCard;
+        const hasCard = store.cards && store.cards.some(c =>
+          typeof c === 'string'
+            ? c === sc
+            : c.card_name === sc || c.card_id === sc || (c.card_name && c.card_name.includes(sc))
+        );
+        if (!hasCard) return false;
+      }
+
       if (showFavoritesOnly && isFavorite && !isFavorite('store', String(store.id))) {
         return false;
       }
@@ -695,7 +706,8 @@ export function useMiniSearch(
     isFavorite,
     smartSearch,
     fuzzySearch,
-    searchInDesc
+    searchInDesc,
+    options?.selectedCard
   ]);
 
   // Compute "Did you mean?" suggestions when search yields 0 results

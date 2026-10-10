@@ -12,16 +12,24 @@ import {
   Copy,
   Check,
   Tag,
-  AlertCircle
+  AlertCircle,
+  CreditCard,
+  Filter
 } from 'lucide-react';
 
 interface PaymentAdvisorModalProps {
   slug: string | null;
   onClose: () => void;
   onSelectDeal?: (id: string) => void;
+  onSelectCard?: (cardName: string) => void;
 }
 
-export const PaymentAdvisorModal: React.FC<PaymentAdvisorModalProps> = ({ slug, onClose, onSelectDeal }) => {
+export const PaymentAdvisorModal: React.FC<PaymentAdvisorModalProps> = ({
+  slug,
+  onClose,
+  onSelectDeal,
+  onSelectCard
+}) => {
   const { activeClubs } = useClubs();
   const { showToast } = useToast();
 
@@ -61,6 +69,13 @@ export const PaymentAdvisorModal: React.FC<PaymentAdvisorModalProps> = ({ slug, 
         setTimeout(() => setCopiedCode(null), 2000);
       })
       .catch(() => showToast('שגיאה בהעתקת הקוד', 'warning'));
+  };
+
+  const handleFilterByCard = (cardName: string) => {
+    if (onSelectCard) {
+      onSelectCard(cardName);
+      onClose();
+    }
   };
 
   if (!slug) return null;
@@ -175,6 +190,30 @@ export const PaymentAdvisorModal: React.FC<PaymentAdvisorModalProps> = ({ slug, 
                     💡 {strategy.recommendationText}
                   </p>
 
+                  {/* Charge link if loaded card */}
+                  {strategy.bestOption.type === 'loaded_card' && (
+                    <div className="mt-3 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-emerald-300/80 dark:border-emerald-700/80">
+                      <a
+                        href={strategy.bestOption.url || "https://www.behatsdaa.org.il/card/chargingCard"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:underline"
+                      >
+                        <CreditCard className="w-4 h-4 text-emerald-600" />
+                        <span>טען/רכוש כרטיס נטען באתר בהצדעה 🔗</span>
+                      </a>
+                      {onSelectCard && strategy.bestOption.card_name && (
+                        <button
+                          onClick={() => handleFilterByCard(strategy.bestOption!.card_name!)}
+                          className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 font-semibold hover:bg-emerald-200 transition"
+                        >
+                          <Filter className="w-3 h-3" />
+                          <span>סינון לפי כרטיס זה</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {strategy.bestOption.code && (
                     <div className="mt-3 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                       <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -227,6 +266,16 @@ export const PaymentAdvisorModal: React.FC<PaymentAdvisorModalProps> = ({ slug, 
                           <span className="font-bold text-slate-900 dark:text-white">
                             {opt.rateType === 'percent' ? `${opt.rate}% הנחה` : `₪${opt.rate} הנחה`}
                           </span>
+                          {opt.type === 'loaded_card' && (
+                            <a
+                              href={opt.url || "https://www.behatsdaa.org.il/card/chargingCard"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
+                            >
+                              טען כרטיס
+                            </a>
+                          )}
                           {opt.code && (
                             <button
                               onClick={() => handleCopyCode(opt.code!)}
@@ -243,6 +292,74 @@ export const PaymentAdvisorModal: React.FC<PaymentAdvisorModalProps> = ({ slug, 
                 </div>
               )}
             </div>
+
+            {/* List of Store Rechargeable Cards with Direct Link & Filter */}
+            {store.cards && store.cards.length > 0 && (
+              <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>כרטיסים נטענים המתאימים לרשת זו ({store.cards.length}):</span>
+                  </h4>
+                  <a
+                    href="https://www.behatsdaa.org.il/card/chargingCard"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                  >
+                    <span>אתר הטעינה בהצדעה</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
+                <div className="space-y-2">
+                  {store.cards.map((c, i) => {
+                    const cardName = typeof c === 'string' ? c : (c.card_name || 'כרטיס נטען');
+                    const discount = typeof c === 'string' ? '' : (c.discount || (c.discount_numeric ? `${c.discount_numeric}%` : ''));
+                    return (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 text-xs"
+                      >
+                        <div>
+                          <div className="font-bold text-slate-800 dark:text-slate-200">
+                            {cardName}
+                          </div>
+                          {typeof c !== 'string' && c.notes && (
+                            <div className="text-[11px] text-slate-400 mt-0.5">{c.notes}</div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {discount && (
+                            <span className="font-black text-amber-600 dark:text-amber-400 text-sm">
+                              {discount}
+                            </span>
+                          )}
+                          <a
+                            href="https://www.behatsdaa.org.il/card/chargingCard"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700 transition"
+                          >
+                            טען כרטיס
+                          </a>
+                          {onSelectCard && (
+                            <button
+                              onClick={() => handleFilterByCard(cardName)}
+                              className="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-medium hover:bg-emerald-100 hover:text-emerald-800 transition"
+                              title="סינון הרשתות לפי כרטיס זה"
+                            >
+                              סינון
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Linked Deals */}
             {store.linked_deals && store.linked_deals.length > 0 && (
