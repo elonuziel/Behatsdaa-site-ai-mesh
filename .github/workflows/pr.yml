@@ -2,6 +2,7 @@ name: Pull Request CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
     branches:
       - main
       - master
@@ -9,6 +10,9 @@ on:
 concurrency:
   group: pr-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   validate:
@@ -38,4 +42,3 @@ jobs:
 
       - name: Build static site with Vite
         run: npm run build
-
