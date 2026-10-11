@@ -50,20 +50,22 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({
         {/* All Categories Chip */}
         <button
           onClick={() => onSelectCategory('all')}
-          className={`flex items-center gap-1.5 ${
-            compact ? 'px-3 py-1 text-xs rounded-xl' : 'px-3.5 py-1.5 rounded-full'
-          } font-medium whitespace-nowrap transition-all shadow-2xs shrink-0 ${
-            selectedCategory === 'all'
-              ? 'bg-emerald-600 text-white font-bold shadow-emerald-600/20'
-              : 'bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800'
+          className={`flex items-center gap-1.5 whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+            compact
+              ? `px-3 py-1.5 text-xs rounded-xl font-medium ${
+                  selectedCategory === 'all'
+                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                }`
+              : `px-3.5 py-1.5 rounded-full font-medium shadow-2xs ${
+                  selectedCategory === 'all'
+                    ? 'bg-emerald-600 text-white font-bold shadow-emerald-600/20'
+                    : 'bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800'
+                }`
           }`}
         >
           <span>הכל</span>
-          {compact ? (
-            <span className={`text-[11px] ${selectedCategory === 'all' ? 'text-emerald-100' : 'text-slate-400'}`}>
-              ({totalCount.toLocaleString()})
-            </span>
-          ) : (
+          {!compact && (
             <span
               className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                 selectedCategory === 'all'
@@ -83,20 +85,22 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({
             <button
               key={cat.name}
               onClick={() => onSelectCategory(isSelected ? 'all' : cat.name)}
-              className={`flex items-center gap-1.5 ${
-                compact ? 'px-2.5 py-1 text-xs rounded-xl' : 'px-3.5 py-1.5 rounded-full'
-              } font-medium whitespace-nowrap transition-all shadow-2xs shrink-0 ${
-                isSelected
-                  ? 'bg-emerald-600 text-white font-bold shadow-emerald-600/20'
-                  : 'bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800'
+              className={`flex items-center gap-1.5 whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+                compact
+                  ? `px-3 py-1.5 text-xs rounded-xl font-medium ${
+                      isSelected
+                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                    }`
+                  : `px-3.5 py-1.5 rounded-full font-medium shadow-2xs ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white font-bold shadow-emerald-600/20'
+                        : 'bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800'
+                    }`
               }`}
             >
               <span>{cat.name}</span>
-              {compact ? (
-                <span className={`text-[11px] ${isSelected ? 'text-emerald-100' : 'text-slate-400'}`}>
-                  ({cat.count})
-                </span>
-              ) : (
+              {!compact && (
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                     isSelected

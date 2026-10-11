@@ -113,8 +113,8 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, onSelect, onSelectStor
           {deal.title}
         </h3>
 
-        {/* Linked Store Badge (shown in detailed mode or if no pricing) */}
-        {deal.linked_store && (uiDensity === 'detailed' || !deal.price) && (
+        {/* Linked Store Badge (shown in detailed mode) */}
+        {deal.linked_store && uiDensity === 'detailed' && (
           <div
             onClick={(e) => {
               if (onSelectStore && deal.linked_store?.slug) {

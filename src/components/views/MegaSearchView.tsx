@@ -12,14 +12,12 @@ const MapView = React.lazy(() => import('../MapView').then(m => ({ default: m.Ma
 import { MegaAiSearchView } from '../mega/MegaAiSearchView';
 import { MegaComparisonView } from '../mega/MegaComparisonView';
 import { MegaTopDealsView } from '../mega/MegaTopDealsView';
-import { CleanModeHero } from './CleanModeHero';
 import { CatalogToolbar } from '../toolbar/CatalogToolbar';
 import {
   Store,
   Tag,
   Sparkles,
   Search,
-  X,
   SlidersHorizontal
 } from 'lucide-react';
 
@@ -74,7 +72,6 @@ export const MegaSearchView: React.FC<MegaSearchViewProps> = ({
   } = useSearch();
 
   const [contentTypeFilter, setContentTypeFilter] = useState<'all' | 'stores' | 'deals'>('all');
-  const [cleanModeShowShopsManually, setCleanModeShowShopsManually] = useState(false);
   const [visibleStoreLimit, setVisibleStoreLimit] = useState(36);
   const [visibleDealLimit, setVisibleDealLimit] = useState(36);
 
@@ -199,11 +196,6 @@ export const MegaSearchView: React.FC<MegaSearchViewProps> = ({
           <div className="w-10 h-10 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-slate-500">טוען קטלוג רשתות, תמונות והטבות...</p>
         </div>
-      ) : uiDensity === 'clean' && !query.trim() && selectedCategory === 'all' && !cleanModeShowShopsManually ? (
-        <CleanModeHero
-          totalStoresCount={filteredStores.length}
-          onShowAllShops={() => setCleanModeShowShopsManually(true)}
-        />
       ) : filteredStores.length === 0 && filteredDeals.length === 0 ? (
         <div className="py-16 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 space-y-4">
           <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
@@ -264,41 +256,6 @@ export const MegaSearchView: React.FC<MegaSearchViewProps> = ({
         </div>
       ) : (
         <div className="space-y-8">
-          {/* Clean Mode Active Results Bar & Hide Button */}
-          {uiDensity === 'clean' && (
-            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-xs shadow-2xs">
-              <div className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300">
-                <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>
-                  מציג{' '}
-                  <strong className="text-slate-900 dark:text-white font-bold">
-                    {filteredStores.length.toLocaleString()}
-                  </strong>{' '}
-                  רשתות ו-
-                  <strong className="text-slate-900 dark:text-white font-bold">
-                    {filteredDeals.length.toLocaleString()}
-                  </strong>{' '}
-                  מבצעים
-                  {selectedCategory !== 'all' ? ` • קטגוריה: ${selectedCategory}` : ''}
-                  {query ? ` • חיפוש: "${query}"` : ''}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setCleanModeShowShopsManually(false);
-                  setQuery('');
-                  setSelectedCategory('all');
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/40 text-slate-600 hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-300 text-xs font-semibold transition cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>הסתר חנויות וחזור למצב נקי</span>
-              </button>
-            </div>
-          )}
-
           {/* Stores Section */}
           {filteredStores.length > 0 && (contentTypeFilter === 'all' || contentTypeFilter === 'stores') && (
             <section>

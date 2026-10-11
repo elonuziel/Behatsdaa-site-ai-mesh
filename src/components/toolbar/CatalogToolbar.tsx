@@ -31,7 +31,6 @@ export const CatalogToolbar: React.FC<CatalogToolbarProps> = ({
     viewMode,
     setViewMode,
     uiDensity,
-    toggleUiDensity,
     selectedCategory,
     setSelectedCategory,
     selectedCard,
@@ -93,37 +92,42 @@ export const CatalogToolbar: React.FC<CatalogToolbarProps> = ({
 
         {/* 2. Filters & View Controls */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Card Filter Dropdown */}
-          <div className="relative">
-            <select
-              value={selectedCard}
-              onChange={e => setSelectedCard(e.target.value)}
-              className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 pl-3 pr-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer text-xs max-w-[190px] truncate"
-            >
-              <option value="all">💳 כל כרטיסי בהצדעה</option>
-              {availableCards.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.count})
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Card & Category Filter Dropdowns (Inline in detailed mode, or inside Drawer in clean mode) */}
+          {uiDensity === 'detailed' && (
+            <>
+              {/* Card Filter Dropdown */}
+              <div className="relative">
+                <select
+                  value={selectedCard}
+                  onChange={e => setSelectedCard(e.target.value)}
+                  className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 pl-3 pr-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer text-xs max-w-[190px] truncate"
+                >
+                  <option value="all">💳 כל כרטיסי בהצדעה</option>
+                  {availableCards.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          {/* Category Filter Dropdown */}
-          <div className="relative">
-            <select
-              value={selectedCategory}
-              onChange={e => setSelectedCategory(e.target.value)}
-              className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 pl-3 pr-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer text-xs max-w-[170px] truncate"
-            >
-              <option value="all">כל הקטגוריות</option>
-              {storeCategories.map(cat => (
-                <option key={cat.name} value={cat.name}>
-                  {cat.name} ({cat.count})
-                </option>
-              ))}
-            </select>
-          </div>
+              {/* Category Filter Dropdown */}
+              <div className="relative">
+                <select
+                  value={selectedCategory}
+                  onChange={e => setSelectedCategory(e.target.value)}
+                  className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 pl-3 pr-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer text-xs max-w-[170px] truncate"
+                >
+                  <option value="all">כל הקטגוריות</option>
+                  {storeCategories.map(cat => (
+                    <option key={cat.name} value={cat.name}>
+                      {cat.name} ({cat.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
 
           {/* Sort selector */}
           <select
@@ -166,26 +170,19 @@ export const CatalogToolbar: React.FC<CatalogToolbarProps> = ({
           <button
             type="button"
             onClick={() => setIsAdvancedFiltersOpen(!isAdvancedFiltersOpen)}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
-              isAdvancedFiltersOpen
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+              isAdvancedFiltersOpen || (selectedCard !== 'all')
                 ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
-            title="סינון מועדונים והגדרות חיפוש"
+            title="סינון מועדונים, כרטיסים והגדרות חיפוש"
           >
             <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden sm:inline">מסננים נוספים</span>
+            <span className="hidden sm:inline">מסננים</span>
+            {selectedCard !== 'all' && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            )}
             <ChevronDown className={`w-3 h-3 transition-transform ${isAdvancedFiltersOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {/* UiDensity Toggle */}
-          <button
-            type="button"
-            onClick={toggleUiDensity}
-            className="text-[11px] text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline px-1 py-1 font-medium cursor-pointer"
-            title={uiDensity === 'clean' ? 'מעבר לתצוגה מפורטת מלאה' : 'מעבר לתצוגה נקייה'}
-          >
-            {uiDensity === 'clean' ? 'הצג הכל' : 'תצוגה נקייה'}
           </button>
         </div>
       </div>
@@ -193,6 +190,36 @@ export const CatalogToolbar: React.FC<CatalogToolbarProps> = ({
       {/* Expandable Advanced Filters Drawer */}
       {isAdvancedFiltersOpen && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-2xs space-y-3.5 animate-in fade-in-50 duration-150">
+          {/* In Clean Mode: Card & Category Filter Dropdowns inside Drawer */}
+          {uiDensity === 'clean' && (
+            <div className="flex flex-wrap items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-slate-500 font-medium">כרטיס נטען:</span>
+                <select
+                  value={selectedCard}
+                  onChange={e => setSelectedCard(e.target.value)}
+                  className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 pl-3 pr-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer text-xs max-w-[200px] truncate"
+                >
+                  <option value="all">💳 כל כרטיסי בהצדעה</option>
+                  {availableCards.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedCard !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCard('all')}
+                  className="text-xs text-rose-500 hover:underline cursor-pointer"
+                >
+                  איפוס כרטיס
+                </button>
+              )}
+            </div>
+          )}
           {/* Clubs Filter */}
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
             <MyClubsPills />

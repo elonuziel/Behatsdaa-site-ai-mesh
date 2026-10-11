@@ -152,15 +152,11 @@ export const App: React.FC = () => {
       <div className="fixed bottom-5 left-5 z-40 mb-safe">
         <button
           onClick={() => openChat(query)}
-          className="group flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-600/30 hover:shadow-emerald-600/50 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/20"
-          aria-label="פתח סייר הטבות AI"
+          className="flex items-center justify-center w-11 h-11 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer border border-slate-700 dark:border-slate-200"
+          title="סייר הטבות AI — שאל כל שאלה"
+          aria-label="סייר הטבות AI"
         >
-          <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-            <Bot className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-extrabold tracking-wide">סייר AI</span>
-          <span className="hidden sm:inline text-[11px] font-normal text-emerald-100">· חיפוש חופשי</span>
-          <span className="w-2 h-2 rounded-full bg-amber-300 animate-pulse" />
+          <Bot className="w-5 h-5" />
         </button>
       </div>
 

@@ -12,8 +12,16 @@ export default {
         mono: ['"Space Mono"', 'monospace'],
         sans: ['Inter', 'Rubik', 'system-ui', 'sans-serif'],
         hebrew: ['Inter', 'Rubik', 'system-ui', 'sans-serif'],
+        syne: ['Syne', 'sans-serif'],
       },
       colors: {
+        editorial: {
+          bg: '#F8F7F4',
+          ink: '#1A1A1A',
+          accent: '#10B981',
+          'ink-faint': 'rgba(26, 26, 26, 0.08)',
+          'ink-muted': 'rgba(26, 26, 26, 0.6)',
+        },
         accent: {
           DEFAULT: '#d4af37',
           hover: '#b89528',

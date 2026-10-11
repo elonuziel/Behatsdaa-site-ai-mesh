@@ -4,7 +4,7 @@ import { ClubBadge } from './ClubBadge';
 import { useClubs } from '../context/ClubContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { getStoreActiveDiscount } from '../hooks/useMiniSearch';
-import { Star, ShoppingBag, Sparkles, ChevronLeft } from 'lucide-react';
+import { Star, ShoppingBag } from 'lucide-react';
 
 interface TableViewProps {
   stores: UnifiedStore[];
@@ -16,21 +16,21 @@ export const TableView: React.FC<TableViewProps> = ({ stores, onSelect }) => {
   const { isFavorite, toggleFavorite } = useFavorites();
 
   return (
-    <div className="bg-white dark:bg-slate-850 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-right text-xs">
-          <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
-            <tr>
-              <th className="py-3 px-4 w-12 text-center">⭐</th>
-              <th className="py-3 px-4">Business / Chain</th>
-              <th className="py-3 px-4">Category</th>
-              <th className="py-3 px-4">Clubs</th>
-              <th className="py-3 px-4">Max Discount</th>
-              <th className="py-3 px-4">Rechargeable Cards & Details</th>
-              <th className="py-3 px-4 text-center">Action</th>
+        <table className="w-full text-right text-[13px] border-collapse">
+          <thead>
+            <tr className="border-b-2 border-editorial-ink">
+              <th className="py-4 px-4 w-12 text-center">⭐</th>
+              <th className="py-4 px-4 font-mono text-[10px] uppercase tracking-widest text-editorial-ink-muted">Business / Chain</th>
+              <th className="py-4 px-4 font-mono text-[10px] uppercase tracking-widest text-editorial-ink-muted">Category</th>
+              <th className="py-4 px-4 font-mono text-[10px] uppercase tracking-widest text-editorial-ink-muted">Clubs</th>
+              <th className="py-4 px-4 font-mono text-[10px] uppercase tracking-widest text-editorial-ink-muted">Max Discount</th>
+              <th className="py-4 px-4 font-mono text-[10px] uppercase tracking-widest text-editorial-ink-muted">Details</th>
+              <th className="py-4 px-4 font-mono text-[10px] uppercase tracking-widest text-editorial-ink-muted text-center">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
+          <tbody className="text-editorial-ink dark:text-slate-200">
             {stores.map(store => {
               const clubs = store.clubs || ['behatsdaa'];
               const userClubs = clubs.filter(c => activeClubs.has(c));
@@ -50,10 +50,10 @@ export const TableView: React.FC<TableViewProps> = ({ stores, onSelect }) => {
                 <tr
                   key={store.id}
                   onClick={() => onSelect(store.slug)}
-                  className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition cursor-pointer group"
+                  className="hover:bg-editorial-bg transition cursor-pointer border-b border-editorial-ink-faint group"
                 >
                   {/* Favorite Star */}
-                  <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                  <td className="py-5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
                       onClick={() => toggleFavorite('store', String(store.id))}
@@ -65,9 +65,9 @@ export const TableView: React.FC<TableViewProps> = ({ stores, onSelect }) => {
                   </td>
 
                   {/* Logo + Store Name */}
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-800 p-1 border border-slate-200 dark:border-slate-700 shrink-0 flex items-center justify-center overflow-hidden">
+                  <td className="py-5 px-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 border border-editorial-ink-faint bg-white p-1 shrink-0 flex items-center justify-center overflow-hidden">
                         {store.logo ? (
                           <img
                             src={store.logo}
@@ -82,49 +82,49 @@ export const TableView: React.FC<TableViewProps> = ({ stores, onSelect }) => {
                           <ShoppingBag className="w-4 h-4 text-slate-400" />
                         )}
                       </div>
-                      <span className="font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition">
+                      <span className="font-bold text-editorial-ink dark:text-white group-hover:text-editorial-accent transition-colors">
                         {store.name}
                       </span>
                     </div>
                   </td>
 
                   {/* Category */}
-                  <td className="py-3 px-4 text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                    {store.category || 'General'}
+                  <td className="py-5 px-4 text-editorial-ink-muted dark:text-slate-400 whitespace-nowrap">
+                    <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 border border-editorial-ink-faint rounded-sm">
+                      {store.category || 'General'}
+                    </span>
                   </td>
 
                   {/* Clubs */}
-                  <td className="py-3 px-4 whitespace-nowrap">
-                    <div className="flex items-center gap-1 flex-wrap">
+                  <td className="py-5 px-4 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {userClubs.map(c => (
-                        <ClubBadge key={c} clubId={c} size="sm" />
+                        <ClubBadge key={c} clubId={c} size="sm" className="!rounded-none font-mono text-[9px] uppercase" />
                       ))}
                     </div>
                   </td>
 
                   {/* Max Discount */}
-                  <td className="py-3 px-4 whitespace-nowrap">
+                  <td className="py-5 px-4 whitespace-nowrap">
                     {activeDisc > 0 ? (
-                      <span className="inline-flex items-center gap-1 font-black px-2.5 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
-                        <Sparkles className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                        Up to {activeDisc}%
+                      <span className="font-syne text-xl font-black text-editorial-accent">
+                        {activeDisc}%
                       </span>
                     ) : (
                       <span className="text-slate-400">—</span>
                     )}
                   </td>
 
-                  {/* Cards details */}
-                  <td className="py-3 px-4 max-w-xs truncate text-slate-500 dark:text-slate-400" title={cardsSummary}>
+                  {/* Details */}
+                  <td className="py-5 px-4 max-w-xs truncate text-editorial-ink-muted dark:text-slate-400" title={cardsSummary}>
                     {cardsSummary || 'Subject to club terms'}
                   </td>
 
                   {/* Action button */}
-                  <td className="py-3 px-4 text-center whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold group-hover:-translate-x-0.5 transition-transform">
-                      Payment Advisor
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                    </span>
+                  <td className="py-5 px-4 text-center whitespace-nowrap">
+                    <button className="font-mono text-[10px] uppercase tracking-wider border border-editorial-ink px-3 py-1.5 hover:bg-editorial-ink hover:text-white transition-colors">
+                      Advisor
+                    </button>
                   </td>
                 </tr>
               );

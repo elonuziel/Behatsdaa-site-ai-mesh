@@ -4,6 +4,7 @@ import { MastercardDeal, getDealValidityStatus } from '../../utils/mastercardVal
 import { MastercardHero } from './MastercardHero';
 import { MastercardDealCard } from './MastercardDealCard';
 import { MastercardTableView } from './MastercardTableView';
+import { ClubLastUpdatedBadge } from '../ClubLastUpdatedBadge';
 import fallbackDealsData from '../../data/mastercard_deals.json';
 import {
   Search,
@@ -416,6 +417,10 @@ export const MastercardDealsView: React.FC<MastercardDealsViewProps> = ({
       ) : (
         <MastercardTableView deals={filteredDeals} />
       )}
+
+      <div className="pt-4 border-t border-slate-200/60 dark:border-slate-800/60">
+        <ClubLastUpdatedBadge clubId="mastercard" variant="footer" />
+      </div>
     </div>
   );
 };

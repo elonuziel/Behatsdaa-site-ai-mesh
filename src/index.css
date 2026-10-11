@@ -14,9 +14,16 @@
   }
 
   body {
-    @apply antialiased bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+    @apply antialiased bg-editorial-bg text-editorial-ink dark:bg-slate-950 dark:text-slate-100 font-sans;
+    height: 100vh;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
   }
 }
+
+.font-syne { font-family: 'Syne', sans-serif; }
+.font-space-mono { font-family: 'Space Mono', monospace; }
 
 @keyframes slideUp {
   from {
