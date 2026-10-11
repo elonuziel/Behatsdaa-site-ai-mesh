@@ -8,10 +8,14 @@ import { FavoritesProvider } from './context/FavoritesContext';
 import { ToastProvider } from './context/ToastContext';
 import { ChatProvider } from './context/ChatContext';
 import { registerServiceWorker } from './registerServiceWorker';
+import { initCapacitorApp } from './utils/capacitor';
 import './index.css';
 
 // Register offline caching service worker
 registerServiceWorker();
+
+// Initialize native Capacitor plugins (Status bar & Splash screen)
+initCapacitorApp();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
