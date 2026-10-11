@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as markerClustererPkg from '@googlemaps/markerclusterer';
+import { CLUBS } from '../src/types/club';
+import { formatClubDate } from '../src/context/ClubContext';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -168,5 +170,18 @@ describe('Multi-Club Integration Tests', () => {
     expect(typeof MarkerClustererClass).toBe('function');
     expect(typeof MarkerClustererClass.prototype.addMarkers).toBe('function');
     expect(typeof MarkerClustererClass.prototype.clearMarkers).toBe('function');
+  });
+
+  it('7. Verifies Per-Club Last Updated Timestamps', () => {
+    expect(CLUBS.behatsdaa.lastUpdated).toBeDefined();
+    expect(CLUBS.uniq.lastUpdated).toBeDefined();
+    expect(CLUBS.mastercard.lastUpdated).toBeDefined();
+
+    expect(CLUBS.behatsdaa.lastUpdatedFormatted).toMatch(/\d{2}\.\d{2}\.\d{4}/);
+    expect(CLUBS.uniq.lastUpdatedFormatted).toMatch(/\d{2}\.\d{2}\.\d{4}/);
+    expect(CLUBS.mastercard.lastUpdatedFormatted).toMatch(/\d{2}\.\d{2}\.\d{4}/);
+
+    expect(formatClubDate('2026-10-07T03:53:21Z')).toBe('07.10.2026');
+    expect(formatClubDate('2026-10-11T09:47:04Z')).toBe('11.10.2026');
   });
 });
