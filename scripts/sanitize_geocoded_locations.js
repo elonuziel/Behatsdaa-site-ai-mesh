@@ -14,7 +14,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { ISRAEL_CITIES_COORDS, resolveCityCoords } from '../js/israel_cities.js';
+import { ISRAEL_CITIES_COORDS, resolveCityCoords } from '../src/utils/israelCities.ts';
 import {
   isSyntheticCoordinate,
   resolveAuthenticOfflineCoords,

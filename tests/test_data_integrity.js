@@ -198,7 +198,7 @@ global.fetch = async (url) => ({
   json: async () => ({ success: true })
 });
 
-const { fetchJsonWithFallback } = await import("../js/data.js");
+const { fetchJsonWithFallback } = await import("../src/utils/data.ts");
 
 const successRes = await fetchJsonWithFallback("data/test.json", { success: false }, "Test Success");
 assert(successRes && successRes.success === true, "fetchJsonWithFallback returns data on HTTP OK");

@@ -1,62 +1,32 @@
 /**
  * Behatsdaa Smart Payment Advisor
- *
- * Standalone, dependency-free ES module that compares the three payment
- * channels available for any store and recommends the most profitable one:
- *
- *   A) Rechargeable club cards   → `store.cards` + `store.max_discount`
- *      (also reads `card.discount_numeric` / `card.discount`)
- *   B) Dedicated vouchers/deals  → `store.linked_deals` / `store.linkedDeals`
- *      (uses `discount_percent`, or derives the rate from
- *       `original_price` vs `price`)
- *   C) Credit card billing       → `store.linked_billing` /
- *      `store.linkedBillingStore` (`discount`)
- *
- * Every channel is normalized to a percentage, the winning channel is picked,
- * and a friendly Hebrew recommendation (plus an actionable tip) is produced.
- *
- * Tie-break rule: when two channels offer exactly the same discount, the
- * advisor prefers `card` over `billing` over `voucher`. Card discounts usually
- * apply to the whole chain repeatedly, billing discounts apply automatically
- * at checkout, and vouchers are typically product-specific or one-time.
+ * Standalone TypeScript module that compares payment channels.
  */
 
-/** Deterministic preference used only when two channels tie on discount. */
-const TIE_BREAK_PRIORITY = { card: 0, billing: 1, voucher: 2 };
+const TIE_BREAK_PRIORITY: Record<string, number> = { card: 0, billing: 1, voucher: 2 };
 
-/** Message shown when a store exposes no active payment benefit. */
 const NO_BENEFIT_TITLE = 'לא נמצאה הטבה פעילה בבית עסק זה';
 const NO_BENEFIT_MESSAGE = 'לא נמצאו ערוצי תשלום עם הטבות בבית עסק זה.';
 
-/**
- * Actionable tips. Each one explains the practical difference between a
- * dedicated voucher, a rechargeable club card and a credit-card billing
- * discount, so the shopper understands *why* the winner won.
- */
-const ADVICE_TIPS = {
+const ADVICE_TIPS: Record<string, string> = {
   card: 'כרטיס נטען משתלם במיוחד לרכישות חוזרות, משום שההנחה חלה על כלל המוצרים ברשת. שובר ייעודי עשוי להשתלם יותר לרכישה בודדת (בדקו תוקף ותנאי מימוש), והנחת מעמד החיוב (Max) חלה אוטומטית בכרטיס האשראי המתאים אך אינה ניתנת לכפל עם כרטיסים נטענים.',
   voucher: 'שובר ייעודי מקנה לרוב את החיסכון הגבוה ביותר לרכישה ספציפית, אך הוא בדרך כלל חד-פעמי ומוגבל למוצר או למסלול מסוים — בדקו את תנאי המימוש והתוקף לפני הרכישה. כרטיס נטען מתאים יותר לרכישות חוזרות ברשת, והנחת מעמד החיוב (Max) חלה אוטומטית בכרטיס האשראי המתאים.',
   billing: 'הנחת מעמד החיוב חלה אוטומטית בעת החיוב בכרטיס האשראי המתאים, בלי לרכוש שובר או לטעון כרטיס — אך היא אינה ניתנת לכפל עם כרטיסים נטענים. שובר ייעודי עשוי להשתלם יותר לרכישה בודדת, וכרטיס נטען משתלם לרכישות חוזרות ברשת.',
   none: 'כדאי להשוות בין שלושת ערוצי התשלום: שובר ייעודי משתלם לרכישה חד-פעמית, כרטיס נטען משתלם לרכישות חוזרות ברשת, והנחת מעמד החיוב חלה אוטומטית בכרטיס האשראי המתאים ואינה ניתנת לכפל עם כרטיסים נטענים.',
 };
 
-/* ------------------------------------------------------------------ *
- * Small value helpers
- * ------------------------------------------------------------------ */
-
-function isObject(value) {
+function isObject(value: any): boolean {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function firstDefined(...values) {
+function firstDefined(...values: any[]): any {
   for (const value of values) {
     if (value !== undefined && value !== null) return value;
   }
   return null;
 }
 
-/** Coerces numbers and numeric strings ('20%', '16.5%') to a finite number. */
-function toNumber(value) {
+function toNumber(value: any): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   if (typeof value === 'string') {
     const cleaned = value.replace(/[^\d.-]/g, '');
@@ -67,28 +37,25 @@ function toNumber(value) {
   return null;
 }
 
-/** Normalizes any raw value to a discount percentage (0..100, 1 decimal). */
-function normalizeDiscount(value) {
+function normalizeDiscount(value: any): number {
   const num = toNumber(value);
   if (num === null || num <= 0) return 0;
   return Math.round(Math.min(num, 100) * 10) / 10;
 }
 
-/** Trims a value into a non-empty string, or null. */
-function firstString(...values) {
+function firstString(...values: any[]): string | null {
   for (const value of values) {
     if (typeof value === 'string' && value.trim() !== '') return value.trim();
   }
   return null;
 }
 
-/** '30' / '16.5' — drops a trailing `.0` for clean Hebrew copy. */
-function formatPercent(value) {
+function formatPercent(value: number): string {
   const rounded = Math.round(value * 10) / 10;
   return String(rounded);
 }
 
-function escapeHtml(value) {
+function escapeHtml(value: any): string {
   return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -97,151 +64,133 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-/* ------------------------------------------------------------------ *
- * Channel collectors
- * ------------------------------------------------------------------ */
-
-/** Builds a human label for the winning rechargeable card. */
-function buildCardLabel(cardName) {
+function buildCardLabel(cardName: any): string {
   const clean = firstString(cardName);
   if (!clean) return 'כרטיס נטען בהצדעה';
   if (clean.startsWith('כרטיס')) return clean;
   return `כרטיס נטען: ${clean}`;
 }
 
-/** Channel A — rechargeable club cards. Returns null when absent. */
-function collectCardChannel(store) {
-  const cards = Array.isArray(store.cards) ? store.cards.filter(isObject) : [];
-  const storeMaxDiscount = normalizeDiscount(firstDefined(store.max_discount, store.maxDiscount, store.maxDiscountPercent));
+export interface PaymentChannelOption {
+  type: string;
+  name: string;
+  discount: number;
+  badge?: string;
+  isBest?: boolean;
+}
 
-  let bestCard = null;
+function collectCardChannel(store: any): PaymentChannelOption | null {
+  const rawMax = firstDefined(store.max_discount, store.maxDiscount, store.maxDiscountPercent);
+  const hasMax = rawMax !== null;
+  const cards = Array.isArray(store.cards) ? store.cards.filter(isObject) : [];
+
+  if (!hasMax && cards.length === 0) {
+    return null;
+  }
+
+  const storeMaxDiscount = hasMax ? normalizeDiscount(rawMax) : 0;
+
+  let bestCard: any = null;
   let bestCardDiscount = 0;
   for (const card of cards) {
     const raw = firstDefined(card.discount_numeric, card.discountNumeric, card.discount, card.max_discount, card.maxDiscount);
-    if (raw === null) continue;
-    const discount = normalizeDiscount(raw);
-    if (bestCard === null || discount > bestCardDiscount) {
+    const d = normalizeDiscount(raw);
+    if (d > bestCardDiscount) {
+      bestCardDiscount = d;
       bestCard = card;
-      bestCardDiscount = discount;
     }
   }
 
-  const discount = Math.max(storeMaxDiscount, bestCardDiscount);
-  if (cards.length === 0 && discount <= 0) return null;
+  const discount = Math.max(bestCardDiscount, storeMaxDiscount);
+  const cardName = bestCard ? firstString(bestCard.card_name, bestCard.name) : null;
+  const name = bestCard ? buildCardLabel(cardName) : 'כרטיס נטען בהצדעה';
 
-  const useCardName = bestCard !== null && bestCardDiscount >= storeMaxDiscount;
   return {
     type: 'card',
-    name: buildCardLabel(useCardName ? firstDefined(bestCard.card_name, bestCard.cardName, bestCard.name, bestCard.title) : null),
+    name,
     discount,
   };
 }
 
-/** Discount of a single voucher, from `discount_percent` or price delta. */
-function voucherDiscount(deal) {
-  const explicit = normalizeDiscount(firstDefined(deal.discount_percent, deal.discountPercent, deal.discount));
-  if (explicit > 0) return explicit;
+function collectVoucherChannel(store: any): PaymentChannelOption | null {
+  const rawDeals = firstDefined(store.linked_deals, store.linkedDeals, store.deals);
+  if (!Array.isArray(rawDeals)) return null;
 
-  const original = toNumber(firstDefined(deal.original_price, deal.originalPrice));
-  const price = toNumber(deal.price);
-  if (original !== null && original > 0 && price !== null && price >= 0 && price < original) {
-    return normalizeDiscount(((original - price) / original) * 100);
-  }
-  return 0;
-}
+  const validDeals = rawDeals.filter(isObject);
+  if (validDeals.length === 0) return null;
 
-/** Builds a human label for the winning voucher/deal. */
-function buildVoucherLabel(title) {
-  if (!title) return 'שובר/מבצע ייעודי';
-  // Avoid a redundant 'שובר: שובר ...' prefix when the title already says it.
-  return title.includes('שובר') ? title : `שובר: ${title}`;
-}
+  let bestDeal: any = null;
+  let bestVoucherDiscount = -1;
 
-/** Channel B — dedicated vouchers/deals. Returns null when absent. */
-function collectVoucherChannel(store) {
-  const raw = firstDefined(store.linked_deals, store.linkedDeals);
-  const deals = Array.isArray(raw) ? raw.filter(isObject) : [];
-  if (deals.length === 0) return null;
+  for (const deal of validDeals) {
+    let d = 0;
+    const explicit = firstDefined(deal.discount_percent, deal.discountPercent, deal.discount);
+    if (explicit !== null) {
+      d = normalizeDiscount(explicit);
+    } else {
+      const price = toNumber(deal.price);
+      const originalPrice = toNumber(firstDefined(deal.original_price, deal.originalPrice));
+      if (price !== null && originalPrice !== null && originalPrice > price && originalPrice > 0) {
+        d = normalizeDiscount(((originalPrice - price) / originalPrice) * 100);
+      }
+    }
 
-  let bestDeal = null;
-  let bestDiscount = 0;
-  for (const deal of deals) {
-    const discount = voucherDiscount(deal);
-    if (bestDeal === null || discount > bestDiscount) {
+    if (d > bestVoucherDiscount) {
+      bestVoucherDiscount = d;
       bestDeal = deal;
-      bestDiscount = discount;
     }
   }
 
-  const title = firstString(bestDeal && bestDeal.title, bestDeal && bestDeal.name, bestDeal && bestDeal.supplier);
+  if (!bestDeal) return null;
+
+  const title = firstString(bestDeal.title, bestDeal.name) || 'הטבה';
+  const name = title.startsWith('שובר') ? title : `שובר: ${title}`;
+
   return {
     type: 'voucher',
-    name: buildVoucherLabel(title),
-    discount: bestDiscount,
+    name,
+    discount: Math.max(0, bestVoucherDiscount),
   };
 }
 
-/** Channel C — credit-card billing discount. Returns null when absent. */
-function collectBillingChannel(store) {
-  const billing = firstDefined(store.linked_billing, store.linkedBillingStore, store.linked_billing_store, store.linkedBilling);
+function collectBillingChannel(store: any): PaymentChannelOption | null {
+  const billing = firstDefined(store.linked_billing, store.linkedBilling, store.linkedBillingStore);
   if (!isObject(billing)) return null;
 
-  const discount = normalizeDiscount(firstDefined(billing.discount, billing.discount_percent, billing.discountPercent));
-  const name = firstString(billing.name, billing.title);
+  const raw = firstDefined(billing.discount, billing.discount_percent, billing.discountPercent);
+  const discount = normalizeDiscount(raw);
+  const businessName = firstString(billing.name, billing.business_name);
+  const name = businessName ? `הנחה במעמד החיוב: ${businessName}` : 'הנחה במעמד החיוב (Max)';
+
   return {
     type: 'billing',
-    name: name ? `הנחה במעמד החיוב: ${name}` : 'הנחה במעמד החיוב (Max)',
+    name,
     discount,
   };
 }
 
-/* ------------------------------------------------------------------ *
- * Recommendation builders
- * ------------------------------------------------------------------ */
-
-function buildTitle(winner) {
-  if (!winner) return NO_BENEFIT_TITLE;
-  return `הדרך המשתלמת ביותר: ${winner.name} (${formatPercent(winner.discount)}% הנחה)`;
-}
-
-function buildExplanation(winner, options) {
-  if (!winner) {
-    return 'לא זוהו הטבות תשלום פעילות בבית העסק. ניתן לבדוק מול הקופה אם קיימות הטבות נוספות שאינן מפורטות באתר.';
-  }
-  const rate = `${formatPercent(winner.discount)}%`;
-  if (options.length === 1) {
-    return `בית העסק מציע ערוץ הטבה אחד: ${winner.name} — ${rate} הנחה.`;
-  }
-  return `השווינו ${options.length} ערוצי תשלום זמינים בבית העסק, ו${winner.name} מקנה את החיסכון הגבוה ביותר — ${rate} הנחה.`;
-}
-
-function badgelabel(option, winner) {
-  if (winner && option.type === winner.type) return 'הכי משתלם';
+function badgelabel(option: PaymentChannelOption, isBest: boolean): string {
+  if (isBest) return 'הכי משתלם';
   if (option.discount > 0) return 'חלופה';
   return 'ללא הנחה';
 }
 
-/* ------------------------------------------------------------------ *
- * Public API
- * ------------------------------------------------------------------ */
+function buildTitle(winner: PaymentChannelOption | null): string {
+  if (!winner || winner.discount <= 0) return NO_BENEFIT_TITLE;
+  return `הדרך המשתלמת ביותר: ${winner.name} (${formatPercent(winner.discount)}% הנחה)`;
+}
 
-/**
- * Compares the payment channels of a store and returns the recommendation.
- *
- * @param {object} store - Store record (cards / linked deals / linked billing).
- * @returns {{
- *   bestMethod: 'card'|'voucher'|'billing'|'none',
- *   bestDiscount: number,
- *   title: string,
- *   explanation: string,
- *   options: Array<{ type: string, name: string, discount: number, isBest: boolean, badge: string }>,
- *   adviceTip: string
- * }}
- */
-export function calculateBestPayment(store) {
+function buildExplanation(winner: PaymentChannelOption | null, options: PaymentChannelOption[]): string {
+  if (!winner || winner.discount <= 0) return NO_BENEFIT_MESSAGE;
+  const p = `${formatPercent(winner.discount)}%`;
+  const channelsCount = options.length;
+  return `ערוץ ${winner.name} מעניק ${p} הנחה, ונמצא כמשתלם ביותר מבין ${channelsCount} ערוצי תשלום שנבדקו ברשת זו.`;
+}
+
+export function calculateBestPayment(store: any) {
   const source = isObject(store) ? store : {};
 
-  const options = [];
+  const options: PaymentChannelOption[] = [];
   const cardChannel = collectCardChannel(source);
   if (cardChannel) options.push(cardChannel);
   const voucherChannel = collectVoucherChannel(source);
@@ -249,8 +198,7 @@ export function calculateBestPayment(store) {
   const billingChannel = collectBillingChannel(source);
   if (billingChannel) options.push(billingChannel);
 
-  // Pick the winner: highest discount, deterministic tie-break, positive only.
-  let winner = null;
+  let winner: PaymentChannelOption | null = null;
   for (const option of options) {
     if (option.discount <= 0) continue;
     if (winner === null) {
@@ -259,7 +207,10 @@ export function calculateBestPayment(store) {
     }
     if (option.discount > winner.discount) {
       winner = option;
-    } else if (option.discount === winner.discount && TIE_BREAK_PRIORITY[option.type] < TIE_BREAK_PRIORITY[winner.type]) {
+    } else if (
+      option.discount === winner.discount &&
+      (TIE_BREAK_PRIORITY[option.type] ?? 99) < (TIE_BREAK_PRIORITY[winner.type] ?? 99)
+    ) {
       winner = option;
     }
   }
@@ -272,20 +223,22 @@ export function calculateBestPayment(store) {
     bestDiscount,
     title: buildTitle(winner),
     explanation: buildExplanation(winner, options),
-    options: options.map((option) => ({
-      type: option.type,
-      name: option.name,
-      discount: option.discount,
-      isBest: Boolean(winner) && option.type === winner.type,
-      badge: badgelabel(option, winner),
-    })),
+    options: options.map(option => {
+      const isBest = Boolean(winner) && option.type === winner!.type;
+      return {
+        type: option.type,
+        name: option.name,
+        discount: option.discount,
+        isBest,
+        badge: badgelabel(option, isBest),
+      };
+    }),
     adviceTip: ADVICE_TIPS[bestMethod] || ADVICE_TIPS.none,
   };
 }
 
-function renderOptionChip(option) {
+function renderOptionChip(option: any) {
   const isBest = option.isBest;
-  const hasDiscount = option.discount > 0;
 
   const containerClass = isBest
     ? 'border-emerald-400 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 ring-2 ring-emerald-400/60'
@@ -312,16 +265,7 @@ function renderOptionChip(option) {
       </li>`;
 }
 
-/**
- * Renders the responsive, accessible Hebrew (RTL) Tailwind HTML card for the
- * store modal (`#store-modal`). The winning channel is highlighted with a
- * gold badge and an emerald comparison chip, followed by chips for the other
- * available channels and an actionable tip.
- *
- * @param {object} store - Store record (cards / linked deals / linked billing).
- * @returns {string} HTML markup.
- */
-export function renderPaymentAdvisorHtml(store) {
+export function renderPaymentAdvisorHtml(store: any): string {
   const advice = calculateBestPayment(store);
   const storeName = isObject(store) ? firstString(store.name) : null;
   const hasWinner = advice.bestMethod !== 'none';

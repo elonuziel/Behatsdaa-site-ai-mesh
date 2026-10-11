@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { ISRAEL_CITIES_COORDS, resolveCityCoords } from '../js/israel_cities.js';
+import { ISRAEL_CITIES_COORDS, resolveCityCoords } from '../src/utils/israelCities.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -18,7 +18,7 @@
  */
 
 import assert from 'assert';
-import { calculateBestPayment, renderPaymentAdvisorHtml } from '../js/payment-advisor.js';
+import { calculateBestPayment, renderPaymentAdvisorHtml } from '../src/utils/paymentAdvisor.ts';
 
 /* ------------------------------------------------------------------ *
  * Fixtures

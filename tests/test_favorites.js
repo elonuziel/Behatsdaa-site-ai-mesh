@@ -83,7 +83,7 @@ if (typeof globalThis.CustomEvent !== 'function') {
   };
 }
 
-const favorites = await import('../js/favorites.js');
+const favorites = await import('../src/utils/favorites.ts');
 
 /* ------------------------------------------------------------------ *
  * Tiny zero-dependency test harness

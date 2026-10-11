@@ -18,18 +18,19 @@ const storesData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'store
 const dealsData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'deals.json'), 'utf-8'));
 const billingData = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'billing_stores.json'), 'utf-8'));
 
+import { crossLinkAllDatasets } from '../src/utils/crosslink.ts';
+
 async function benchmarkCrossLink(iterations = 50) {
   const times = [];
   for (let i = 0; i < iterations; i++) {
-    const dataModule = await import(`../js/data.js?update=${i}`);
-    const stateModule = await import(`../js/state.js?update=${i}`);
-
-    stateModule.state.allStores = JSON.parse(JSON.stringify(storesData.stores));
-    stateModule.state.allDeals = JSON.parse(JSON.stringify(dealsData.deals));
-    stateModule.state.allBillingStores = JSON.parse(JSON.stringify(billingData.stores));
+    const stateObj = {
+      allStores: JSON.parse(JSON.stringify(storesData.stores)),
+      allDeals: JSON.parse(JSON.stringify(dealsData.deals)),
+      allBillingStores: JSON.parse(JSON.stringify(billingData.stores))
+    };
 
     const start = performance.now();
-    dataModule.crossLinkAllDatasets();
+    crossLinkAllDatasets(stateObj);
     const end = performance.now();
     times.push(end - start);
   }
@@ -38,18 +39,17 @@ async function benchmarkCrossLink(iterations = 50) {
 }
 
 async function benchmarkOptimizedDealLookup(iterations = 500) {
-  const dataModule = await import('../js/data.js?lookupBench=2');
-  const stateModule = await import('../js/state.js?lookupBench=2');
+  const stateObj = {
+    allStores: JSON.parse(JSON.stringify(storesData.stores)),
+    allDeals: JSON.parse(JSON.stringify(dealsData.deals)),
+    allBillingStores: JSON.parse(JSON.stringify(billingData.stores))
+  };
 
-  stateModule.state.allStores = JSON.parse(JSON.stringify(storesData.stores));
-  stateModule.state.allDeals = JSON.parse(JSON.stringify(dealsData.deals));
-  stateModule.state.allBillingStores = JSON.parse(JSON.stringify(billingData.stores));
-
-  dataModule.crossLinkAllDatasets();
+  crossLinkAllDatasets(stateObj);
 
   const startCardMatch = performance.now();
   for (let i = 0; i < iterations; i++) {
-    stateModule.state.allDeals.forEach(deal => {
+    stateObj.allDeals.forEach(deal => {
       const matchedStore = deal.linkedStore || null;
     });
   }

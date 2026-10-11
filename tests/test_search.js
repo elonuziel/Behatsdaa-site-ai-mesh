@@ -9,7 +9,7 @@ import {
   initBillingSearch,
   searchBilling,
   suggestBilling
-} from '../js/search.js';
+} from '../src/utils/search.ts';
 
 console.log('🧪 Running Search Unit Tests...');
 

@@ -3,7 +3,12 @@
  * Used for high-performance plotting of businesses on Google Maps.
  */
 
-export const ISRAEL_CITIES_COORDS = {
+export interface CityCoord {
+  lat: number;
+  lng: number;
+}
+
+export const ISRAEL_CITIES_COORDS: Record<string, CityCoord> = {
   // Major metropolitan centers
   'תל אביב - יפו': { lat: 32.0780, lng: 34.7920 },
   'תל אביב': { lat: 32.0780, lng: 34.7920 },
@@ -207,7 +212,6 @@ export const ISRAEL_CITIES_COORDS = {
   'נווה מיכאל': { lat: 31.6667, lng: 34.9500 },
   'רוגלית': { lat: 31.6667, lng: 34.9500 },
   'אדרת': { lat: 31.6500, lng: 34.9833 },
-  'נתיב הל\"ה': { lat: 31.6833, lng: 34.9833 },
   'נתיב הל"ה': { lat: 31.6833, lng: 34.9833 },
   'צור הדסה': { lat: 31.7167, lng: 35.1000 },
   'מבוא ביתר': { lat: 31.7167, lng: 35.1167 },
@@ -510,12 +514,10 @@ export const ISRAEL_CITIES_COORDS = {
   'חמדיה': { lat: 32.5180, lng: 35.5210 },
   'אבן מנחם': { lat: 33.0760, lng: 35.2970 },
   'מועצה אזורית מטה בנימין': { lat: 31.9280, lng: 35.2340 },
-  'מטה בנימין': { lat: 31.9280, lng: 35.2340 },
   'מגדל': { lat: 32.8250, lng: 35.5130 },
   'רמות': { lat: 32.8680, lng: 35.6660 },
   'נין': { lat: 32.6280, lng: 35.3430 },
   'מנדא': { lat: 32.8100, lng: 35.2600 },
-  'כפר מנדא': { lat: 32.8100, lng: 35.2600 },
   'רעות': { lat: 31.8903, lng: 35.0104 },
   'מכבים': { lat: 31.8903, lng: 35.0104 },
   'מעאר מגאר\'': { lat: 32.8897, lng: 35.4056 },
@@ -523,7 +525,6 @@ export const ISRAEL_CITIES_COORDS = {
   'מושב מנות': { lat: 33.0333, lng: 35.1833 },
   'עלי זהב': { lat: 32.0667, lng: 35.0667 },
   'חצור': { lat: 32.9819, lng: 35.5458 },
-  'חצור הגלילית': { lat: 32.9819, lng: 35.5458 },
   'חצור אשדוד': { lat: 31.7650, lng: 34.7200 },
   'בן שמן (מושב)': { lat: 31.9500, lng: 34.9167 },
   'בית אל': { lat: 31.9420, lng: 35.2210 },
@@ -536,13 +537,13 @@ export const ISRAEL_CITIES_COORDS = {
 };
 
 // Cache for pre-geocoded coordinates
-let geocodedLocationsMap = null;
-let geocodedLocationsPromise = null;
+let geocodedLocationsMap: Record<string, any> | null = null;
+let geocodedLocationsPromise: Promise<Record<string, any>> | null = null;
 
 /**
  * Loads pre-geocoded store locations dictionary
  */
-export async function loadGeocodedLocations() {
+export async function loadGeocodedLocations(): Promise<Record<string, any>> {
   if (geocodedLocationsMap) return geocodedLocationsMap;
   if (geocodedLocationsPromise) return geocodedLocationsPromise;
 
@@ -561,14 +562,14 @@ export async function loadGeocodedLocations() {
   return geocodedLocationsPromise;
 }
 
-export function setGeocodedLocations(map) {
+export function setGeocodedLocations(map: Record<string, any> | null) {
   geocodedLocationsMap = map;
 }
 
 /**
  * Resolves geographic coordinates for an Israeli city name.
  */
-export function resolveCityCoords(rawCity) {
+export function resolveCityCoords(rawCity: string | null | undefined): CityCoord | null {
   if (!rawCity) return null;
   const trimmed = String(rawCity).trim();
   if (ISRAEL_CITIES_COORDS[trimmed]) return ISRAEL_CITIES_COORDS[trimmed];
@@ -610,14 +611,18 @@ export function resolveCityCoords(rawCity) {
   return null;
 }
 
+export interface StoreCoordinateResult {
+  lat: number;
+  lng: number;
+  cityLat: number;
+  cityLng: number;
+  isExact: boolean;
+}
+
 /**
  * Returns precise latitude and longitude for any store.
- * 1. Uses exact store lat/lng if available on store record.
- * 2. Uses exact pre-geocoded address coordinates from geocoded dictionary.
- * 3. Falls back to true city center with minimal micro-offset (less than 20m)
- *    so stores in the same city are never placed onto false random streets.
  */
-export function getStoreCoordinates(store) {
+export function getStoreCoordinates(store: any): StoreCoordinateResult | null {
   if (!store || !store.city) return null;
   const rawCity = store.city.trim();
   if (rawCity.toLowerCase() === 'online' || rawCity.includes('אונליין')) return null;
@@ -651,7 +656,6 @@ export function getStoreCoordinates(store) {
     }
   }
 
-
   // 3. Fallback to city coordinates
   let base = resolveCityCoords(rawCity);
 
@@ -660,8 +664,6 @@ export function getStoreCoordinates(store) {
     base = { lat: 32.0853, lng: 34.7818 }; // Tel Aviv area fallback
   }
 
-  // Tiny deterministic micro-offset (within 10-25 meters) so multiple stores at city center
-  // don't overlap completely on the exact same pixel, but never wander into wrong streets
   const idNum = Number(store.id) || 1;
   const angle = ((idNum * 137.5) % 360) * (Math.PI / 180);
   const microRadius = 0.00012 + ((idNum * 17) % 30) * 0.000004;
@@ -677,3 +679,5 @@ export function getStoreCoordinates(store) {
     isExact: false
   };
 }
+
+export const resolveStoreCoords = getStoreCoordinates;

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 
 export type PrimaryTab = 'mega' | 'behatsdaa' | 'uniq' | 'mastercard' | 'favorites';
 
@@ -58,10 +58,44 @@ interface SearchContextType {
 
 const SearchContext = createContext<SearchContextType | undefined>(undefined);
 
+function getInitialUrlParams() {
+  if (typeof window === 'undefined') {
+    return {
+      query: '',
+      tab: 'mega' as PrimaryTab,
+      subtab: 'all',
+      cat: 'all',
+      store: null,
+      deal: null
+    };
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+
+  const rawTab = searchParams.get('tab') || hashParams.get('tab');
+  const validTabs: PrimaryTab[] = ['mega', 'behatsdaa', 'uniq', 'mastercard', 'favorites'];
+  const tab: PrimaryTab = validTabs.includes(rawTab as PrimaryTab) ? (rawTab as PrimaryTab) : 'mega';
+
+  const subtab = searchParams.get('subtab') || searchParams.get('sub') || hashParams.get('sub') || DEFAULT_SUB_TABS[tab] || 'all';
+  const query = searchParams.get('q') || '';
+  const cat = searchParams.get('cat') || 'all';
+  const store = searchParams.get('store') || null;
+  const deal = searchParams.get('deal') || null;
+
+  return { query, tab, subtab, cat, store, deal };
+}
+
 export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [query, setQueryState] = useState('');
-  const [primaryTab, setPrimaryTabState] = useState<PrimaryTab>('mega');
-  const [subTab, setSubTabState] = useState<string>('all');
+  const initialParams = getInitialUrlParams();
+
+  const [query, setQueryState] = useState(initialParams.query);
+  const [primaryTab, setPrimaryTabState] = useState<PrimaryTab>(initialParams.tab);
+  const [subTab, setSubTabState] = useState<string>(initialParams.subtab);
+  const [selectedCategory, setSelectedCategoryState] = useState<string>(initialParams.cat);
+  const [selectedStoreSlug, setSelectedStoreSlugState] = useState<string | null>(initialParams.store);
+  const [selectedDealId, setSelectedDealIdState] = useState<string | null>(initialParams.deal);
+
   const [viewMode, setViewModeState] = useState<ViewMode>(() => {
     const saved = localStorage.getItem('app_view_mode');
     return saved === 'table' ? 'table' : 'grid';
@@ -89,12 +123,10 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return next;
     });
   };
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
   const [selectedCard, setSelectedCard] = useState<string>('all');
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortOption>('discount');
-  const [selectedStoreSlug, setSelectedStoreSlug] = useState<string | null>(null);
-  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
 
   // Search enhancement options
   const [smartSearch, setSmartSearchState] = useState<boolean>(() => {
@@ -125,58 +157,109 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem('mc_search_indesc', String(val));
   };
 
-  // Sync initial hash if present
-  useEffect(() => {
-    try {
-      const hash = window.location.hash.replace(/^#/, '');
-      if (hash) {
-        const params = new URLSearchParams(hash);
-        const p = params.get('tab') as PrimaryTab;
-        const s = params.get('sub');
-        if (p && ['mega', 'behatsdaa', 'uniq', 'mastercard', 'favorites'].includes(p)) {
-          setPrimaryTabState(p);
-          if (s) {
-            setSubTabState(s);
-          } else {
-            setSubTabState(DEFAULT_SUB_TABS[p] || 'all');
-          }
-        }
+  // Keep a ref to track whether URL update was triggered by popstate
+  const isPopStateRef = useRef(false);
+
+  // Sync state with URL search params
+  const updateUrl = useCallback((
+    q: string,
+    pTab: PrimaryTab,
+    sTab: string,
+    cat: string,
+    store: string | null,
+    deal: string | null,
+    pushHistory: boolean = false
+  ) => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams();
+    if (q.trim()) params.set('q', q.trim());
+    if (pTab !== 'mega') params.set('tab', pTab);
+    if (sTab !== (DEFAULT_SUB_TABS[pTab] || 'all')) params.set('subtab', sTab);
+    if (cat !== 'all') params.set('cat', cat);
+    if (store) params.set('store', store);
+    if (deal) params.set('deal', deal);
+
+    const queryString = params.toString();
+    const newRelativePathQuery = queryString ? `?${queryString}` : window.location.pathname;
+
+    if (window.location.search !== (queryString ? `?${queryString}` : '')) {
+      if (pushHistory) {
+        window.history.pushState(null, '', newRelativePathQuery);
+      } else {
+        window.history.replaceState(null, '', newRelativePathQuery);
       }
-    } catch {
-      // Ignore hash parse errors
     }
   }, []);
 
-  // Update hash when tabs change
+  // Sync on state change (unless popstate)
   useEffect(() => {
-    try {
-      const newHash = `tab=${primaryTab}&sub=${subTab}`;
-      if (window.location.hash !== `#${newHash}`) {
-        window.history.replaceState(null, '', `#${newHash}`);
-      }
-    } catch {
-      // Ignore history state errors
+    if (isPopStateRef.current) {
+      isPopStateRef.current = false;
+      return;
     }
-  }, [primaryTab, subTab]);
+    updateUrl(query, primaryTab, subTab, selectedCategory, selectedStoreSlug, selectedDealId, false);
+  }, [query, primaryTab, subTab, selectedCategory, selectedStoreSlug, selectedDealId, updateUrl]);
+
+  // Handle browser Back / Forward buttons (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      isPopStateRef.current = true;
+      const parsed = getInitialUrlParams();
+      setQueryState(parsed.query);
+      setPrimaryTabState(parsed.tab);
+      setSubTabState(parsed.subtab);
+      setSelectedCategoryState(parsed.cat);
+      setSelectedStoreSlugState(parsed.store);
+      setSelectedDealIdState(parsed.deal);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const setPrimaryTab = (tab: PrimaryTab) => {
     setPrimaryTabState(tab);
-    setSubTabState(DEFAULT_SUB_TABS[tab] || 'all');
-    setSelectedCategory('all');
+    const defaultSub = DEFAULT_SUB_TABS[tab] || 'all';
+    setSubTabState(defaultSub);
+    setSelectedCategoryState('all');
+    updateUrl(query, tab, defaultSub, 'all', selectedStoreSlug, selectedDealId, true);
   };
 
   const setSubTab = (tab: string) => {
     setSubTabState(tab);
-    setSelectedCategory('all');
+    setSelectedCategoryState('all');
+    updateUrl(query, primaryTab, tab, 'all', selectedStoreSlug, selectedDealId, true);
+  };
+
+  const setSelectedCategory = (cat: string) => {
+    setSelectedCategoryState(cat);
+    updateUrl(query, primaryTab, subTab, cat, selectedStoreSlug, selectedDealId, false);
   };
 
   const setQuery = (q: string) => {
     setQueryState(q);
-    // Typing in search focuses mega search hub
+    let targetTab = primaryTab;
+    let targetSub = subTab;
     if (q.trim().length > 0 && primaryTab !== 'mega' && primaryTab !== 'favorites') {
+      targetTab = 'mega';
+      targetSub = 'all';
       setPrimaryTabState('mega');
       setSubTabState('all');
     }
+    updateUrl(q, targetTab, targetSub, selectedCategory, selectedStoreSlug, selectedDealId, false);
+  };
+
+  const setSelectedStoreSlug = (slug: string | null) => {
+    setSelectedStoreSlugState(slug);
+    // Push history when opening a modal so Back button closes it naturally
+    updateUrl(query, primaryTab, subTab, selectedCategory, slug, selectedDealId, slug !== null);
+  };
+
+  const setSelectedDealId = (id: string | null) => {
+    setSelectedDealIdState(id);
+    // Push history when opening a modal so Back button closes it naturally
+    updateUrl(query, primaryTab, subTab, selectedCategory, selectedStoreSlug, id, id !== null);
   };
 
   return (

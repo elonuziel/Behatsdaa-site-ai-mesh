@@ -8,7 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { resolveCityCoords } from '../js/israel_cities.js';
+import { resolveCityCoords } from '../src/utils/israelCities.ts';
 import {
   resolveAuthenticOfflineCoords,
   isSyntheticCoordinate,
