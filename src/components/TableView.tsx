@@ -22,12 +22,12 @@ export const TableView: React.FC<TableViewProps> = ({ stores, onSelect }) => {
           <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
             <tr>
               <th className="py-3 px-4 w-12 text-center">⭐</th>
-              <th className="py-3 px-4">רשת / עסק</th>
-              <th className="py-3 px-4">קטגוריה</th>
-              <th className="py-3 px-4">מועדונים</th>
-              <th className="py-3 px-4">הנחה מרבית</th>
-              <th className="py-3 px-4">כרטיסים נטענים ופרטים</th>
-              <th className="py-3 px-4 text-center">פעולה</th>
+              <th className="py-3 px-4">Business / Chain</th>
+              <th className="py-3 px-4">Category</th>
+              <th className="py-3 px-4">Clubs</th>
+              <th className="py-3 px-4">Max Discount</th>
+              <th className="py-3 px-4">Rechargeable Cards & Details</th>
+              <th className="py-3 px-4 text-center">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
@@ -58,7 +58,7 @@ export const TableView: React.FC<TableViewProps> = ({ stores, onSelect }) => {
                       type="button"
                       onClick={() => toggleFavorite('store', String(store.id))}
                       className="p-1 rounded-full text-slate-300 dark:text-slate-600 hover:text-amber-500 transition"
-                      title={isFav ? 'הסר ממועדפים' : 'הוסף למועדפים'}
+                      title={isFav ? 'Remove from favorites' : 'Add to favorites'}
                     >
                       <Star className={`w-4 h-4 ${isFav ? 'fill-amber-400 text-amber-500' : ''}`} />
                     </button>
@@ -90,7 +90,7 @@ export const TableView: React.FC<TableViewProps> = ({ stores, onSelect }) => {
 
                   {/* Category */}
                   <td className="py-3 px-4 text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                    {store.category || 'כללי'}
+                    {store.category || 'General'}
                   </td>
 
                   {/* Clubs */}
@@ -107,7 +107,7 @@ export const TableView: React.FC<TableViewProps> = ({ stores, onSelect }) => {
                     {activeDisc > 0 ? (
                       <span className="inline-flex items-center gap-1 font-black px-2.5 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
                         <Sparkles className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                        עד {activeDisc}%
+                        Up to {activeDisc}%
                       </span>
                     ) : (
                       <span className="text-slate-400">—</span>
@@ -116,13 +116,13 @@ export const TableView: React.FC<TableViewProps> = ({ stores, onSelect }) => {
 
                   {/* Cards details */}
                   <td className="py-3 px-4 max-w-xs truncate text-slate-500 dark:text-slate-400" title={cardsSummary}>
-                    {cardsSummary || 'בכפוף לתקנון המועדון'}
+                    {cardsSummary || 'Subject to club terms'}
                   </td>
 
                   {/* Action button */}
                   <td className="py-3 px-4 text-center whitespace-nowrap">
                     <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold group-hover:-translate-x-0.5 transition-transform">
-                      יועץ תשלום
+                      Payment Advisor
                       <ChevronLeft className="w-3.5 h-3.5" />
                     </span>
                   </td>

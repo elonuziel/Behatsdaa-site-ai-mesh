@@ -13,7 +13,7 @@ export const MyClubsPills: React.FC = () => {
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 pl-1">
           <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span>המועדונים שלי:</span>
+          <span>My Clubs:</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
@@ -30,7 +30,7 @@ export const MyClubsPills: React.FC = () => {
                     ? `${config.activeBg} ring-2 ring-offset-1 ring-emerald-500/20 dark:ring-offset-slate-900 shadow-md scale-102`
                     : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 opacity-60 hover:opacity-100 hover:border-slate-400'
                 }`}
-                title={`${config.name} (${isActive ? 'פעיל' : 'כבוי'}) — עודכן לאחרונה ב-${config.lastUpdatedFormatted}`}
+                title={`${config.name} (${isActive ? 'Active' : 'Inactive'}) — Last updated on ${config.lastUpdatedFormatted}`}
                 aria-pressed={isActive}
               >
                 <span
@@ -47,7 +47,7 @@ export const MyClubsPills: React.FC = () => {
                   className={`text-[10px] px-1 py-0.2 rounded font-mono ${
                     isActive ? 'bg-black/15 text-white/90' : 'text-slate-400 dark:text-slate-500'
                   }`}
-                  title={`תאריך עדכון אחרון: ${config.lastUpdatedFormatted}`}
+                  title={`Last update date: ${config.lastUpdatedFormatted}`}
                 >
                   {config.lastUpdatedFormatted}
                 </span>
@@ -60,9 +60,9 @@ export const MyClubsPills: React.FC = () => {
           <button
             onClick={resetAllClubs}
             className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline px-1 py-0.5"
-            title="בחר את כל המועדונים"
+            title="Select all clubs"
           >
-            בחר הכל
+            Select All
           </button>
         )}
       </div>
@@ -70,17 +70,17 @@ export const MyClubsPills: React.FC = () => {
       {/* Per-Club Last Updated Summary */}
       <div className="hidden sm:flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100/90 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700/60 shadow-xs">
         <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-        <span className="font-semibold text-slate-600 dark:text-slate-300">עודכן לאחרונה:</span>
+        <span className="font-semibold text-slate-600 dark:text-slate-300">Last updated:</span>
         <span className="flex items-center gap-1.5 font-mono text-[10.5px]">
-          <span title={`בהצדעה עודכן ב-${CLUBS.behatsdaa.lastUpdatedFormatted}`} className="text-emerald-700 dark:text-emerald-300 font-sans">
+          <span title={`בהצדעה updated on ${CLUBS.behatsdaa.lastUpdatedFormatted}`} className="text-emerald-700 dark:text-emerald-300 font-sans">
             בהצדעה: <span className="font-mono">{CLUBS.behatsdaa.lastUpdatedFormatted}</span>
           </span>
           <span className="text-slate-300 dark:text-slate-600">•</span>
-          <span title={`UNIQ עודכן ב-${CLUBS.uniq.lastUpdatedFormatted}`} className="text-purple-700 dark:text-purple-300 font-sans">
+          <span title={`UNIQ updated on ${CLUBS.uniq.lastUpdatedFormatted}`} className="text-purple-700 dark:text-purple-300 font-sans">
             UNIQ: <span className="font-mono">{CLUBS.uniq.lastUpdatedFormatted}</span>
           </span>
           <span className="text-slate-300 dark:text-slate-600">•</span>
-          <span title={`Mastercard Day עודכן ב-${CLUBS.mastercard.lastUpdatedFormatted}`} className="text-amber-700 dark:text-amber-300 font-sans">
+          <span title={`Mastercard Day updated on ${CLUBS.mastercard.lastUpdatedFormatted}`} className="text-amber-700 dark:text-amber-300 font-sans">
             Mastercard: <span className="font-mono">{CLUBS.mastercard.lastUpdatedFormatted}</span>
           </span>
         </span>

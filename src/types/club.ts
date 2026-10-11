@@ -44,7 +44,7 @@ export const CLUBS: Record<ClubId, ClubConfig> = {
   mastercard: {
     id: 'mastercard',
     name: 'Mastercard Day',
-    shortName: 'מאסטרקארד דיי',
+    shortName: 'Mastercard Day',
     badgeBg: 'bg-amber-100 dark:bg-amber-950/80',
     badgeText: 'text-amber-800 dark:text-amber-300',
     borderClass: 'border-amber-300 dark:border-amber-700',
