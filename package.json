@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "predev": "node scripts/merge_all_clubs.js && node scripts/split-data.js",
+    "predev": "node scripts/merge_all_clubs.js && node scripts/split-data.js && node scripts/fetch-models-at-build.js",
     "dev": "tsx server.ts",
-    "build": "node scripts/merge_all_clubs.js && node scripts/split-data.js && tsc && vite build",
+    "build": "node scripts/merge_all_clubs.js && node scripts/split-data.js && node scripts/fetch-models-at-build.js && tsc && vite build",
     "test": "node scripts/merge_all_clubs.js && node scripts/split-data.js && node tests/test_data_integrity.js && node tests/test_multi_club_integration.js",
     "typecheck": "tsc --noEmit",
     "start": "node server.ts",

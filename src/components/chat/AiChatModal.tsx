@@ -315,7 +315,7 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
                     id="model-select"
                     value={selectedModel}
                     onChange={e => setSelectedModel(e.target.value)}
-                    className="w-full text-xs font-mono font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
+                    className="w-full text-xs font-mono font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer shadow-sm"
                   >
                     {availableModels.map(m => (
                       <option key={m.id} value={m.id}>
@@ -325,15 +325,18 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
                   </select>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 flex-1 max-w-md">
-                  <input
+                <div className="relative flex-1 max-w-md">
+                  <select
                     id="model-select"
-                    type="text"
-                    value={selectedModel}
-                    onChange={e => setSelectedModel(e.target.value)}
-                    placeholder="הזן שם מודל..."
-                    className="w-full text-xs font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                  />
+                    disabled
+                    className="w-full text-xs font-medium bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-400 dark:text-slate-500 cursor-not-allowed"
+                  >
+                    <option value="">
+                      {providerStatuses?.[selectedProvider]?.available
+                        ? 'אין מודלים זמינים לספק זה'
+                        : `לא זמין (נדרש ${providerStatuses?.[selectedProvider]?.requiredSecret || PROVIDER_OPTIONS.find(p => p.id === selectedProvider)?.secret} ב-Secrets)`}
+                    </option>
+                  </select>
                 </div>
               )}
 

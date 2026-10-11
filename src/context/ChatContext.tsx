@@ -122,10 +122,50 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.providers) {
           setProviderStatuses(data.providers);
         }
+        return;
       }
     } catch {
-      setIsAiOnline(false);
+      // Ignore and fallback to workflow build static bundle
     }
+
+    // Static GitHub Pages fallback: probe workflow-generated ai-models.json
+    try {
+      const staticRes = await fetch('./data/ai-models.json').catch(() => fetch('./ai-models.json'));
+      if (staticRes && staticRes.ok) {
+        const staticBundle = await staticRes.json();
+        if (staticBundle?.providers) {
+          const statuses = {} as Record<AiProviderKey, ProviderInfo>;
+          let online = false;
+          let actProv: AiProviderKey = 'gemini';
+          let actMod = 'gemini-flash-lite-latest';
+
+          for (const [key, val] of Object.entries(staticBundle.providers) as [AiProviderKey, any][]) {
+            statuses[key] = {
+              id: key,
+              name: val.name || key,
+              available: !!val.available,
+              model: val.defaultModel || '',
+              requiredSecret: val.requiredSecret || '',
+              codeSnippet: '',
+            };
+            if (val.available && !online) {
+              online = true;
+              actProv = key;
+              actMod = val.defaultModel || '';
+            }
+          }
+          setProviderStatuses(statuses);
+          setIsAiOnline(online);
+          if (online) {
+            setActiveProvider(actProv);
+            setActiveModel(actMod);
+          }
+          return;
+        }
+      }
+    } catch {}
+
+    setIsAiOnline(false);
   }, []);
 
   const fetchModelsForProvider = useCallback(async (providerToFetch?: AiProviderKey) => {
@@ -133,9 +173,37 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoadingModels(true);
     setModelsError(null);
     try {
-      const res = await fetch(`/api/models?provider=${p}`);
-      const data: ModelsResponse = await res.json();
-      if (data.available && Array.isArray(data.models) && data.models.length > 0) {
+      let data: ModelsResponse | null = null;
+      try {
+        const res = await fetch(`/api/models?provider=${p}`);
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch {
+        // Fallback to static workflow build file
+      }
+
+      // If server response is unavailable or not marked available, check workflow-generated static bundle
+      if (!data || !data.available) {
+        try {
+          const staticRes = await fetch('./data/ai-models.json').catch(() => fetch('./ai-models.json'));
+          if (staticRes && staticRes.ok) {
+            const staticBundle = await staticRes.json();
+            const providerData = staticBundle?.providers?.[p];
+            if (providerData) {
+              data = {
+                available: !!providerData.available,
+                provider: p,
+                models: providerData.models || [],
+                defaultModel: providerData.defaultModel,
+                error: providerData.error,
+              };
+            }
+          }
+        } catch {}
+      }
+
+      if (data && data.available && Array.isArray(data.models) && data.models.length > 0) {
         setAvailableModels(data.models);
         // Mark provider as available immediately in providerStatuses state
         setProviderStatuses(prev => {
@@ -145,7 +213,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             [p]: {
               ...prev[p],
               available: true,
-              model: data.defaultModel || prev[p]?.model || '',
+              model: data?.defaultModel || prev[p]?.model || '',
             },
           };
         });
@@ -163,9 +231,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else {
         setAvailableModels([]);
-        if (data.error) {
+        if (data?.error) {
           setModelsError(data.error);
-        } else if (data.defaultModel) {
+        } else if (data?.defaultModel) {
           setSelectedModelState(data.defaultModel);
         }
       }
