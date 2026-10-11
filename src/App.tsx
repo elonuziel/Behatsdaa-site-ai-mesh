@@ -49,6 +49,9 @@ const ViewSuspenseFallback = () => (
   </div>
 );
 
+/**
+ * Renders the active benefits view, navigation, detail modals, and AI chat controls.
+ */
 export const App: React.FC = () => {
   const {
     query, primaryTab, subTab, selectedCategory, selectedCard, setSelectedCard,
@@ -114,7 +117,7 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="mt-12 py-6 border-t border-slate-200/60 dark:border-slate-800 text-center text-xs text-slate-500 space-y-3">
+      <footer className="mt-12 py-6 pb-safe border-t border-slate-200/60 dark:border-slate-800 text-center text-xs text-slate-500 space-y-3">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p>ההטבות שלי — פורטל מאוחד למועדוני בהצדעה, UNIQ ו-Mastercard Day</p>
           <ClubLastUpdatedBadge showAll={true} variant="footer" />
@@ -142,7 +145,7 @@ export const App: React.FC = () => {
         </Suspense>
       )}
 
-      <div className="fixed bottom-5 left-5 z-40">
+      <div className="fixed bottom-5 left-5 z-40 mb-safe">
         <button
           onClick={() => openChat(query)}
           className="group flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-600/30 hover:shadow-emerald-600/50 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/20"
