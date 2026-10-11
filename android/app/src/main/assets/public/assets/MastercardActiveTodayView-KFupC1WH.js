@@ -1,0 +1,1 @@
+import{j as t}from"./vendor-react-DprzrYw9.js";import{MastercardDealsView as i}from"./MastercardDealsView-DFkZSqmb.js";import"./index-CkH6WoIx.js";import"./vendor-CF9sL6t4.js";import"./vendor-search-DigTKvvb.js";import"./mastercardValidity-CwydeMK-.js";import"./textUtils-DtmISzqJ.js";const c=()=>t.jsx(i,{initialValidity:"active_today"});export{c as MastercardActiveTodayView};
