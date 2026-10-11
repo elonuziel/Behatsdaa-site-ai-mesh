@@ -17,10 +17,9 @@
  *  - Rendered RTL/accessible Tailwind HTML for #store-modal
  */
 
+import { describe, it, expect } from 'vitest';
 import assert from 'assert';
-import { loadTsModule } from './helpers/loadTs.js';
-
-const { calculateBestPayment, renderPaymentAdvisorHtml } = await loadTsModule('../src/utils/paymentAdvisor.ts', import.meta.url);
+import { calculateBestPayment, renderPaymentAdvisorHtml } from '../src/utils/paymentAdvisor';
 
 /* ------------------------------------------------------------------ *
  * Fixtures
@@ -66,37 +65,13 @@ const emptyStore = { id: 'empty', name: 'חנות ללא הטבות' };
  * Tiny zero-dependency test harness
  * ------------------------------------------------------------------ */
 
-let passed = 0;
-let failed = 0;
-
-function section(title) {
-  console.log(`\n${title}`);
-}
-
-function test(name, fn) {
-  try {
-    fn();
-    passed++;
-    console.log(`  ✅ PASS: ${name}`);
-  } catch (error) {
-    failed++;
-    process.exitCode = 1;
-    console.error(`  ❌ FAIL: ${name}`);
-    console.error(`     ↳ ${error && error.message ? error.message : error}`);
-  }
-}
-
-console.log('====================================================');
-console.log('   Behatsdaa Payment Advisor — Automated Tests      ');
-console.log('====================================================');
-
 /* ------------------------------------------------------------------ *
  * 1. Stores with only rechargeable cards
  * ------------------------------------------------------------------ */
 
-section('1. Stores with only rechargeable cards');
+describe('1. Stores with only rechargeable cards', () => {
 
-test('recommends the card channel with the store max discount', () => {
+it('recommends the card channel with the store max discount', () => {
   const advice = calculateBestPayment(cardsOnlyStore);
   assert.strictEqual(advice.bestMethod, 'card');
   assert.strictEqual(advice.bestDiscount, 30);
@@ -111,7 +86,7 @@ test('recommends the card channel with the store max discount', () => {
   });
 });
 
-test('falls back to max_discount when there is no cards array', () => {
+it('falls back to max_discount when there is no cards array', () => {
   const advice = calculateBestPayment({ name: 'רשת', max_discount: 25 });
   assert.strictEqual(advice.bestMethod, 'card');
   assert.strictEqual(advice.bestDiscount, 25);
@@ -119,7 +94,7 @@ test('falls back to max_discount when there is no cards array', () => {
   assert.strictEqual(advice.options[0].badge, 'הכי משתלם');
 });
 
-test('derives the card discount from card entries when max_discount is missing', () => {
+it('derives the card discount from card entries when max_discount is missing', () => {
   const advice = calculateBestPayment({
     cards: [
       { card_name: 'מועדון X', discount: '12.5%' },
@@ -131,7 +106,7 @@ test('derives the card discount from card entries when max_discount is missing',
   assert.strictEqual(advice.options[0].name, 'כרטיס נטען: מועדון Y');
 });
 
-test('parses string card discounts and retains exact card names', () => {
+it('parses string card discounts and retains exact card names', () => {
   const advice = calculateBestPayment({ cards: [{ card_name: 'חבר טעמים 16.5%', discount: '16.5%' }] });
   assert.strictEqual(advice.bestMethod, 'card');
   assert.strictEqual(advice.bestDiscount, 16.5);
@@ -142,9 +117,10 @@ test('parses string card discounts and retains exact card names', () => {
  * 2. Stores with only dedicated vouchers
  * ------------------------------------------------------------------ */
 
-section('2. Stores with only dedicated vouchers');
+});
+describe('2. Stores with only dedicated vouchers', () => {
 
-test('recommends the highest-discount voucher', () => {
+it('recommends the highest-discount voucher', () => {
   const advice = calculateBestPayment(vouchersOnlyStore);
   assert.strictEqual(advice.bestMethod, 'voucher');
   assert.strictEqual(advice.bestDiscount, 50);
@@ -154,25 +130,25 @@ test('recommends the highest-discount voucher', () => {
   assert.strictEqual(advice.options[0].isBest, true);
 });
 
-test('derives the voucher discount from original_price vs price', () => {
+it('derives the voucher discount from original_price vs price', () => {
   const advice = calculateBestPayment({ linked_deals: [{ title: 'מבצע טקסטיל', price: 60, original_price: 100 }] });
   assert.strictEqual(advice.bestMethod, 'voucher');
   assert.strictEqual(advice.bestDiscount, 40);
   assert.strictEqual(advice.options[0].name, 'שובר: מבצע טקסטיל');
 });
 
-test('rounds price-derived discounts to one decimal', () => {
+it('rounds price-derived discounts to one decimal', () => {
   const advice = calculateBestPayment({ linked_deals: [{ title: 'מבצע', price: 250, original_price: 375 }] });
   assert.strictEqual(advice.bestMethod, 'voucher');
   assert.strictEqual(advice.bestDiscount, 33.3);
 });
 
-test('explicit discount_percent takes precedence over the price delta', () => {
+it('explicit discount_percent takes precedence over the price delta', () => {
   const advice = calculateBestPayment({ linked_deals: [{ title: 'מבצע', price: 50, original_price: 100, discount_percent: 10 }] });
   assert.strictEqual(advice.bestDiscount, 10);
 });
 
-test('a voucher with no real discount contributes 0', () => {
+it('a voucher with no real discount contributes 0', () => {
   const advice = calculateBestPayment({ linked_deals: [{ title: 'ללא הנחה', price: 100, original_price: 100, discount_percent: 0 }] });
   assert.strictEqual(advice.bestMethod, 'none');
   assert.strictEqual(advice.bestDiscount, 0);
@@ -185,7 +161,7 @@ test('a voucher with no real discount contributes 0', () => {
   });
 });
 
-test('malformed voucher entries are skipped without throwing', () => {
+it('malformed voucher entries are skipped without throwing', () => {
   const advice = calculateBestPayment({ linked_deals: [null, 'x', 42, { title: 'טוב', discount_percent: 20 }] });
   assert.strictEqual(advice.bestMethod, 'voucher');
   assert.strictEqual(advice.bestDiscount, 20);
@@ -196,9 +172,10 @@ test('malformed voucher entries are skipped without throwing', () => {
  * 3. Stores with only a billing discount
  * ------------------------------------------------------------------ */
 
-section('3. Stores with only a billing discount');
+});
+describe('3. Stores with only a billing discount', () => {
 
-test('recommends the credit-card billing channel', () => {
+it('recommends the credit-card billing channel', () => {
   const advice = calculateBestPayment(billingOnlyStore);
   assert.strictEqual(advice.bestMethod, 'billing');
   assert.strictEqual(advice.bestDiscount, 8);
@@ -213,12 +190,12 @@ test('recommends the credit-card billing channel', () => {
   });
 });
 
-test('accepts numeric string billing discounts', () => {
+it('accepts numeric string billing discounts', () => {
   const advice = calculateBestPayment({ linked_billing: { name: 'חנות', discount: '12.5%' } });
   assert.strictEqual(advice.bestDiscount, 12.5);
 });
 
-test('uses a generic billing label when the business name is missing', () => {
+it('uses a generic billing label when the business name is missing', () => {
   const advice = calculateBestPayment({ linked_billing: { discount: 5 } });
   assert.strictEqual(advice.options[0].name, 'הנחה במעמד החיוב (Max)');
 });
@@ -227,9 +204,10 @@ test('uses a generic billing label when the business name is missing', () => {
  * 4. All three channels competing
  * ------------------------------------------------------------------ */
 
-section('4. All three channels competing');
+});
+describe('4. All three channels competing', () => {
 
-test('the highest discount wins and all channels are comparable', () => {
+it('the highest discount wins and all channels are comparable', () => {
   const advice = calculateBestPayment(multiChannelStore);
   assert.strictEqual(advice.bestMethod, 'voucher');
   assert.strictEqual(advice.bestDiscount, 82);
@@ -244,7 +222,7 @@ test('the highest discount wins and all channels are comparable', () => {
   assert.ok(advice.explanation.includes('3 ערוצי תשלום'), 'explanation counts the compared channels');
 });
 
-test('a card can beat a weaker voucher and billing discount', () => {
+it('a card can beat a weaker voucher and billing discount', () => {
   const advice = calculateBestPayment({
     name: 'סינמה סיטי',
     max_discount: 20,
@@ -257,7 +235,7 @@ test('a card can beat a weaker voucher and billing discount', () => {
   assert.strictEqual(advice.options.filter((option) => option.isBest).length, 1);
 });
 
-test('exactly one channel is ever marked as best', () => {
+it('exactly one channel is ever marked as best', () => {
   for (const store of [cardsOnlyStore, vouchersOnlyStore, billingOnlyStore, multiChannelStore]) {
     const advice = calculateBestPayment(store);
     assert.strictEqual(
@@ -269,7 +247,7 @@ test('exactly one channel is ever marked as best', () => {
   }
 });
 
-test('calculation does not mutate the store and options are fresh per call', () => {
+it('calculation does not mutate the store and options are fresh per call', () => {
   const snapshot = JSON.parse(JSON.stringify(multiChannelStore));
   const first = calculateBestPayment(multiChannelStore);
   first.options[0].isBest = true;
@@ -284,9 +262,10 @@ test('calculation does not mutate the store and options are fresh per call', () 
  * 5. Identical discounts (deterministic tie-break)
  * ------------------------------------------------------------------ */
 
-section('5. Identical discounts (deterministic tie-break)');
+});
+describe('5. Identical discounts (deterministic tie-break)', () => {
 
-test('identical card / voucher / billing discounts prefer the card', () => {
+it('identical card / voucher / billing discounts prefer the card', () => {
   const advice = calculateBestPayment({
     cards: [{ card_name: 'כרטיס 20', discount: '20%' }],
     max_discount: 20,
@@ -299,7 +278,7 @@ test('identical card / voucher / billing discounts prefer the card', () => {
   assert.strictEqual(advice.options.find((option) => option.isBest).type, 'card');
 });
 
-test('identical card / billing discounts prefer the card', () => {
+it('identical card / billing discounts prefer the card', () => {
   const advice = calculateBestPayment({
     max_discount: 15,
     linked_billing: { name: 'חיוב', discount: 15 },
@@ -307,7 +286,7 @@ test('identical card / billing discounts prefer the card', () => {
   assert.strictEqual(advice.bestMethod, 'card');
 });
 
-test('identical voucher / billing discounts prefer billing', () => {
+it('identical voucher / billing discounts prefer billing', () => {
   const advice = calculateBestPayment({
     linked_deals: [{ title: 'שובר 10', discount_percent: 10 }],
     linked_billing: { name: 'חיוב', discount: 10 },
@@ -320,9 +299,10 @@ test('identical voucher / billing discounts prefer billing', () => {
  * 6. Zero discounts, malformed and missing data
  * ------------------------------------------------------------------ */
 
-section('6. Zero discounts, malformed and missing data');
+});
+describe('6. Zero discounts, malformed and missing data', () => {
 
-test('empty and missing stores return the none recommendation', () => {
+it('empty and missing stores return the none recommendation', () => {
   for (const store of [undefined, null, {}, { cards: [] }, { linked_deals: [] }, { linked_billing: null }, 'text', 42]) {
     const advice = calculateBestPayment(store);
     assert.strictEqual(advice.bestMethod, 'none');
@@ -334,7 +314,7 @@ test('empty and missing stores return the none recommendation', () => {
   }
 });
 
-test('channels with 0% discounts still render as visible chips but nobody wins', () => {
+it('channels with 0% discounts still render as visible chips but nobody wins', () => {
   const advice = calculateBestPayment({
     max_discount: 0,
     cards: [{ card_name: 'כרטיס 0', discount: '0%' }],
@@ -348,13 +328,13 @@ test('channels with 0% discounts still render as visible chips but nobody wins',
   assert.ok(advice.options.every((option) => option.badge === 'ללא הנחה'));
 });
 
-test('non-object channel payloads never throw', () => {
+it('non-object channel payloads never throw', () => {
   const advice = calculateBestPayment({ cards: ['x', 5], linked_deals: 'nope', linked_billing: 42 });
   assert.strictEqual(advice.bestMethod, 'none');
   assert.deepStrictEqual(advice.options, []);
 });
 
-test('discounts are clamped to the 0..100 range', () => {
+it('discounts are clamped to the 0..100 range', () => {
   const overcapped = calculateBestPayment({ max_discount: 150 });
   assert.strictEqual(overcapped.bestDiscount, 100);
   const negative = calculateBestPayment({ linked_billing: { name: 'חיוב', discount: -5 } });
@@ -362,7 +342,7 @@ test('discounts are clamped to the 0..100 range', () => {
   assert.strictEqual(negative.options[0].discount, 0);
 });
 
-test('camelCase field variants are supported', () => {
+it('camelCase field variants are supported', () => {
   const advice = calculateBestPayment({
     maxDiscount: 12,
     cards: [{ cardName: 'כרטיס בדיקה', discountNumeric: 12 }],
@@ -378,9 +358,10 @@ test('camelCase field variants are supported', () => {
  * 7. Advice tips
  * ------------------------------------------------------------------ */
 
-section('7. Advice tips');
+});
+describe('7. Advice tips', () => {
 
-test('the winning-method tip explains voucher vs card vs credit card', () => {
+it('the winning-method tip explains voucher vs card vs credit card', () => {
   const cardTip = calculateBestPayment(cardsOnlyStore).adviceTip;
   const voucherTip = calculateBestPayment(vouchersOnlyStore).adviceTip;
   const billingTip = calculateBestPayment(billingOnlyStore).adviceTip;
@@ -397,7 +378,7 @@ test('the winning-method tip explains voucher vs card vs credit card', () => {
   assert.notStrictEqual(cardTip, billingTip);
 });
 
-test('the fallback tip still compares all three payment avenues', () => {
+it('the fallback tip still compares all three payment avenues', () => {
   const tip = calculateBestPayment(emptyStore).adviceTip;
   assert.ok(tip.includes('שובר'));
   assert.ok(tip.includes('כרטיס נטען'));
@@ -408,9 +389,10 @@ test('the fallback tip still compares all three payment avenues', () => {
  * 8. Rendered HTML
  * ------------------------------------------------------------------ */
 
-section('8. Rendered HTML');
+});
+describe('8. Rendered HTML', () => {
 
-test('renders RTL accessible Tailwind markup with a gold badge and emerald winner chip', () => {
+it('renders RTL accessible Tailwind markup with a gold badge and emerald winner chip', () => {
   const html = renderPaymentAdvisorHtml(cardsOnlyStore);
   assert.strictEqual(typeof html, 'string');
   assert.ok(html.includes('dir="rtl"'), 'declares RTL direction');
@@ -428,7 +410,7 @@ test('renders RTL accessible Tailwind markup with a gold badge and emerald winne
   assert.ok(html.includes('שובר ייעודי'), 'includes the actionable tip');
 });
 
-test('renders a comparison chip for every available method', () => {
+it('renders a comparison chip for every available method', () => {
   const html = renderPaymentAdvisorHtml(multiChannelStore);
   assert.strictEqual(html.split('data-method="').length - 1, 3, 'one chip per channel');
   assert.ok(html.includes('data-method="card"'));
@@ -438,14 +420,14 @@ test('renders a comparison chip for every available method', () => {
   assert.ok(html.includes('הנחה במעמד החיוב: ערד טקסטיל'));
 });
 
-test('highlights exactly one winning method with aria-current', () => {
+it('highlights exactly one winning method with aria-current', () => {
   const html = renderPaymentAdvisorHtml(multiChannelStore);
   assert.strictEqual(html.split('aria-current="true"').length - 1, 1, 'only the winner is marked');
   assert.strictEqual(html.split('data-best="true"').length - 1, 1, 'only the winner is flagged best');
   assert.strictEqual(html.split('data-best="false"').length - 1, 2, 'the other methods are alternatives');
 });
 
-test('shows a clear empty state when there are no benefits', () => {
+it('shows a clear empty state when there are no benefits', () => {
   for (const store of [emptyStore, undefined, null]) {
     const html = renderPaymentAdvisorHtml(store);
     assert.ok(html.includes('payment-advisor--none'), 'marks the none state');
@@ -457,7 +439,7 @@ test('shows a clear empty state when there are no benefits', () => {
   }
 });
 
-test('escapes untrusted store, card and voucher names', () => {
+it('escapes untrusted store, card and voucher names', () => {
   const html = renderPaymentAdvisorHtml({
     name: 'חנות <script>alert(1)</script>',
     cards: [{ card_name: '<script>card()</script>', discount: '10%' }],
@@ -468,7 +450,7 @@ test('escapes untrusted store, card and voucher names', () => {
   assert.ok(!html.includes('<img'), 'no raw tags from data');
 });
 
-test('always returns a non-empty HTML string', () => {
+it('always returns a non-empty HTML string', () => {
   for (const store of [cardsOnlyStore, vouchersOnlyStore, billingOnlyStore, multiChannelStore, emptyStore, undefined, null, 'x']) {
     const html = renderPaymentAdvisorHtml(store);
     assert.strictEqual(typeof html, 'string');
@@ -477,15 +459,4 @@ test('always returns a non-empty HTML string', () => {
   }
 });
 
-/* ------------------------------------------------------------------ *
- * Summary
- * ------------------------------------------------------------------ */
-
-console.log('\n====================================================');
-if (failed === 0) {
-  console.log(`🎉 All ${passed} payment advisor tests passed successfully!`);
-} else {
-  console.log(`❌ ${failed} of ${passed + failed} payment advisor tests failed.`);
-  process.exitCode = 1;
-}
-console.log('====================================================\n');
+});

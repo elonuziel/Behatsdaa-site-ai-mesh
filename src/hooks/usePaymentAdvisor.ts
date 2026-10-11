@@ -49,7 +49,7 @@ export function calculateBestPaymentStrategy(
   });
 
   const best = sorted[0];
-  let recommendationText = '';
+  let recommendationText: string;
 
   if (best.type === 'loaded_card') {
     recommendationText = `המסלול המשתלם ביותר: טעינת ${best.label} עם ${best.rate}% הנחה מראש`;

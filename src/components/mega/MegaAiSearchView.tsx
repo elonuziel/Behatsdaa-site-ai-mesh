@@ -54,7 +54,7 @@ export const MegaAiSearchView: React.FC<MegaAiSearchViewProps> = ({
   const renderFormattedText = (text: string) => {
     const lines = text.split('\n');
     return lines.map((line, idx) => {
-      let trimmed = line.trim();
+      const trimmed = line.trim();
       if (!trimmed) return <div key={idx} className="h-2" />;
 
       if (trimmed.startsWith('### ')) {

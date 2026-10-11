@@ -1,24 +1,52 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Navbar } from './components/Navbar';
-import { PaymentAdvisorModal } from './components/PaymentAdvisorModal';
-import { DealDetailModal } from './components/DealDetailModal';
-import { AiChatModal } from './components/chat/AiChatModal';
 import { MegaSearchView } from './components/views/MegaSearchView';
 import { BehatsdaaView } from './components/views/BehatsdaaView';
 import { FavoritesView } from './components/favorites/FavoritesView';
-import { UniqTabAView } from './components/uniq/UniqTabAView';
-import { UniqTabBView } from './components/uniq/UniqTabBView';
-import { UniqTabCView } from './components/uniq/UniqTabCView';
-import { UniqTabDView } from './components/uniq/UniqTabDView';
-import { MastercardDealsView } from './components/mastercard/MastercardDealsView';
-import { MastercardActiveTodayView } from './components/mastercard/MastercardActiveTodayView';
-import { MastercardTermsView } from './components/mastercard/MastercardTermsView';
 import { useSearch } from './context/SearchContext';
 import { useClubs } from './context/ClubContext';
 import { useFavorites } from './context/FavoritesContext';
 import { useChat } from './context/ChatContext';
 import { useMiniSearch } from './hooks/useMiniSearch';
 import { Bot } from 'lucide-react';
+
+const PaymentAdvisorModal = React.lazy(() =>
+  import('./components/PaymentAdvisorModal').then(m => ({ default: m.PaymentAdvisorModal }))
+);
+const DealDetailModal = React.lazy(() =>
+  import('./components/DealDetailModal').then(m => ({ default: m.DealDetailModal }))
+);
+const AiChatModal = React.lazy(() =>
+  import('./components/chat/AiChatModal').then(m => ({ default: m.AiChatModal }))
+);
+const UniqTabAView = React.lazy(() =>
+  import('./components/uniq/UniqTabAView').then(m => ({ default: m.UniqTabAView }))
+);
+const UniqTabBView = React.lazy(() =>
+  import('./components/uniq/UniqTabBView').then(m => ({ default: m.UniqTabBView }))
+);
+const UniqTabCView = React.lazy(() =>
+  import('./components/uniq/UniqTabCView').then(m => ({ default: m.UniqTabCView }))
+);
+const UniqTabDView = React.lazy(() =>
+  import('./components/uniq/UniqTabDView').then(m => ({ default: m.UniqTabDView }))
+);
+const MastercardDealsView = React.lazy(() =>
+  import('./components/mastercard/MastercardDealsView').then(m => ({ default: m.MastercardDealsView }))
+);
+const MastercardActiveTodayView = React.lazy(() =>
+  import('./components/mastercard/MastercardActiveTodayView').then(m => ({ default: m.MastercardActiveTodayView }))
+);
+const MastercardTermsView = React.lazy(() =>
+  import('./components/mastercard/MastercardTermsView').then(m => ({ default: m.MastercardTermsView }))
+);
+
+const ViewSuspenseFallback = () => (
+  <div className="flex items-center justify-center p-12 text-slate-400">
+    <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin ml-3" />
+    <span>טוען תצוגה...</span>
+  </div>
+);
 
 export const App: React.FC = () => {
   const {
@@ -61,20 +89,20 @@ export const App: React.FC = () => {
         )}
 
         {primaryTab === 'uniq' && (
-          <>
+          <Suspense fallback={<ViewSuspenseFallback />}>
             {subTab === 'tab-a' && <UniqTabAView />}
             {subTab === 'tab-b' && <UniqTabBView />}
             {subTab === 'tab-c' && <UniqTabCView />}
             {subTab === 'tab-d' && <UniqTabDView />}
-          </>
+          </Suspense>
         )}
 
         {primaryTab === 'mastercard' && (
-          <>
+          <Suspense fallback={<ViewSuspenseFallback />}>
             {subTab === 'deals' && <MastercardDealsView />}
             {subTab === 'active-today' && <MastercardActiveTodayView />}
             {subTab === 'terms' && <MastercardTermsView />}
-          </>
+          </Suspense>
         )}
 
         {primaryTab === 'favorites' && (
@@ -93,20 +121,24 @@ export const App: React.FC = () => {
       </footer>
 
       {selectedStoreSlug && (
-        <PaymentAdvisorModal
-          slug={selectedStoreSlug}
-          onClose={() => setSelectedStoreSlug(null)}
-          onSelectCard={cardName => { setSelectedCard(cardName); setSelectedStoreSlug(null); }}
-          onSelectDeal={dealId => { setSelectedStoreSlug(null); setSelectedDealId(dealId); }}
-        />
+        <Suspense fallback={null}>
+          <PaymentAdvisorModal
+            slug={selectedStoreSlug}
+            onClose={() => setSelectedStoreSlug(null)}
+            onSelectCard={cardName => { setSelectedCard(cardName); setSelectedStoreSlug(null); }}
+            onSelectDeal={dealId => { setSelectedStoreSlug(null); setSelectedDealId(dealId); }}
+          />
+        </Suspense>
       )}
 
       {selectedDealId && (
-        <DealDetailModal
-          id={selectedDealId}
-          onClose={() => setSelectedDealId(null)}
-          onSelectStore={slug => { setSelectedDealId(null); setSelectedStoreSlug(slug); }}
-        />
+        <Suspense fallback={null}>
+          <DealDetailModal
+            id={selectedDealId}
+            onClose={() => setSelectedDealId(null)}
+            onSelectStore={slug => { setSelectedDealId(null); setSelectedStoreSlug(slug); }}
+          />
+        </Suspense>
       )}
 
       <div className="fixed bottom-5 left-5 z-40">
@@ -124,7 +156,9 @@ export const App: React.FC = () => {
         </button>
       </div>
 
-      <AiChatModal onSelectStore={setSelectedStoreSlug} onSelectDeal={setSelectedDealId} />
+      <Suspense fallback={null}>
+        <AiChatModal onSelectStore={setSelectedStoreSlug} onSelectDeal={setSelectedDealId} />
+      </Suspense>
     </div>
   );
 };

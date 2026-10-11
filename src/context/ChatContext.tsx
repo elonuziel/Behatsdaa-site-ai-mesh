@@ -181,7 +181,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       let verified = false;
-      let keys: Record<string, string> | null = null;
 
       // 1. First try backend endpoint /api/verify-password
       try {
@@ -210,7 +209,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // 3. Client-side key decryption (if encrypted keys bundle is present)
       if (encryptedBundle) {
-        keys = await decryptKeysWithPassword(trimmed, encryptedBundle);
+        const keys = await decryptKeysWithPassword(trimmed, encryptedBundle);
         if (keys) {
           verified = true;
           setDecryptedKeys(keys);

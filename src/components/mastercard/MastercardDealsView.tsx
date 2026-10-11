@@ -117,7 +117,7 @@ export const MastercardDealsView: React.FC<MastercardDealsViewProps> = ({
     ];
 
     return defs.map(def => {
-      let count = 0;
+      let count: number;
       if (def.id === 'all') {
         count = deals.length;
       } else if (def.id === 'active_today') {

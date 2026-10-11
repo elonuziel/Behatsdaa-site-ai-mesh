@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 /**
  * Automated Test Suite for the Behatsdaa Favorites Module (js/favorites.js)
  *
@@ -89,30 +90,6 @@ const favorites = await import('../src/utils/favorites.ts');
  * Tiny zero-dependency test harness
  * ------------------------------------------------------------------ */
 
-let passed = 0;
-let failed = 0;
-
-function section(title) {
-  console.log(`\n${title}`);
-}
-
-function test(name, fn) {
-  try {
-    fn();
-    passed++;
-    console.log(`  ✅ PASS: ${name}`);
-  } catch (error) {
-    failed++;
-    process.exitCode = 1;
-    console.error(`  ❌ FAIL: ${name}`);
-    console.error(`     ↳ ${error && error.message ? error.message : error}`);
-  }
-}
-
-/**
- * Resets the persisted storage AND the module's in-memory fallback so every
- * test starts from a clean slate regardless of how previous tests ended.
- */
 function resetState() {
   globalThis.localStorage = new ThrowingStorage();
   favorites.clearAllFavorites(); // clears the in-memory fallback
@@ -122,6 +99,8 @@ function resetState() {
   dispatchedEvents.length = 0;
 }
 
+function section(_title: string) {}
+
 function readStoredJson() {
   return JSON.parse(globalThis.localStorage.getItem(STORAGE_KEY));
 }
@@ -130,15 +109,17 @@ console.log('====================================================');
 console.log('   Behatsdaa Favorites Module — Automated Tests      ');
 console.log('====================================================');
 
+describe('Behatsdaa Favorites Module', () => {
+  beforeEach(() => { resetState(); });
+
 /* ------------------------------------------------------------------ *
  * 1. Initial empty state
  * ------------------------------------------------------------------ */
 
 section('1. Initial empty state');
 
-resetState();
 
-test('getFavorites() returns the canonical empty schema', () => {
+it('getFavorites() returns the canonical empty schema', () => {
   const current = favorites.getFavorites();
   assert.deepStrictEqual(current.stores, []);
   assert.deepStrictEqual(current.deals, []);
@@ -148,20 +129,20 @@ test('getFavorites() returns the canonical empty schema', () => {
   assert.ok(!Number.isNaN(Date.parse(current.updatedAt)), 'updatedAt must be a valid date string');
 });
 
-test('counts are zero before anything is bookmarked', () => {
+it('counts are zero before anything is bookmarked', () => {
   assert.strictEqual(favorites.getFavoritesCount(), 0);
   assert.strictEqual(favorites.getFavoritesCount('store'), 0);
   assert.strictEqual(favorites.getFavoritesCount('deal'), 0);
   assert.strictEqual(favorites.getFavoritesCount('billing'), 0);
 });
 
-test('isFavorite() is false for every type on an empty state', () => {
+it('isFavorite() is false for every type on an empty state', () => {
   assert.strictEqual(favorites.isFavorite('store', 'איתי-ברנדס-אונליין'), false);
   assert.strictEqual(favorites.isFavorite('deal', '185816'), false);
   assert.strictEqual(favorites.isFavorite('billing', 'billing-42'), false);
 });
 
-test('read-only calls never create the localStorage key', () => {
+it('read-only calls never create the localStorage key', () => {
   favorites.getFavorites();
   favorites.getFavoritesCount();
   favorites.isFavorite('store', 'nobody');
@@ -174,7 +155,7 @@ test('read-only calls never create the localStorage key', () => {
 
 section('2. Stores — add, remove, persist');
 
-test('toggleFavorite() adds a store and persists the full schema', () => {
+it('toggleFavorite() adds a store and persists the full schema', () => {
   resetState();
   assert.strictEqual(favorites.toggleFavorite('store', 'עגליס-אונליין'), true);
   assert.strictEqual(favorites.isFavorite('store', 'עגליס-אונליין'), true);
@@ -187,7 +168,7 @@ test('toggleFavorite() adds a store and persists the full schema', () => {
   assert.strictEqual(typeof raw.updatedAt, 'string');
 });
 
-test('adding multiple stores preserves insertion order', () => {
+it('adding multiple stores preserves insertion order', () => {
   resetState();
   favorites.toggleFavorite('store', 'store-a');
   favorites.toggleFavorite('store', 'store-b');
@@ -196,7 +177,7 @@ test('adding multiple stores preserves insertion order', () => {
   assert.deepStrictEqual(readStoredJson().stores, ['store-a', 'store-b', 'store-c']);
 });
 
-test('removing a store returns false and drops it from storage', () => {
+it('removing a store returns false and drops it from storage', () => {
   resetState();
   favorites.toggleFavorite('store', 'store-a');
   favorites.toggleFavorite('store', 'store-b');
@@ -206,7 +187,7 @@ test('removing a store returns false and drops it from storage', () => {
   assert.deepStrictEqual(readStoredJson().stores, ['store-b']);
 });
 
-test('ids are trimmed before being stored', () => {
+it('ids are trimmed before being stored', () => {
   resetState();
   assert.strictEqual(favorites.toggleFavorite('store', '  vans-online  '), true);
   assert.strictEqual(favorites.isFavorite('store', 'vans-online'), true);
@@ -219,14 +200,14 @@ test('ids are trimmed before being stored', () => {
 
 section('3. Deals & billing — independent collections');
 
-test('deal ids are stored as strings', () => {
+it('deal ids are stored as strings', () => {
   resetState();
   assert.strictEqual(favorites.toggleFavorite('deal', '185816'), true);
   assert.deepStrictEqual(favorites.getFavorites().deals, ['185816']);
   assert.strictEqual(favorites.isFavorite('deal', '185816'), true);
 });
 
-test('numeric deal ids are coerced to strings', () => {
+it('numeric deal ids are coerced to strings', () => {
   resetState();
   assert.strictEqual(favorites.toggleFavorite('deal', 185816), true);
   assert.deepStrictEqual(favorites.getFavorites().deals, ['185816']);
@@ -235,7 +216,7 @@ test('numeric deal ids are coerced to strings', () => {
   assert.deepStrictEqual(readStoredJson().deals, ['185816']);
 });
 
-test('billing items are tracked in their own collection', () => {
+it('billing items are tracked in their own collection', () => {
   resetState();
   assert.strictEqual(favorites.toggleFavorite('billing', 'max-42'), true);
   assert.deepStrictEqual(favorites.getFavorites().billing, ['max-42']);
@@ -243,7 +224,7 @@ test('billing items are tracked in their own collection', () => {
   assert.strictEqual(favorites.getFavoritesCount('store'), 0);
 });
 
-test('the same id can be favorited independently in different types', () => {
+it('the same id can be favorited independently in different types', () => {
   resetState();
   assert.strictEqual(favorites.toggleFavorite('store', 'shared-id'), true);
   assert.strictEqual(favorites.toggleFavorite('deal', 'shared-id'), true);
@@ -262,7 +243,7 @@ test('the same id can be favorited independently in different types', () => {
 
 section('4. Toggle behavior');
 
-test('toggling twice adds then removes (true -> false)', () => {
+it('toggling twice adds then removes (true -> false)', () => {
   resetState();
   assert.strictEqual(favorites.toggleFavorite('store', 'flip-store'), true);
   assert.strictEqual(favorites.getFavoritesCount(), 1);
@@ -276,7 +257,7 @@ test('toggling twice adds then removes (true -> false)', () => {
   });
 });
 
-test('repeated toggling never duplicates an id', () => {
+it('repeated toggling never duplicates an id', () => {
   resetState();
   assert.strictEqual(favorites.toggleFavorite('store', 'repeat-store'), true);
   assert.strictEqual(favorites.toggleFavorite('store', 'repeat-store'), false);
@@ -286,7 +267,7 @@ test('repeated toggling never duplicates an id', () => {
   assert.strictEqual(favorites.getFavoritesCount('store'), 1);
 });
 
-test('toggling one item leaves other items untouched', () => {
+it('toggling one item leaves other items untouched', () => {
   resetState();
   favorites.toggleFavorite('store', 'keep-a');
   favorites.toggleFavorite('store', 'keep-b');
@@ -303,7 +284,7 @@ test('toggling one item leaves other items untouched', () => {
 
 section('5. Count calculations');
 
-test('getFavoritesCount() returns per-type counts and the total', () => {
+it('getFavoritesCount() returns per-type counts and the total', () => {
   resetState();
   favorites.toggleFavorite('store', 's1');
   favorites.toggleFavorite('store', 's2');
@@ -318,7 +299,7 @@ test('getFavoritesCount() returns per-type counts and the total', () => {
   assert.strictEqual(favorites.getFavoritesCount('billing'), 3);
 });
 
-test('plural type aliases are accepted everywhere', () => {
+it('plural type aliases are accepted everywhere', () => {
   resetState();
   favorites.toggleFavorite('stores', 'alias-store');
   favorites.toggleFavorite('deals', 'alias-deal');
@@ -331,7 +312,7 @@ test('plural type aliases are accepted everywhere', () => {
   assert.deepStrictEqual(favorites.getFavorites().deals, ['alias-deal']);
 });
 
-test('counts update after removals', () => {
+it('counts update after removals', () => {
   resetState();
   favorites.toggleFavorite('store', 's1');
   favorites.toggleFavorite('deal', 'd1');
@@ -341,7 +322,7 @@ test('counts update after removals', () => {
   assert.strictEqual(favorites.getFavoritesCount(), 1);
 });
 
-test('invalid types return 0 without throwing', () => {
+it('invalid types return 0 without throwing', () => {
   resetState();
   favorites.toggleFavorite('store', 's1');
   assert.strictEqual(favorites.getFavoritesCount('widgets'), 0);
@@ -355,7 +336,7 @@ test('invalid types return 0 without throwing', () => {
 
 section('6. JSON export & import');
 
-test('exportFavoritesJson() serializes exactly the current favorites', () => {
+it('exportFavoritesJson() serializes exactly the current favorites', () => {
   resetState();
   favorites.toggleFavorite('store', 'export-store');
   favorites.toggleFavorite('deal', 'export-deal');
@@ -366,7 +347,7 @@ test('exportFavoritesJson() serializes exactly the current favorites', () => {
   assert.deepStrictEqual(JSON.parse(json), favorites.getFavorites());
 });
 
-test('importFavoritesJson() restores an exported backup', () => {
+it('importFavoritesJson() restores an exported backup', () => {
   resetState();
   favorites.toggleFavorite('store', 'roundtrip-store');
   favorites.toggleFavorite('deal', '111');
@@ -381,7 +362,7 @@ test('importFavoritesJson() restores an exported backup', () => {
   assert.strictEqual(favorites.isFavorite('store', 'roundtrip-store'), true);
 });
 
-test('import replaces (does not merge with) the previous state', () => {
+it('import replaces (does not merge with) the previous state', () => {
   resetState();
   favorites.toggleFavorite('store', 'old-store');
   assert.strictEqual(favorites.importFavoritesJson(JSON.stringify({ stores: ['new-store'], deals: [], billing: [] })), true);
@@ -389,7 +370,7 @@ test('import replaces (does not merge with) the previous state', () => {
   assert.strictEqual(favorites.isFavorite('store', 'old-store'), false);
 });
 
-test('import rejects malformed JSON and non-object payloads', () => {
+it('import rejects malformed JSON and non-object payloads', () => {
   resetState();
   assert.strictEqual(favorites.importFavoritesJson('{not valid json'), false);
   assert.strictEqual(favorites.importFavoritesJson(''), false);
@@ -403,7 +384,7 @@ test('import rejects malformed JSON and non-object payloads', () => {
   assert.strictEqual(favorites.importFavoritesJson({ stores: [] }), false);
 });
 
-test('import rejects payloads with wrong field types or unknown schema', () => {
+it('import rejects payloads with wrong field types or unknown schema', () => {
   resetState();
   assert.strictEqual(favorites.importFavoritesJson('{"stores": "not-an-array"}'), false);
   assert.strictEqual(favorites.importFavoritesJson('{"stores": [], "deals": 42}'), false);
@@ -411,7 +392,7 @@ test('import rejects payloads with wrong field types or unknown schema', () => {
   assert.strictEqual(favorites.importFavoritesJson('{}'), false);
 });
 
-test('a rejected import leaves existing favorites untouched', () => {
+it('a rejected import leaves existing favorites untouched', () => {
   resetState();
   favorites.toggleFavorite('store', 'precious-store');
   const before = favorites.getFavorites();
@@ -420,7 +401,7 @@ test('a rejected import leaves existing favorites untouched', () => {
   assert.deepStrictEqual(favorites.getFavorites(), before);
 });
 
-test('import sanitizes entries: trim, numeric coercion and de-duplication', () => {
+it('import sanitizes entries: trim, numeric coercion and de-duplication', () => {
   resetState();
   const json = JSON.stringify({
     stores: ['  store-a  ', 'store-a', '', 'store-b'],
@@ -436,7 +417,7 @@ test('import sanitizes entries: trim, numeric coercion and de-duplication', () =
   assert.strictEqual(current.updatedAt, '2026-01-01T00:00:00.000Z');
 });
 
-test('import accepts partial payloads and fills missing collections', () => {
+it('import accepts partial payloads and fills missing collections', () => {
   resetState();
   assert.strictEqual(favorites.importFavoritesJson('{"stores": ["only-stores"]}'), true);
   const current = favorites.getFavorites();
@@ -452,7 +433,7 @@ test('import accepts partial payloads and fills missing collections', () => {
 
 section('7. Reactive events');
 
-test('adding a store dispatches behatsdaa:favorites-updated', () => {
+it('adding a store dispatches behatsdaa:favorites-updated', () => {
   resetState();
   assert.strictEqual(favorites.toggleFavorite('store', 'event-store'), true);
   assert.strictEqual(dispatchedEvents.length, 1);
@@ -461,7 +442,7 @@ test('adding a store dispatches behatsdaa:favorites-updated', () => {
   assert.deepStrictEqual(event.detail, { type: 'store', id: 'event-store', isFavorite: true, count: 1 });
 });
 
-test('removing a store dispatches with isFavorite=false and updated count', () => {
+it('removing a store dispatches with isFavorite=false and updated count', () => {
   resetState();
   favorites.toggleFavorite('store', 'event-store-a');
   favorites.toggleFavorite('store', 'event-store-b');
@@ -471,7 +452,7 @@ test('removing a store dispatches with isFavorite=false and updated count', () =
   assert.deepStrictEqual(dispatchedEvents[0].detail, { type: 'store', id: 'event-store-a', isFavorite: false, count: 1 });
 });
 
-test('events carry singular canonical type names for deals and billing', () => {
+it('events carry singular canonical type names for deals and billing', () => {
   resetState();
   favorites.toggleFavorite('deals', '555');
   favorites.toggleFavorite('billing', 'bill-7');
@@ -480,7 +461,7 @@ test('events carry singular canonical type names for deals and billing', () => {
   assert.deepStrictEqual(dispatchedEvents[1].detail, { type: 'billing', id: 'bill-7', isFavorite: true, count: 1 });
 });
 
-test('every toggle dispatches exactly one event', () => {
+it('every toggle dispatches exactly one event', () => {
   resetState();
   favorites.toggleFavorite('store', 'one');
   favorites.toggleFavorite('store', 'two');
@@ -492,7 +473,7 @@ test('every toggle dispatches exactly one event', () => {
   );
 });
 
-test('clearAllFavorites() dispatches a single bulk event', () => {
+it('clearAllFavorites() dispatches a single bulk event', () => {
   resetState();
   favorites.toggleFavorite('store', 's1');
   favorites.toggleFavorite('deal', 'd1');
@@ -503,7 +484,7 @@ test('clearAllFavorites() dispatches a single bulk event', () => {
   assert.deepStrictEqual(dispatchedEvents[0].detail, { type: 'all', id: null, isFavorite: false, count: 0 });
 });
 
-test('importFavoritesJson() dispatches a bulk event with the restored total', () => {
+it('importFavoritesJson() dispatches a bulk event with the restored total', () => {
   resetState();
   dispatchedEvents.length = 0;
   const json = JSON.stringify({ stores: ['s1'], deals: ['d1', 'd2'], billing: ['b1'] });
@@ -512,7 +493,7 @@ test('importFavoritesJson() dispatches a bulk event with the restored total', ()
   assert.deepStrictEqual(dispatchedEvents[0].detail, { type: 'all', id: null, isFavorite: false, count: 4 });
 });
 
-test('invalid toggles dispatch no event', () => {
+it('invalid toggles dispatch no event', () => {
   resetState();
   assert.strictEqual(favorites.toggleFavorite('widgets', 'x'), false);
   assert.strictEqual(favorites.toggleFavorite('store', ''), false);
@@ -528,7 +509,7 @@ test('invalid toggles dispatch no event', () => {
 
 section('8. Corrupted data & fallback robustness');
 
-test('malformed JSON in storage is treated as empty and self-healed', () => {
+it('malformed JSON in storage is treated as empty and self-healed', () => {
   resetState();
   globalThis.localStorage.setItem(STORAGE_KEY, '{this is not json');
   const current = favorites.getFavorites();
@@ -543,7 +524,7 @@ test('malformed JSON in storage is treated as empty and self-healed', () => {
   assert.deepStrictEqual(healed.billing, []);
 });
 
-test('toggles keep working after corrupted data is encountered', () => {
+it('toggles keep working after corrupted data is encountered', () => {
   resetState();
   globalThis.localStorage.setItem(STORAGE_KEY, 'not-json-at-all');
   assert.strictEqual(favorites.toggleFavorite('store', 'recovered-store'), true);
@@ -552,14 +533,14 @@ test('toggles keep working after corrupted data is encountered', () => {
   assert.deepStrictEqual(readStoredJson().stores, ['recovered-store']);
 });
 
-test('a JSON null payload is treated as empty', () => {
+it('a JSON null payload is treated as empty', () => {
   resetState();
   globalThis.localStorage.setItem(STORAGE_KEY, 'null');
   assert.strictEqual(favorites.getFavoritesCount(), 0);
   assert.strictEqual(favorites.isFavorite('deal', '1'), false);
 });
 
-test('wrong field types degrade gracefully per field', () => {
+it('wrong field types degrade gracefully per field', () => {
   resetState();
   globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify({ stores: ['kept'], deals: 'oops', billing: 42, updatedAt: 123 }));
   const current = favorites.getFavorites();
@@ -569,7 +550,7 @@ test('wrong field types degrade gracefully per field', () => {
   assert.ok(!Number.isNaN(Date.parse(current.updatedAt)), 'invalid updatedAt is replaced with a valid timestamp');
 });
 
-test('legacy flat-array data is migrated to the typed schema', () => {
+it('legacy flat-array data is migrated to the typed schema', () => {
   resetState();
   globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(['legacy-store', '99991', 'another-store', '99991']));
   const migrated = favorites.getFavorites();
@@ -582,7 +563,7 @@ test('legacy flat-array data is migrated to the typed schema', () => {
   assert.deepStrictEqual(persisted.deals, ['99991']);
 });
 
-test('duplicate and non-string ids in storage are sanitized on read', () => {
+it('duplicate and non-string ids in storage are sanitized on read', () => {
   resetState();
   globalThis.localStorage.setItem(
     STORAGE_KEY,
@@ -594,7 +575,7 @@ test('duplicate and non-string ids in storage are sanitized on read', () => {
   assert.deepStrictEqual(current.billing, []);
 });
 
-test('mutating the object returned by getFavorites() cannot corrupt state', () => {
+it('mutating the object returned by getFavorites() cannot corrupt state', () => {
   resetState();
   favorites.toggleFavorite('store', 'original');
   const snapshot = favorites.getFavorites();
@@ -606,7 +587,7 @@ test('mutating the object returned by getFavorites() cannot corrupt state', () =
   assert.deepStrictEqual(readStoredJson().stores, ['original']);
 });
 
-test('blocked localStorage falls back to memory without throwing', () => {
+it('blocked localStorage falls back to memory without throwing', () => {
   resetState();
   globalThis.localStorage = new ThrowingStorage();
   try {
@@ -625,7 +606,7 @@ test('blocked localStorage falls back to memory without throwing', () => {
   }
 });
 
-test('a completely missing localStorage global falls back to memory', () => {
+it('a completely missing localStorage global falls back to memory', () => {
   resetState();
   delete globalThis.localStorage;
   try {
@@ -638,7 +619,7 @@ test('a completely missing localStorage global falls back to memory', () => {
   }
 });
 
-test('a missing window does not break mutations (events are best-effort)', () => {
+it('a missing window does not break mutations (events are best-effort)', () => {
   resetState();
   delete globalThis.window;
   try {
@@ -649,15 +630,5 @@ test('a missing window does not break mutations (events are best-effort)', () =>
   }
 });
 
-/* ------------------------------------------------------------------ *
- * Summary
- * ------------------------------------------------------------------ */
 
-console.log('\n====================================================');
-if (failed === 0) {
-  console.log(`🎉 All ${passed} favorites tests passed successfully!`);
-} else {
-  console.log(`❌ ${failed} of ${passed + failed} favorites tests failed.`);
-  process.exitCode = 1;
-}
-console.log('====================================================\n');
+});

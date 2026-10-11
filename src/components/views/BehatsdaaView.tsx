@@ -8,7 +8,7 @@ import { TableView } from '../TableView';
 import { DealsTableView } from '../DealsTableView';
 import { CategoryChips } from '../CategoryChips';
 import { BillingView } from '../BillingView';
-import { MapView } from '../MapView';
+const MapView = React.lazy(() => import('../MapView').then(m => ({ default: m.MapView })));
 import { WalletsView } from '../WalletsView';
 import { ViewModeToggle } from '../ViewModeToggle';
 import { normalizeHebrew } from '../../utils/hebrew';
@@ -166,7 +166,13 @@ export const BehatsdaaView: React.FC<BehatsdaaViewProps> = ({
   }, [behDeals, selectedCategory, sortBy, behDealSearch, query, smartSearch, searchInDesc]);
 
   if (subTab === 'billing') return <BillingView />;
-  if (subTab === 'map') return <MapView />;
+  if (subTab === 'map') {
+    return (
+      <React.Suspense fallback={<div className="flex justify-center p-8 text-slate-400">טוען מפה...</div>}>
+        <MapView />
+      </React.Suspense>
+    );
+  }
   if (subTab === 'wallets') return <WalletsView />;
 
   if (subTab === 'deals') {

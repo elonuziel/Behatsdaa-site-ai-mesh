@@ -234,8 +234,8 @@ export function getCalendarContext() {
     month: 'long'
   });
 
-  let statusExplanation = '';
-  let dotClass = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+  let statusExplanation: string;
+  let dotClass: string;
 
   if (todayDay === 10) {
     dotClass = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';

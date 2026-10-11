@@ -163,7 +163,7 @@ function readFavorites(): FavoritesPayload {
   const storage = getSafeStorage();
   if (!storage) return readMemoryFavorites();
 
-  let raw: string | null = null;
+  let raw: string | null;
   try {
     raw = storage.getItem(FAVORITES_STORAGE_KEY);
   } catch {

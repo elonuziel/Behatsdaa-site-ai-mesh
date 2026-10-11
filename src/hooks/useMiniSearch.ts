@@ -560,8 +560,8 @@ export function useMiniSearch(
       if (!s.cards || !Array.isArray(s.cards)) return;
       s.cards.forEach(c => {
         if (!c) return;
-        let id = "";
-        let name = "";
+        let id: string;
+        let name: string;
         let discount = "";
         if (typeof c === "string") {
           name = c;
@@ -719,7 +719,7 @@ export function useMiniSearch(
     });
 
     // Filter stores
-    let sList = stores.filter(store => {
+    const sList = stores.filter(store => {
       const clubs = store.clubs || ['behatsdaa'];
       const hasActiveClub = clubs.some(c => activeClubs.has(c));
       if (!hasActiveClub) return false;
@@ -750,7 +750,7 @@ export function useMiniSearch(
     });
 
     // Filter deals
-    let dList = deals.filter(deal => {
+    const dList = deals.filter(deal => {
       const club = deal.club || 'behatsdaa';
       if (!activeClubs.has(club)) return false;
 

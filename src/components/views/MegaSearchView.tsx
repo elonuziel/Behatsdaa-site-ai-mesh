@@ -8,7 +8,7 @@ import { TableView } from '../TableView';
 import { DealsTableView } from '../DealsTableView';
 import { CategoryChips } from '../CategoryChips';
 import { MyClubsPills } from '../MyClubsPills';
-import { MapView } from '../MapView';
+const MapView = React.lazy(() => import('../MapView').then(m => ({ default: m.MapView })));
 import { MegaAiSearchView } from '../mega/MegaAiSearchView';
 import { MegaComparisonView } from '../mega/MegaComparisonView';
 import { MegaTopDealsView } from '../mega/MegaTopDealsView';
@@ -86,7 +86,11 @@ export const MegaSearchView: React.FC<MegaSearchViewProps> = ({
     return <MegaComparisonView stores={allStores} onSelectStore={onSelectStore} />;
   }
   if (subTab === 'map') {
-    return <MapView />;
+    return (
+      <React.Suspense fallback={<div className="flex justify-center p-8 text-slate-400">טוען מפה...</div>}>
+        <MapView />
+      </React.Suspense>
+    );
   }
   if (subTab === 'top-deals') {
     return (
