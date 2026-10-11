@@ -102,14 +102,23 @@ export const MegaSearchView: React.FC<MegaSearchViewProps> = ({
   return (
     <div className="space-y-4">
       {uiDensity === 'clean' ? (
-        <CatalogToolbar
-          totalStoresCount={filteredStores.length}
-          totalDealsCount={filteredDeals.length}
-          availableCards={availableCards}
-          storeCategories={storeCategories}
-          contentTypeFilter={contentTypeFilter}
-          setContentTypeFilter={setContentTypeFilter}
-        />
+        <>
+          <CategoryChips
+            categories={storeCategories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={cat => setSelectedCategory(cat)}
+            totalCount={allStores.length + allDeals.length}
+            compact={true}
+          />
+          <CatalogToolbar
+            totalStoresCount={filteredStores.length}
+            totalDealsCount={filteredDeals.length}
+            availableCards={availableCards}
+            storeCategories={storeCategories}
+            contentTypeFilter={contentTypeFilter}
+            setContentTypeFilter={setContentTypeFilter}
+          />
+        </>
       ) : (
         <>
           {/* Detailed Mode Banner */}
@@ -144,7 +153,7 @@ export const MegaSearchView: React.FC<MegaSearchViewProps> = ({
             categories={storeCategories}
             selectedCategory={selectedCategory}
             onSelectCategory={cat => setSelectedCategory(cat)}
-            totalCount={filteredStores.length + filteredDeals.length}
+            totalCount={allStores.length + allDeals.length}
             compact={false}
           />
 

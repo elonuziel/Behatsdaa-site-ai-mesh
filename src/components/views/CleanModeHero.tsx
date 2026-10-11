@@ -15,14 +15,62 @@ interface CleanModeHeroProps {
 }
 
 const PRIMARY_CATEGORIES = [
-  { name: 'מסעדות ואוכל', icon: '🍕', color: 'from-amber-500/15 to-orange-500/10 border-amber-200/80 dark:border-amber-900/60 text-amber-800 dark:text-amber-300', count: 'פיצה, בורגר, משלוחים' },
-  { name: 'אופנה והנעלה', icon: '👟', color: 'from-blue-500/15 to-indigo-500/10 border-blue-200/80 dark:border-blue-900/60 text-blue-800 dark:text-blue-300', count: 'בגדים, ספורט, מותגים' },
-  { name: 'סופרמרקט ומזון', icon: '🛒', color: 'from-emerald-500/15 to-teal-500/10 border-emerald-200/80 dark:border-emerald-900/60 text-emerald-800 dark:text-emerald-300', count: 'שופרסל, קרפור, יוחננוף' },
-  { name: 'מחשבים וסלולר', icon: '💻', color: 'from-purple-500/15 to-violet-500/10 border-purple-200/80 dark:border-purple-900/60 text-purple-800 dark:text-purple-300', count: 'KSP, אייבורי, סלולר' },
-  { name: 'תיירות ונופש', icon: '✈️', color: 'from-sky-500/15 to-cyan-500/10 border-sky-200/80 dark:border-sky-900/60 text-sky-800 dark:text-sky-300', count: 'מלונות, ספא, טיסות' },
-  { name: 'קולנוע ותרבות', icon: '🎬', color: 'from-rose-500/15 to-pink-500/10 border-rose-200/80 dark:border-rose-900/60 text-rose-800 dark:text-rose-300', count: 'סינמה סיטי, מופעים' },
-  { name: 'דלק ותחבורה', icon: '⛽', color: 'from-red-500/15 to-orange-500/10 border-red-200/80 dark:border-red-900/60 text-red-800 dark:text-red-300', count: 'סונול, פז, דלק, שטיפה' },
-  { name: 'גיפט קארד ושוברים', icon: '🎁', color: 'from-violet-500/15 to-fuchsia-500/10 border-violet-200/80 dark:border-violet-900/60 text-violet-800 dark:text-violet-300', count: 'ארנקים נטענים 20%' },
+  {
+    name: 'מסעדות ובתי קפה',
+    label: 'מסעדות ובתי קפה',
+    icon: '🍕',
+    color: 'from-amber-500/15 to-orange-500/10 border-amber-200/80 dark:border-amber-900/60 text-amber-800 dark:text-amber-300',
+    count: '265+ מסעדות, פיצה ומשלוחים'
+  },
+  {
+    name: 'אופנה ולייף סטייל',
+    label: 'אופנה ולייף סטייל',
+    icon: '👟',
+    color: 'from-blue-500/15 to-indigo-500/10 border-blue-200/80 dark:border-blue-900/60 text-blue-800 dark:text-blue-300',
+    count: '120+ רשתות ביגוד והנעלה'
+  },
+  {
+    name: 'רשתות שיווק מזון ופארמה',
+    label: 'סופרמרקט ומזון',
+    icon: '🛒',
+    color: 'from-emerald-500/15 to-teal-500/10 border-emerald-200/80 dark:border-emerald-900/60 text-emerald-800 dark:text-emerald-300',
+    count: 'שופרסל, קרפור, יוחננוף'
+  },
+  {
+    name: 'חשמל וטכנולוגיה',
+    label: 'מחשבים וחשמל',
+    icon: '💻',
+    color: 'from-purple-500/15 to-violet-500/10 border-purple-200/80 dark:border-purple-900/60 text-purple-800 dark:text-purple-300',
+    count: 'KSP, אייבורי, סלולר'
+  },
+  {
+    name: 'אירוח ונופש',
+    label: 'תיירות ונופש',
+    icon: '✈️',
+    color: 'from-sky-500/15 to-cyan-500/10 border-sky-200/80 dark:border-sky-900/60 text-sky-800 dark:text-sky-300',
+    count: '100+ מלונות, צימרים ונופש'
+  },
+  {
+    name: 'בילוי ופנאי',
+    label: 'בילוי, תרבות ומופעים',
+    icon: '🎬',
+    color: 'from-rose-500/15 to-pink-500/10 border-rose-200/80 dark:border-rose-900/60 text-rose-800 dark:text-rose-300',
+    count: '150+ אטרקציות ומופעים'
+  },
+  {
+    name: 'ספא וטיפולים משלימים',
+    label: 'ספא ובריאות',
+    icon: '💆',
+    color: 'from-teal-500/15 to-emerald-500/10 border-teal-200/80 dark:border-teal-900/60 text-teal-800 dark:text-teal-300',
+    count: '130+ חבילות ספא וכושר'
+  },
+  {
+    name: 'רכישה אונליין',
+    label: 'רכישה אונליין ושוברים',
+    icon: '🎁',
+    color: 'from-violet-500/15 to-fuchsia-500/10 border-violet-200/80 dark:border-violet-900/60 text-violet-800 dark:text-violet-300',
+    count: '70+ שוברים ואתרי קניות'
+  },
 ];
 
 const POPULAR_SEARCH_ITEMS = [
@@ -104,7 +152,7 @@ export const CleanModeHero: React.FC<CleanModeHeroProps> = ({
               </div>
               <div>
                 <div className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-                  {cat.name}
+                  {cat.label || cat.name}
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
                   {cat.count}

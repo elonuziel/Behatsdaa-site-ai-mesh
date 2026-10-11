@@ -12,7 +12,7 @@ import { MapView } from '../MapView';
 import { WalletsView } from '../WalletsView';
 import { ViewModeToggle } from '../ViewModeToggle';
 import { normalizeHebrew } from '../../utils/hebrew';
-import { expandSmartTerms } from '../../hooks/useMiniSearch';
+import { expandSmartTerms, matchesCategory } from '../../hooks/useMiniSearch';
 import {
   Store,
   Tag,
@@ -102,7 +102,7 @@ export const BehatsdaaView: React.FC<BehatsdaaViewProps> = ({
       );
     }
     if (selectedCategory !== 'all') {
-      list = list.filter(s => (s.category || 'כללי') === selectedCategory);
+      list = list.filter(s => matchesCategory(s.category, selectedCategory));
     }
     const q = (behStoreSearch || query).trim();
     if (q) {
@@ -134,7 +134,7 @@ export const BehatsdaaView: React.FC<BehatsdaaViewProps> = ({
   const filteredBehDeals = useMemo(() => {
     let list = behDeals;
     if (selectedCategory !== 'all') {
-      list = list.filter(d => (d.category || 'כללי') === selectedCategory);
+      list = list.filter(d => matchesCategory(d.category, selectedCategory));
     }
     const q = (behDealSearch || query).trim();
     if (q) {

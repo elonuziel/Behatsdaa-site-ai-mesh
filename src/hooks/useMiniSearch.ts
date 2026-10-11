@@ -289,6 +289,116 @@ export function findDidYouMean(query: string, customVocab?: Set<string>): string
   return suggestions.slice(0, 3).map(s => s.word);
 }
 
+export const CATEGORY_CLUSTERS: Array<{ id: string; labels: string[] }> = [
+  {
+    id: 'food',
+    labels: [
+      'מסעדות ובתי קפה', 'מסעדות ואוכל', 'אוכל ושתייה', 'קולינריה ומסעדות',
+      'יקבים וקולינריה', 'טעים, מהיר, משתלם', 'מזמינים הביתה וחוסכים'
+    ]
+  },
+  {
+    id: 'fashion',
+    labels: [
+      'אופנה ולייף סטייל', 'אופנה והנעלה', 'אופנה', 'ספורט והנעלה',
+      'הנעלה ואקססוריז', 'תכשיטים ואקססוריז', 'אופנה, אקססוריז וילדים',
+      'טקסטיל והלבשה', 'לייף סטייל'
+    ]
+  },
+  {
+    id: 'supermarket',
+    labels: [
+      'רשתות שיווק מזון ופארמה', 'סופרמרקט ומזון', 'סופרמרקט ופארם',
+      'מבצעי צרכנות', 'צרכנות', 'פארם וטיפוח'
+    ]
+  },
+  {
+    id: 'spa',
+    labels: [
+      'ספא וטיפולים משלימים', 'בריאות וכושר', 'ספורט וכושר',
+      'מבצעי ספא מפנקים', 'כושר וספורט', 'נכנסים לכושר', 'ספא ובריאות'
+    ]
+  },
+  {
+    id: 'vacation',
+    labels: [
+      'אירוח ונופש', 'תיירות ונופש', 'נופש בארץ'
+    ]
+  },
+  {
+    id: 'leisure',
+    labels: [
+      'בילוי ופנאי', 'תרבות', 'מופעים והצגות', 'בידור וסטנד אפ',
+      'מנויים והצגות', 'ההופעות הכי חמות', 'אטרקציות', 'אטרקציות לכל המשפחה',
+      'בילויים ופנאי', 'מבלים ונהנים', 'קולנוע ותרבות', 'בילוי, תרבות ומופעים'
+    ]
+  },
+  {
+    id: 'home',
+    labels: [
+      'הכל לבית', 'לבית ולגן', 'לבית וילדים', 'לבית ולמשפחה',
+      'ריהוט ואביזרים לגן ולמרפסת', 'מרהטים את הבית'
+    ]
+  },
+  {
+    id: 'tech',
+    labels: [
+      'חשמל וטכנולוגיה', 'חשמל ואלקטרוניקה', 'מחשבים וסלולר',
+      'מחשבים ואלקטרוניקה', 'חשמל לבית ולמטבח', 'חשמל ואלקטרוניקה VIEW ALL',
+      'מחשבים וחשמל'
+    ]
+  },
+  {
+    id: 'online',
+    labels: [
+      'רכישה אונליין', 'תווי קניה והטבות כסף', 'שוברים חדשים ומשתלמים',
+      'מארזי מתנות', 'גיפט קארד ושוברים', 'רכישה אונליין ושוברים'
+    ]
+  },
+  {
+    id: 'automotive',
+    labels: [
+      'דלק ותחבורה', 'מבצעי רכב'
+    ]
+  }
+];
+
+export function matchesCategory(
+  itemCategory: string | undefined | null,
+  selectedCategory: string,
+  extraCategory?: string | undefined | null
+): boolean {
+  if (!selectedCategory || selectedCategory === 'all') return true;
+  const cat = (itemCategory || 'כללי').trim();
+  if (cat === selectedCategory) return true;
+
+  const normCat = normalizeHebrew(cat);
+  const normSelected = normalizeHebrew(selectedCategory);
+  if (normCat && normSelected) {
+    if (normCat === normSelected || normCat.includes(normSelected) || normSelected.includes(normCat)) {
+      return true;
+    }
+  }
+
+  // Check cluster grouping
+  for (const cluster of CATEGORY_CLUSTERS) {
+    const hasSelected = cluster.labels.some(l => l === selectedCategory || normalizeHebrew(l) === normSelected);
+    if (hasSelected) {
+      if (cluster.labels.some(l => l === cat || normalizeHebrew(l) === normCat)) {
+        return true;
+      }
+      if (extraCategory) {
+        const extraNorm = normalizeHebrew(extraCategory);
+        if (cluster.labels.some(l => l === extraCategory || normalizeHebrew(l) === extraNorm)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
 export function getStoreActiveDiscount(store: UnifiedStore, activeClubs: Set<ClubId>): number {
   if (Array.isArray(store.payment_options) && store.payment_options.length > 0) {
     let max = 0;
@@ -603,13 +713,18 @@ export function useMiniSearch(
       }
     }
 
+    const storeCatById = new Map<string, string>();
+    stores.forEach(s => {
+      if (s.id) storeCatById.set(String(s.id), s.category || 'כללי');
+    });
+
     // Filter stores
     let sList = stores.filter(store => {
       const clubs = store.clubs || ['behatsdaa'];
       const hasActiveClub = clubs.some(c => activeClubs.has(c));
       if (!hasActiveClub) return false;
 
-      if (selectedCategory !== 'all' && (store.category || 'כללי') !== selectedCategory) {
+      if (selectedCategory !== 'all' && !matchesCategory(store.category, selectedCategory)) {
         return false;
       }
 
@@ -639,8 +754,12 @@ export function useMiniSearch(
       const club = deal.club || 'behatsdaa';
       if (!activeClubs.has(club)) return false;
 
-      if (selectedCategory !== 'all' && (deal.category || 'כללי') !== selectedCategory) {
-        return false;
+      if (selectedCategory !== 'all') {
+        const linkedId = deal.linked_store?.id || deal.matched_store_id;
+        const matchedStoreCat = linkedId ? storeCatById.get(String(linkedId)) : undefined;
+        if (!matchesCategory(deal.category, selectedCategory, matchedStoreCat)) {
+          return false;
+        }
       }
 
       if (showFavoritesOnly && isFavorite && !isFavorite('deal', String(deal.id))) {

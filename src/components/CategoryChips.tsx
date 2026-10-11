@@ -82,7 +82,7 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({
           return (
             <button
               key={cat.name}
-              onClick={() => onSelectCategory(cat.name)}
+              onClick={() => onSelectCategory(isSelected ? 'all' : cat.name)}
               className={`flex items-center gap-1.5 ${
                 compact ? 'px-2.5 py-1 text-xs rounded-xl' : 'px-3.5 py-1.5 rounded-full'
               } font-medium whitespace-nowrap transition-all shadow-2xs shrink-0 ${

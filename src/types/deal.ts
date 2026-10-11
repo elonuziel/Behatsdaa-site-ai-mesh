@@ -29,6 +29,8 @@ export interface UnifiedDeal {
   limits?: string | null;
   url?: string | null;
   variants?: any;
+  matched_store_id?: string | null;
+  matched_store_name?: string | null;
   linked_store?: { id: string; name: string; slug: string; max_discount?: number } | null;
   linkedStore?: { id: string; name: string; slug: string; max_discount?: number } | null;
   linked_billing?: { id: string | number; name: string; slug: string; discount?: number } | null;
