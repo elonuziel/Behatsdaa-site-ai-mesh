@@ -16,6 +16,9 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4.class)
 public class ExampleInstrumentedTest {
 
+    /**
+     * Verifies that the target context reports the expected application package name.
+     */
     @Test
     public void useAppContext() throws Exception {
         // Context of the app under test.
