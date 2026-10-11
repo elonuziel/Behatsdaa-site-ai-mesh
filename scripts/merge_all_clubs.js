@@ -51,8 +51,8 @@ let uniqItemDeals = [];
 let uniqBrandDiscounts = [];
 let uniqBillingStage = [];
 
-const uniqRecPath = path.join(sourcesDir, 'uniq', 'rechargeable_benefits.json');
 let uniqRec = null;
+const uniqRecPath = path.join(sourcesDir, 'uniq', 'rechargeable_benefits.json');
 if (fs.existsSync(uniqRecPath)) {
   uniqRec = JSON.parse(fs.readFileSync(uniqRecPath, 'utf-8'));
   uniqRecBrands = uniqRec.brands || [];
