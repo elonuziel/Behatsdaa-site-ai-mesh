@@ -10,6 +10,7 @@ jobs:
   build-and-release-apk:
     name: Build Android APK & Publish Release
     runs-on: ubuntu-latest
+    environment: android-release
     permissions:
       contents: write
 
@@ -45,22 +46,39 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x android/gradlew
 
-      - name: Build Android Debug APK
+      - name: Build signed Android release APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ORG_GRADLE_PROJECT_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ORG_GRADLE_PROJECT_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ORG_GRADLE_PROJECT_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          set -euo pipefail
+          for secret in ANDROID_KEYSTORE_BASE64 ORG_GRADLE_PROJECT_RELEASE_STORE_PASSWORD ORG_GRADLE_PROJECT_RELEASE_KEY_ALIAS ORG_GRADLE_PROJECT_RELEASE_KEY_PASSWORD; do
+            if [[ -z "${!secret}" ]]; then
+              echo "::error::Missing required signing secret: $secret"
+              exit 1
+            fi
+          done
+          umask 077
+          export ORG_GRADLE_PROJECT_RELEASE_STORE_FILE="$(mktemp "$RUNNER_TEMP/android-release-XXXXXX.keystore")"
+          trap 'rm -f "$ORG_GRADLE_PROJECT_RELEASE_STORE_FILE"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ORG_GRADLE_PROJECT_RELEASE_STORE_FILE"
+          unset ANDROID_KEYSTORE_BASE64
           cd android
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: app-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
 
       - name: Create GitHub Release and Upload APK
-        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          files: android/app/build/outputs/apk/release/app-release.apk
           name: Release ${{ github.ref_name }}
           body: |
             ## Native Mobile Release (Android APK)

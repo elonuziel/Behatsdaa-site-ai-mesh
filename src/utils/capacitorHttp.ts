@@ -8,7 +8,7 @@ export function isNativeMobile(): boolean {
 }
 
 /**
- * Native HTTP wrapper that uses @capacitor/http (via CapacitorHttp) on iOS/Android native devices
+ * Native HTTP wrapper that uses CapacitorHttp from @capacitor/core on iOS/Android native devices
  * to bypass browser CORS constraints when making direct client requests to AI providers
  * (OpenAI, Gemini, Anthropic, Groq, DeepSeek).
  *

@@ -121,6 +121,32 @@ npm run build
 
 ---
 
+## Android release signing
+
+The APK workflow builds a signed release APK for version tags (`v*`) and manual
+runs. Only `refs/tags/v*` runs publish a GitHub release; manual branch runs upload
+an `app-release-apk` workflow artifact.
+
+Configure the GitHub environment `android-release` with protection rules for
+trusted release tags and any branches allowed to run manual builds. Store these
+secrets in that environment:
+
+| Secret | Value |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | Base64 encoding of the persistent release keystore |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+| `ANDROID_KEY_ALIAS` | Signing key alias in the keystore |
+| `ANDROID_KEY_PASSWORD` | Signing key password |
+
+Reuse and securely back up the same release key for every build so updates retain
+the same signing certificate. The workflow requires all four secrets, decodes the
+keystore into a private temporary file, passes signing properties to Gradle through
+environment variables, and removes the temporary file when the build step exits.
+Never commit the keystore or credentials. APKs previously signed with a debug key
+must be uninstalled before installing this release build.
+
+---
+
 ## 🧪 Automated Testing & Verification
 
 The project includes an automated test suite verifying search performance, data integrity, and normalization:
