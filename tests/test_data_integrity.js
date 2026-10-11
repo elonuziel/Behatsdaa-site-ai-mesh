@@ -16,6 +16,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import MiniSearch from 'minisearch';
+import { loadTsModule } from './helpers/loadTs.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -198,7 +199,7 @@ global.fetch = async (url) => ({
   json: async () => ({ success: true })
 });
 
-const { fetchJsonWithFallback } = await import("../src/utils/data.ts");
+const { fetchJsonWithFallback } = await loadTsModule("../src/utils/data.ts", import.meta.url);
 
 const successRes = await fetchJsonWithFallback("data/test.json", { success: false }, "Test Success");
 assert(successRes && successRes.success === true, "fetchJsonWithFallback returns data on HTTP OK");

@@ -18,7 +18,9 @@
  */
 
 import assert from 'assert';
-import { calculateBestPayment, renderPaymentAdvisorHtml } from '../src/utils/paymentAdvisor.ts';
+import { loadTsModule } from './helpers/loadTs.js';
+
+const { calculateBestPayment, renderPaymentAdvisorHtml } = await loadTsModule('../src/utils/paymentAdvisor.ts', import.meta.url);
 
 /* ------------------------------------------------------------------ *
  * Fixtures
