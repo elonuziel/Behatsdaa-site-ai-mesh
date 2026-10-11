@@ -1,5 +1,20 @@
 export type AiProviderKey = 'gemini' | 'openai' | 'claude' | 'groq' | 'deepseek';
 
+export interface AiModelOption {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface ModelsResponse {
+  available: boolean;
+  provider: AiProviderKey;
+  models: AiModelOption[];
+  defaultModel: string;
+  requiredSecret?: string;
+  error?: string;
+}
+
 export interface ProviderInfo {
   id: AiProviderKey;
   name: string;

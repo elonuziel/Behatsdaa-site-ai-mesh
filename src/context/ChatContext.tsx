@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { ChatMessage, ChatResponse, AiProviderKey, ProviderInfo, AiStatusResponse } from '../types/chat';
+import {
+  ChatMessage,
+  ChatResponse,
+  AiProviderKey,
+  ProviderInfo,
+  AiStatusResponse,
+  AiModelOption,
+  ModelsResponse,
+} from '../types/chat';
 import { useClubs } from './ClubContext';
 
 interface ChatContextType {
@@ -11,6 +19,12 @@ interface ChatContextType {
   activeModel: string | null;
   selectedProvider: AiProviderKey;
   setSelectedProvider: (provider: AiProviderKey) => void;
+  selectedModel: string;
+  setSelectedModel: (model: string) => void;
+  availableModels: AiModelOption[];
+  isLoadingModels: boolean;
+  modelsError: string | null;
+  fetchModelsForProvider: (provider?: AiProviderKey) => Promise<void>;
   providerStatuses: Record<AiProviderKey, ProviderInfo> | null;
   refreshAiStatus: () => Promise<void>;
   openChat: (initialPrompt?: string) => void;
@@ -23,6 +37,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'behatsdaa_ai_chat_messages_v1';
 const PROVIDER_STORAGE_KEY = 'behatsdaa_ai_selected_provider_v1';
+const MODEL_PREFS_KEY = 'behatsdaa_ai_models_by_provider_v1';
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeClubs } = useClubs();
@@ -44,6 +59,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeProvider, setActiveProvider] = useState<string | null>(null);
   const [activeModel, setActiveModel] = useState<string | null>(null);
   const [providerStatuses, setProviderStatuses] = useState<Record<AiProviderKey, ProviderInfo> | null>(null);
+
   const [selectedProvider, setSelectedProviderState] = useState<AiProviderKey>(() => {
     try {
       const saved = localStorage.getItem(PROVIDER_STORAGE_KEY);
@@ -54,12 +70,46 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return 'gemini';
   });
 
-  const setSelectedProvider = useCallback((p: AiProviderKey) => {
-    setSelectedProviderState(p);
+  const [providerModelPreferences, setProviderModelPreferences] = useState<Record<string, string>>(() => {
     try {
-      localStorage.setItem(PROVIDER_STORAGE_KEY, p);
+      const saved = localStorage.getItem(MODEL_PREFS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.gemini === 'gemini-3.1-pro' || !parsed.gemini) {
+          parsed.gemini = 'gemini-flash-lite-latest';
+        }
+        return parsed;
+      }
     } catch {}
-  }, []);
+    return {
+      gemini: 'gemini-flash-lite-latest',
+      openai: 'gpt-4o',
+      claude: 'claude-3-5-sonnet',
+      groq: 'llama-3.3-70b',
+      deepseek: 'deepseek-chat',
+    };
+  });
+
+  const [selectedModel, setSelectedModelState] = useState<string>(() => {
+    const saved = providerModelPreferences[selectedProvider];
+    if (saved && saved !== 'gemini-3.1-pro') return saved;
+    return selectedProvider === 'gemini' ? 'gemini-flash-lite-latest' : 'gpt-4o';
+  });
+
+  const [availableModels, setAvailableModels] = useState<AiModelOption[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState<boolean>(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+
+  const setSelectedModel = useCallback((model: string) => {
+    setSelectedModelState(model);
+    setProviderModelPreferences(prev => {
+      const next = { ...prev, [selectedProvider]: model };
+      try {
+        localStorage.setItem(MODEL_PREFS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, [selectedProvider]);
 
   const refreshAiStatus = useCallback(async () => {
     try {
@@ -78,10 +128,75 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Probe AI availability on mount
+  const fetchModelsForProvider = useCallback(async (providerToFetch?: AiProviderKey) => {
+    const p = providerToFetch || selectedProvider;
+    setIsLoadingModels(true);
+    setModelsError(null);
+    try {
+      const res = await fetch(`/api/models?provider=${p}`);
+      const data: ModelsResponse = await res.json();
+      if (data.available && Array.isArray(data.models) && data.models.length > 0) {
+        setAvailableModels(data.models);
+        // Mark provider as available immediately in providerStatuses state
+        setProviderStatuses(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            [p]: {
+              ...prev[p],
+              available: true,
+              model: data.defaultModel || prev[p]?.model || '',
+            },
+          };
+        });
+        // If current selectedModel is valid and exists in the list, keep it; otherwise fall back to default
+        const currentSaved = providerModelPreferences[p];
+        const match = currentSaved && currentSaved !== 'gemini-3.1-pro' ? data.models.find(m => m.id === currentSaved) : null;
+        if (match) {
+          setSelectedModelState(match.id);
+        } else if (data.defaultModel && data.models.some(m => m.id === data.defaultModel)) {
+          setSelectedModelState(data.defaultModel);
+        } else if (p === 'gemini' && data.models.some(m => m.id === 'gemini-flash-lite-latest')) {
+          setSelectedModelState('gemini-flash-lite-latest');
+        } else {
+          setSelectedModelState(data.models[0].id);
+        }
+      } else {
+        setAvailableModels([]);
+        if (data.error) {
+          setModelsError(data.error);
+        } else if (data.defaultModel) {
+          setSelectedModelState(data.defaultModel);
+        }
+      }
+    } catch (err: any) {
+      console.warn('Failed to fetch models for provider:', p, err);
+      setModelsError(err?.message || 'שגיאה במשיכת מודלים');
+      setAvailableModels([]);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  }, [selectedProvider, providerModelPreferences]);
+
+  const setSelectedProvider = useCallback((p: AiProviderKey) => {
+    setSelectedProviderState(p);
+    try {
+      localStorage.setItem(PROVIDER_STORAGE_KEY, p);
+    } catch {}
+    // Set fallback model for provider while fetching fresh list
+    const savedForProvider = providerModelPreferences[p];
+    if (savedForProvider) {
+      setSelectedModelState(savedForProvider);
+    }
+    fetchModelsForProvider(p);
+    refreshAiStatus();
+  }, [fetchModelsForProvider, providerModelPreferences, refreshAiStatus]);
+
+  // Probe AI availability on mount & fetch models for default provider
   useEffect(() => {
     refreshAiStatus();
-  }, [refreshAiStatus]);
+    fetchModelsForProvider(selectedProvider);
+  }, []); // Run on mount
 
   // Sync to local storage
   useEffect(() => {
@@ -127,6 +242,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             messages: payloadMessages,
             activeClubs: Array.from(activeClubs),
             provider: selectedProvider,
+            model: selectedModel,
           }),
         });
 
@@ -180,19 +296,20 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
       }
     },
-    [messages, isLoading, activeClubs]
+    [messages, isLoading, activeClubs, selectedProvider, selectedModel]
   );
 
   const openChat = useCallback(
     (initialPrompt?: string) => {
       setIsChatOpen(true);
+      refreshAiStatus();
       if (initialPrompt && initialPrompt.trim()) {
         setTimeout(() => {
           sendMessage(initialPrompt.trim());
         }, 150);
       }
     },
-    [sendMessage]
+    [sendMessage, refreshAiStatus]
   );
 
   const closeChat = useCallback(() => {
@@ -210,6 +327,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activeModel,
         selectedProvider,
         setSelectedProvider,
+        selectedModel,
+        setSelectedModel,
+        availableModels,
+        isLoadingModels,
+        modelsError,
+        fetchModelsForProvider,
         providerStatuses,
         refreshAiStatus,
         openChat,

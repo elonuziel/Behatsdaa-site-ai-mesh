@@ -34,7 +34,7 @@ const DIRECT_AI_PROVIDERS: Record<string, ProviderDefinition> = {
     id: 'gemini',
     name: 'Gemini',
     envKeys: ['GOOGLE_API_KEY', 'GEMINI_API_KEY'],
-    defaultModel: 'gemini-2.5-pro',
+    defaultModel: 'gemini-flash-lite-latest',
   },
   claude: {
     id: 'claude',
@@ -726,7 +726,7 @@ function generateFollowUps(query: string, stores: StoreItem[], deals: DealItem[]
 // POST /api/chat: Multi-turn chat with AI (Multi-model frameworks with direct provider execution)
 app.post('/api/chat', async (req, res) => {
   try {
-    const { messages, activeClubs, provider: requestedProvider = 'gemini' } = req.body;
+    const { messages, activeClubs, provider: requestedProvider = 'gemini', model: requestedModel } = req.body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'Messages array is required.' });
@@ -842,7 +842,9 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
     let replyText = '';
     let isAiOnline = false;
     let usedProvider = providerDef.name;
-    let usedModel = providerDef.defaultModel;
+    let usedModel = (typeof requestedModel === 'string' && requestedModel.trim())
+      ? requestedModel.trim()
+      : providerDef.defaultModel;
     let statusNote = '';
 
     if (!apiKey) {
@@ -853,12 +855,14 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
       // Direct provider execution without middleman
       if (targetProviderKey === 'gemini') {
         const candidateModels = [
-          env.GOOGLE_MODEL || env.GEMINI_MODEL || 'gemini-2.5-pro',
-          'gemini-3.8-flash',
+          usedModel,
+          'gemini-flash-lite-latest',
+          env.GOOGLE_MODEL || env.GEMINI_MODEL,
+          'gemini-2.5-flash-lite',
           'gemini-3.1-flash-lite',
-          'gemini-1.5-pro',
-          'gemini-1.5-flash',
-        ].filter((v, i, a) => a.indexOf(v) === i);
+          'gemini-2.5-flash',
+          'gemini-2.5-pro',
+        ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
 
         const ai = new GoogleGenAI({
           apiKey,
@@ -868,7 +872,7 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
         for (const mName of candidateModels) {
           try {
             const timeoutPromise = new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error(`Timeout for ${mName}`)), 6000)
+              setTimeout(() => reject(new Error(`Timeout for ${mName}`)), 7000)
             );
 
             const aiPromise = ai.models.generateContent({
@@ -885,11 +889,20 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
               replyText = response.text;
               isAiOnline = true;
               usedProvider = 'Gemini';
+              if (usedModel !== mName) {
+                replyText = `> ℹ️ *המודל המבוקש \`${usedModel}\` לא היה זמין בספק Gemini (שגיאה 404 / לא נתמך). המענה נוצר בהצלחה באמצעות מודל ברירת המחדל \`${mName}\`:*\n\n` + replyText;
+              }
               usedModel = mName;
               break;
             }
           } catch (geminiError: any) {
             console.warn(`Gemini model ${mName} call failed (${geminiError?.message || geminiError}), trying next candidate...`);
+            if (mName === usedModel) {
+              const is404 = geminiError?.status === 404 || (geminiError?.message || '').includes('404') || (geminiError?.message || '').includes('not found');
+              statusNote = is404
+                ? `המודל "${mName}" אינו קיים ב-Gemini API (שגיאה 404 - Not Found). מומלץ לבחור gemini-flash-lite-latest`
+                : `מודל Gemini ${mName} לא היה זמין (${geminiError?.message || 'שגיאה'})`;
+            }
           }
         }
       } else if (targetProviderKey === 'openai') {
@@ -901,7 +914,7 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
               content: m.content,
             })),
           ];
-          const modelName = env.OPENAI_MODEL || 'gpt-4o';
+          const modelName = usedModel;
           const resAI = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -928,11 +941,11 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
           } else {
             const errBody = await resAI.text();
             console.warn(`OpenAI direct call returned ${resAI.status}: ${errBody}`);
-            statusNote = `OpenAI API returned error ${resAI.status}`;
+            statusNote = `המודל ${modelName} אינו זמין (OpenAI HTTP ${resAI.status}): ${errBody.slice(0, 140)}`;
           }
         } catch (err: any) {
           console.warn('OpenAI direct call failed:', err?.message || err);
-          statusNote = err?.message || 'Network error';
+          statusNote = `המודל ${usedModel} אינו זמין: ${err?.message || 'שגיאת רשת'}`;
         }
       } else if (targetProviderKey === 'claude') {
         try {
@@ -940,7 +953,7 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
             role: m.role === 'assistant' ? 'assistant' : 'user',
             content: m.content,
           }));
-          const modelName = env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
+          const modelName = usedModel;
           const resAI = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -964,16 +977,16 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
               replyText = text;
               isAiOnline = true;
               usedProvider = 'Claude';
-              usedModel = 'claude-3-5-sonnet';
+              usedModel = modelName;
             }
           } else {
             const errBody = await resAI.text();
             console.warn(`Anthropic direct call returned ${resAI.status}: ${errBody}`);
-            statusNote = `Anthropic API error ${resAI.status}`;
+            statusNote = `המודל ${modelName} אינו זמין (Claude HTTP ${resAI.status}): ${errBody.slice(0, 140)}`;
           }
         } catch (err: any) {
           console.warn('Claude direct call failed:', err?.message || err);
-          statusNote = err?.message || 'Network error';
+          statusNote = `המודל ${usedModel} אינו זמין: ${err?.message || 'שגיאת רשת'}`;
         }
       } else if (targetProviderKey === 'groq') {
         try {
@@ -984,7 +997,7 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
               content: m.content,
             })),
           ];
-          const modelName = env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+          const modelName = usedModel;
           const resAI = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -1006,16 +1019,16 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
               replyText = text;
               isAiOnline = true;
               usedProvider = 'Groq';
-              usedModel = 'llama-3.3-70b';
+              usedModel = modelName;
             }
           } else {
             const errBody = await resAI.text();
             console.warn(`Groq direct call returned ${resAI.status}: ${errBody}`);
-            statusNote = `Groq API error ${resAI.status}`;
+            statusNote = `המודל ${modelName} אינו זמין (Groq HTTP ${resAI.status}): ${errBody.slice(0, 140)}`;
           }
         } catch (err: any) {
           console.warn('Groq direct call failed:', err?.message || err);
-          statusNote = err?.message || 'Network error';
+          statusNote = `המודל ${usedModel} אינו זמין: ${err?.message || 'שגיאת רשת'}`;
         }
       } else if (targetProviderKey === 'deepseek') {
         try {
@@ -1026,7 +1039,7 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
               content: m.content,
             })),
           ];
-          const modelName = env.DEEPSEEK_MODEL || 'deepseek-chat';
+          const modelName = usedModel;
           const resAI = await fetch('https://api.deepseek.com/chat/completions', {
             method: 'POST',
             headers: {
@@ -1048,27 +1061,26 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
               replyText = text;
               isAiOnline = true;
               usedProvider = 'DeepSeek';
-              usedModel = 'deepseek-chat';
+              usedModel = modelName;
             }
           } else {
             const errBody = await resAI.text();
             console.warn(`DeepSeek direct call returned ${resAI.status}: ${errBody}`);
-            statusNote = `DeepSeek API error ${resAI.status}`;
+            statusNote = `המודל ${modelName} אינו זמין (DeepSeek HTTP ${resAI.status}): ${errBody.slice(0, 140)}`;
           }
         } catch (err: any) {
           console.warn('DeepSeek direct call failed:', err?.message || err);
-          statusNote = err?.message || 'Network error';
+          statusNote = `המודל ${usedModel} אינו זמין: ${err?.message || 'שגיאת רשת'}`;
         }
       }
 
       if (!isAiOnline || !replyText) {
         isAiOnline = false;
         usedProvider = providerDef.name;
-        usedModel = 'offline';
         if (!statusNote) {
-          statusNote = `שגיאת תקשורת עם שרתי ${providerDef.name}. המענה נוצר מקומית מתוך הקטלוג.`;
+          statusNote = `המודל שנבחר (${usedModel}) בספק ${providerDef.name} אינו זמין כרגע.`;
         }
-        replyText = `> ⚠️ **שגיאת תקשורת עם ${providerDef.name}:** המענה נוצר במצב לא מקוון מקומי על סמך קטלוג המערכת.\n\n` +
+        replyText = `> ⚠️ **מודל אינו זמין (${providerDef.name} • ${usedModel}):** ${statusNote}\n> המענה נוצר במצב לא מקוון מקומי על סמך קטלוג המערכת:\n\n` +
           generateFallbackResponse(userPromptText, topStores, topDeals, topBilling, previousTopic);
       }
     }
@@ -1131,6 +1143,207 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
     return res.status(500).json({
       error: 'שגיאה בעיבוד הבקשה. אנא נסה שוב.',
       details: error?.message || 'Unknown error',
+    });
+  }
+});
+
+// Dynamic Model Fetching with provider API key
+async function fetchProviderModels(providerId: string, apiKey: string): Promise<Array<{ id: string; name: string; description?: string }>> {
+  if (providerId === 'gemini') {
+    const ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } },
+    });
+    const listRes = await ai.models.list();
+    const modelsList: Array<{ id: string; name: string; description?: string }> = [];
+    for await (const m of listRes) {
+      const cleanId = (m.name || '').replace(/^models\//, '');
+      if (cleanId) {
+        modelsList.push({
+          id: cleanId,
+          name: m.displayName || cleanId,
+          description: m.description || '',
+        });
+      }
+    }
+    const priority = [
+      'gemini-flash-lite-latest',
+      'gemini-2.5-flash-lite',
+      'gemini-3.1-flash-lite',
+      'gemini-3.5-flash-lite',
+      'gemini-2.5-flash',
+      'gemini-2.5-pro',
+      'gemini-3.8-flash',
+      'gemini-3.1-pro-preview',
+      'gemini-flash-latest',
+      'gemini-pro-latest',
+    ];
+    modelsList.sort((a, b) => {
+      const idxA = priority.indexOf(a.id);
+      const idxB = priority.indexOf(b.id);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.id.localeCompare(b.id);
+    });
+    return modelsList;
+  }
+
+  if (providerId === 'openai') {
+    const res = await fetch('https://api.openai.com/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`OpenAI HTTP ${res.status}: ${errText}`);
+    }
+    const data: any = await res.json();
+    const list = Array.isArray(data.data) ? data.data : [];
+    const modelsList: Array<{ id: string; name: string; description?: string }> = list
+      .map((m: any) => ({
+        id: m.id,
+        name: m.id,
+      }))
+      .filter((m: any) => {
+        const id = m.id.toLowerCase();
+        return id.includes('gpt') || id.includes('o1') || id.includes('o3') || id.includes('chat');
+      });
+
+    const priority = ['gpt-4o', 'gpt-4o-mini', 'o1', 'o3-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'];
+    modelsList.sort((a, b) => {
+      const idxA = priority.indexOf(a.id);
+      const idxB = priority.indexOf(b.id);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.id.localeCompare(b.id);
+    });
+    return modelsList;
+  }
+
+  if (providerId === 'groq') {
+    const res = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Groq HTTP ${res.status}: ${errText}`);
+    }
+    const data: any = await res.json();
+    const list = Array.isArray(data.data) ? data.data : [];
+    const modelsList = list.map((m: any) => ({
+      id: m.id,
+      name: m.id,
+      description: m.owned_by ? `ספק: ${m.owned_by}` : undefined,
+    }));
+    const priority = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'];
+    modelsList.sort((a: any, b: any) => {
+      const idxA = priority.indexOf(a.id);
+      const idxB = priority.indexOf(b.id);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.id.localeCompare(b.id);
+    });
+    return modelsList;
+  }
+
+  if (providerId === 'deepseek') {
+    const res = await fetch('https://api.deepseek.com/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`DeepSeek HTTP ${res.status}: ${errText}`);
+    }
+    const data: any = await res.json();
+    const list = Array.isArray(data.data) ? data.data : [];
+    return list.map((m: any) => ({
+      id: m.id,
+      name: m.id,
+    }));
+  }
+
+  if (providerId === 'claude') {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/models', {
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (res.ok) {
+        const data: any = await res.json();
+        const list = Array.isArray(data.data) ? data.data : [];
+        if (list.length > 0) {
+          return list.map((m: any) => ({
+            id: m.id,
+            name: m.display_name || m.id,
+          }));
+        }
+      }
+    } catch {}
+
+    // Fallback list of Claude models
+    return [
+      { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet (Latest)' },
+      { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
+      { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus' },
+      { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet' },
+    ];
+  }
+
+  return [];
+}
+
+// GET /api/models: Fetch dynamic models directly from provider API using configured secret key
+app.get('/api/models', async (req, res) => {
+  const provider = (typeof req.query.provider === 'string' && DIRECT_AI_PROVIDERS[req.query.provider])
+    ? req.query.provider
+    : 'gemini';
+  const def = DIRECT_AI_PROVIDERS[provider];
+  const env = readEnvSecrets();
+  const apiKey = getProviderKey(provider, env);
+
+  if (!apiKey) {
+    return res.json({
+      available: false,
+      provider,
+      models: [],
+      defaultModel: def.defaultModel,
+      requiredSecret: def.envKeys[0],
+      error: `משתנה סודי ${def.envKeys.join(' או ')} אינו מוגדר ב-Secrets של GitHub או ב-.env עבור ${def.name}.`,
+    });
+  }
+
+  try {
+    const models = await fetchProviderModels(provider, apiKey);
+    return res.json({
+      available: true,
+      provider,
+      models,
+      defaultModel: def.defaultModel,
+      requiredSecret: def.envKeys[0],
+    });
+  } catch (err: any) {
+    console.warn(`Failed to fetch models for provider ${provider}:`, err?.message || err);
+    return res.json({
+      available: false,
+      provider,
+      models: [],
+      defaultModel: def.defaultModel,
+      requiredSecret: def.envKeys[0],
+      error: `שגיאה במשיכת מודלים מספק ${def.name}: ${err?.message || 'שגיאת גישה'}`,
     });
   }
 });
