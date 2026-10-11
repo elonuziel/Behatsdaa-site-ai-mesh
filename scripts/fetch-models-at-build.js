@@ -286,11 +286,20 @@ async function main() {
     } catch {}
   }
 
-  const aiPassword = getSecret(['AI_PASSWORD', 'AI_ACCESS_PASSWORD', 'AI_SECRET', 'AI_PASS', 'PASSWORD', 'SECRET_PASSWORD']);
+  const aiPassword = getSecret([
+    'AI_PASSWORD',
+    'AI_ACCESS_PASSWORD',
+    'AI_SECRET',
+    'AI_PASS',
+    'AI_PASSPHRASE',
+    'PASSWORD',
+    'SECRET_PASSWORD',
+    'ACCESS_PASSWORD',
+  ]);
   const isPasswordRequired = Boolean(aiPassword && aiPassword.trim().length > 0);
   const passwordHash = isPasswordRequired
     ? crypto.createHash('sha256').update(aiPassword.trim()).digest('hex')
-    : (existingCache.passwordHash || undefined);
+    : undefined;
 
   if (isPasswordRequired) {
     console.log('🔒 AI Password protection enabled at build time (SHA-256 hash generated)');
@@ -298,9 +307,9 @@ async function main() {
 
   const result = {
     updatedAt: new Date().toISOString(),
-    isPasswordRequired: isPasswordRequired || Boolean(existingCache.isPasswordRequired),
+    isPasswordRequired,
     ...(passwordHash ? { passwordHash } : {}),
-    providers: existingCache.providers || {},
+    providers: {},
   };
 
   const availableKeys = {};
@@ -309,17 +318,15 @@ async function main() {
     const key = getSecret(config.envKeys);
     if (!key) {
       console.log(`⚠️  ${config.name} (${providerKey}): No secret key found in environment/secrets.`);
-      if (!result.providers[providerKey] || !result.providers[providerKey].available) {
-        result.providers[providerKey] = {
-          available: providerKey === 'gemini', // Gemini is always default available
-          hasDirectSecret: false,
-          name: config.name,
-          defaultModel: config.defaultModel,
-          requiredSecret: config.requiredSecret,
-          models: providerKey === 'gemini' ? DEFAULT_GEMINI_MODELS : [],
-          error: providerKey === 'gemini' ? undefined : `נדרש מפתח סודי ${config.requiredSecret} ב-GitHub Secrets`,
-        };
-      }
+      result.providers[providerKey] = {
+        available: false,
+        hasDirectSecret: false,
+        name: config.name,
+        defaultModel: config.defaultModel,
+        requiredSecret: config.requiredSecret,
+        models: providerKey === 'gemini' ? DEFAULT_GEMINI_MODELS : (existingCache.providers?.[providerKey]?.models || []),
+        error: `נדרש מפתח סודי ${config.requiredSecret} ב-GitHub Secrets`,
+      };
       continue;
     }
 
@@ -353,7 +360,7 @@ async function main() {
       };
     } catch (err) {
       console.warn(`⚠️ Warning: Provider API fetch for ${config.name} encountered an issue: ${err?.message || err}`);
-      // Fallback for Gemini so build always succeeds with models
+      // Fallback for Gemini so build always succeeds with models when key is present
       if (providerKey === 'gemini') {
         result.providers[providerKey] = {
           available: true,
@@ -364,25 +371,28 @@ async function main() {
           models: DEFAULT_GEMINI_MODELS,
           fetchedAt: new Date().toISOString(),
         };
-      } else if (!result.providers[providerKey]) {
+      } else {
         result.providers[providerKey] = {
           available: false,
           hasDirectSecret: true,
           name: config.name,
           defaultModel: config.defaultModel,
           requiredSecret: config.requiredSecret,
-          models: [],
+          models: existingCache.providers?.[providerKey]?.models || [],
           error: err?.message || 'שגיאה במשיכת מודלים',
         };
       }
     }
   }
 
-  // Encrypt available provider API keys with AI password for secure static execution on GitHub Pages
-  if (isPasswordRequired && Object.keys(availableKeys).length > 0) {
+  // Encrypt available provider API keys for secure static execution on GitHub Pages
+  if (Object.keys(availableKeys).length > 0) {
     try {
       const salt = 'behatsdaa-ai-secure-salt-v1';
-      const keyBuffer = crypto.pbkdf2Sync(aiPassword.trim(), salt, 100000, 32, 'sha256');
+      // If AI_PASSWORD was set, encrypt with that password (user must enter it to unlock).
+      // If no AI_PASSWORD was set, encrypt with public default app key so browser can use it without password prompt.
+      const encryptionSecret = isPasswordRequired ? aiPassword.trim() : 'behatsdaa-public-app-key-v1';
+      const keyBuffer = crypto.pbkdf2Sync(encryptionSecret, salt, 100000, 32, 'sha256');
       const iv = crypto.randomBytes(12);
       const cipher = crypto.createCipheriv('aes-256-gcm', keyBuffer, iv);
       let encrypted = cipher.update(JSON.stringify(availableKeys), 'utf8', 'hex');
@@ -394,13 +404,10 @@ async function main() {
         tag,
         data: encrypted,
       };
-      console.log(`🔒 Encrypted ${Object.keys(availableKeys).length} provider API keys with AI password`);
+      console.log(`🔒 Encrypted ${Object.keys(availableKeys).length} provider API keys (${isPasswordRequired ? 'Password Protected' : 'Default app-level bundle'})`);
     } catch (e) {
       console.warn('⚠️ Error encrypting keys:', e);
     }
-  } else if (!isPasswordRequired && existingCache.encryptedKeys) {
-    // Retain existing encrypted keys if already present
-    result.encryptedKeys = existingCache.encryptedKeys;
   }
 
   const jsonStr = JSON.stringify(result, null, 2);

@@ -49,6 +49,8 @@ interface ChatContextType {
   clearPasswordError: () => void;
   customApiKeys: Record<string, string>;
   setCustomApiKey: (provider: AiProviderKey, key: string) => void;
+  decryptedKeys: Record<string, string>;
+  isProviderActive: (provider: AiProviderKey) => boolean;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -75,7 +77,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
-  const [isAiOnline, setIsAiOnline] = useState<boolean | null>(null);
+  const [rawIsAiOnline, setIsAiOnline] = useState<boolean | null>(null);
+  const [hasBackendServer, setHasBackendServer] = useState<boolean>(false);
   const [activeProvider, setActiveProvider] = useState<string | null>(null);
   const [activeModel, setActiveModel] = useState<string | null>(null);
   const [providerStatuses, setProviderStatuses] = useState<Record<AiProviderKey, ProviderInfo> | null>(null);
@@ -236,6 +239,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [passwordHash, isPasswordRequired, encryptedBundle]
   );
 
+  const isProviderActive = useCallback(
+    (provider: AiProviderKey): boolean => {
+      if (customApiKeys[provider] && customApiKeys[provider].trim().length > 0) return true;
+      if (decryptedKeys[provider] && decryptedKeys[provider].trim().length > 0) return true;
+      if (hasBackendServer && Boolean(providerStatuses?.[provider]?.available)) return true;
+      return false;
+    },
+    [customApiKeys, decryptedKeys, hasBackendServer, providerStatuses]
+  );
+
   const setSelectedModel = useCallback((model: string) => {
     setSelectedModelState(model);
     setProviderModelPreferences(prev => {
@@ -251,6 +264,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await fetch('/api/ai-status');
       if (res.ok) {
+        setHasBackendServer(true);
         const data: AiStatusResponse = await res.json();
         setIsAiOnline(data.isAiOnline ?? false);
         setActiveProvider(data.provider || null);
@@ -274,6 +288,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       // Backend unavailable -> fallback to static GitHub Pages bundle
     }
+
+    setHasBackendServer(false);
 
     // Static GitHub Pages fallback: probe ai-models.json via multi-path fetch
     try {
@@ -303,7 +319,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (!req) {
           setIsPasswordUnlocked(true);
+          // If encrypted keys are present without password required, decrypt with default public app key
+          if (staticBundle.encryptedKeys) {
+            decryptKeysWithPassword('behatsdaa-public-app-key-v1', staticBundle.encryptedKeys).then(k => {
+              if (k) setDecryptedKeys(k);
+            });
+          }
         } else {
+          setIsPasswordUnlocked(false);
           const saved = localStorage.getItem(AI_PASSWORD_STORAGE_KEY);
           if (saved) {
             unlockAi(saved);
@@ -317,15 +340,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           let actMod = 'gemini-flash-lite-latest';
 
           for (const [key, val] of Object.entries(staticBundle.providers) as [AiProviderKey, any][]) {
+            const isAvail = Boolean(val.available && val.hasDirectSecret);
             statuses[key] = {
               id: key,
               name: val.name || key,
-              available: Boolean(val.available),
+              available: isAvail,
               model: val.defaultModel || '',
               requiredSecret: val.requiredSecret || '',
               codeSnippet: '',
             };
-            if (val.available && !online) {
+            if (isAvail && !online) {
               online = true;
               actProv = key;
               actMod = val.defaultModel || '';
@@ -377,7 +401,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const providerData = staticBundle?.providers?.[p];
           if (providerData) {
             data = {
-              available: !!providerData.available,
+              available: Boolean(providerData.available && providerData.hasDirectSecret),
               provider: p,
               models: providerData.models || [],
               defaultModel: providerData.defaultModel,
@@ -387,7 +411,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch {}
       }
 
-      if (data && data.available && Array.isArray(data.models) && data.models.length > 0) {
+      if (data && Array.isArray(data.models) && data.models.length > 0) {
         setAvailableModels(data.models);
         setProviderStatuses(prev => {
           if (!prev) return prev;
@@ -395,7 +419,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ...prev,
             [p]: {
               ...prev[p],
-              available: true,
+              available: Boolean(data?.available),
               model: data?.defaultModel || prev[p]?.model || '',
             },
           };
@@ -414,11 +438,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else {
         setAvailableModels([]);
-        if (data?.error) {
-          setModelsError(data.error);
-        } else if (data?.defaultModel) {
+        if (data?.defaultModel) {
           setSelectedModelState(data.defaultModel);
         }
+      }
+
+      if (data && !data.available && data.error) {
+        setModelsError(data.error);
       }
     } catch (err: any) {
       console.warn('Failed to fetch models for provider:', p, err);
@@ -601,13 +627,18 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (!directAiSuccess) {
-          replyContent = generateClientFallbackResponse(
+          const fallbackText = generateClientFallbackResponse(
             trimmed,
             topStores,
             topDeals,
             topBilling,
             previousTopic
           );
+          if (!apiKey) {
+            replyContent = `> ℹ️ **סייר קטלוג מקומי:** לא הוגדר מפתח סודי לספק ${selectedProvider.toUpperCase()} ב-GitHub Secrets (או בהגדרות המפתח 🔑). המענה מבוסס על סריקת קטלוג ההטבות והמועדונים:\n\n` + fallbackText;
+          } else {
+            replyContent = fallbackText;
+          }
         }
 
         const assistantMsgId = 'assistant_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
@@ -666,7 +697,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         messages,
         isLoading,
         isChatOpen,
-        isAiOnline,
+        isAiOnline: hasBackendServer ? (rawIsAiOnline ?? false) : isProviderActive(selectedProvider),
         activeProvider,
         activeModel,
         selectedProvider,
@@ -691,6 +722,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearPasswordError,
         customApiKeys,
         setCustomApiKey,
+        decryptedKeys,
+        isProviderActive,
       }}
     >
       {children}

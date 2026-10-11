@@ -253,6 +253,22 @@ const payReply = generateClientFallbackResponse('מה ההבדל בין ארנק
 assert.ok(payReply.includes('ארנק נטען') && payReply.includes('חיוב'), 'Explains both methods');
 console.log('  ✅ PASS: Payment method comparison provides crystal clear explanation');
 
+// 4. Test Provider Availability & Secret Isolation
+console.log('\n🔒 4. Testing Provider Availability & Secret Isolation:');
+const aiModelsJsonPath = path.join(rootDir, 'public', 'ai-models.json');
+assert.ok(fs.existsSync(aiModelsJsonPath), 'ai-models.json exists in /public');
+const aiModelsData = JSON.parse(fs.readFileSync(aiModelsJsonPath, 'utf8'));
+
+// When no secret is configured, Gemini MUST be available: false
+assert.strictEqual(aiModelsData.providers.gemini.available, false, 'Gemini available is strictly false when no secret configured');
+assert.strictEqual(aiModelsData.providers.gemini.hasDirectSecret, false, 'Gemini hasDirectSecret is false when no secret configured');
+assert.ok(aiModelsData.providers.gemini.error.includes('נדרש מפתח סודי'), 'Gemini error informs user that secret key is required');
+console.log('  ✅ PASS: Gemini is strictly unavailable (available: false) when secret is missing');
+
+assert.strictEqual(aiModelsData.providers.openai.available, false, 'OpenAI available is strictly false when no secret configured');
+assert.strictEqual(aiModelsData.providers.claude.available, false, 'Claude available is strictly false when no secret configured');
+console.log('  ✅ PASS: All other providers are strictly unavailable without configured secrets');
+
 console.log('\n===========================================');
 console.log('🎉 Results: All Client AI & Password tests passed!');
 console.log('===========================================\n');

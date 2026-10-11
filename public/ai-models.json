@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-11T03:26:31.920Z",
+  "updatedAt": "2026-10-11T03:40:03.514Z",
   "isPasswordRequired": false,
   "providers": {
     "gemini": {
-      "available": true,
+      "available": false,
       "hasDirectSecret": false,
       "name": "Gemini",
       "defaultModel": "gemini-flash-lite-latest",
@@ -49,7 +49,8 @@
           "id": "gemini-pro-latest",
           "name": "Gemini Pro Latest"
         }
-      ]
+      ],
+      "error": "נדרש מפתח סודי GOOGLE_API_KEY / GEMINI_API_KEY ב-GitHub Secrets"
     },
     "openai": {
       "available": false,
