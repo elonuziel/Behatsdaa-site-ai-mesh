@@ -49,6 +49,9 @@ const ViewSuspenseFallback = () => (
   </div>
 );
 
+/**
+ * Renders the active benefits view, navigation, detail modals, and AI chat controls.
+ */
 export const App: React.FC = () => {
   const {
     query, primaryTab, subTab, selectedCategory, selectedCard, setSelectedCard,

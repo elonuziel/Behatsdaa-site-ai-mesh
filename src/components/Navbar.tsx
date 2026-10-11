@@ -47,6 +47,9 @@ interface SubTabItem {
   badge?: string;
 }
 
+/**
+ * Renders club navigation and search suggestions with theme, density, and chat controls.
+ */
 export const Navbar: React.FC = () => {
   const { query, setQuery, primaryTab, setPrimaryTab, subTab, setSubTab, uiDensity, toggleUiDensity } = useSearch();
   const { theme, toggleTheme } = useTheme();

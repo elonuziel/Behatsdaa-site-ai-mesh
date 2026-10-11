@@ -612,6 +612,14 @@ export function generateClientFallbackResponse(
 // Direct AI Provider Calling from the Browser
 // -------------------------------------------------------------
 
+/**
+ * Sends chat history and catalog context directly to the selected AI provider
+ * using native Capacitor HTTP or browser fetch.
+ *
+ * @param params - Provider, model, API key, message history, and catalog context.
+ * @returns The provider's reply text, or an empty string when absent for non-Gemini providers.
+ * @throws If the provider is unsupported, the request fails, or Gemini returns no reply.
+ */
 export async function executeDirectAiChat(params: {
   provider: AiProviderKey;
   model: string;
