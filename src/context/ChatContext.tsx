@@ -7,8 +7,18 @@ import {
   AiStatusResponse,
   AiModelOption,
   ModelsResponse,
+  EncryptedKeysBundle,
 } from '../types/chat';
 import { useClubs } from './ClubContext';
+import {
+  fetchJsonWithFallback,
+  verifyPasswordHash,
+  decryptKeysWithPassword,
+  getClientCatalog,
+  findRelevantCatalogClient,
+  generateClientFallbackResponse,
+  executeDirectAiChat,
+} from '../services/clientAi';
 
 interface ChatContextType {
   messages: ChatMessage[];
@@ -37,6 +47,8 @@ interface ChatContextType {
   lockAi: () => void;
   passwordError: string | null;
   clearPasswordError: () => void;
+  customApiKeys: Record<string, string>;
+  setCustomApiKey: (provider: AiProviderKey, key: string) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -45,6 +57,7 @@ const STORAGE_KEY = 'behatsdaa_ai_chat_messages_v1';
 const PROVIDER_STORAGE_KEY = 'behatsdaa_ai_selected_provider_v1';
 const MODEL_PREFS_KEY = 'behatsdaa_ai_models_by_provider_v1';
 const AI_PASSWORD_STORAGE_KEY = 'behatsdaa_ai_user_password_v1';
+const CUSTOM_KEYS_STORAGE_KEY = 'behatsdaa_ai_custom_keys_v1';
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeClubs } = useClubs();
@@ -67,11 +80,23 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeModel, setActiveModel] = useState<string | null>(null);
   const [providerStatuses, setProviderStatuses] = useState<Record<AiProviderKey, ProviderInfo> | null>(null);
 
-  // Secret Password protection state
+  // Secret Password & Decrypted API Keys protection state
   const [isPasswordRequired, setIsPasswordRequired] = useState<boolean>(false);
   const [isPasswordUnlocked, setIsPasswordUnlocked] = useState<boolean>(false);
   const [passwordHash, setPasswordHash] = useState<string | null>(null);
+  const [encryptedBundle, setEncryptedBundle] = useState<EncryptedKeysBundle | null>(null);
+  const [decryptedKeys, setDecryptedKeys] = useState<Record<string, string>>({});
   const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const [customApiKeys, setCustomApiKeys] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem(CUSTOM_KEYS_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
   const [aiPassword, setAiPassword] = useState<string>(() => {
     try {
       return localStorage.getItem(AI_PASSWORD_STORAGE_KEY) || '';
@@ -124,9 +149,20 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPasswordError(null);
   }, []);
 
+  const setCustomApiKey = useCallback((provider: AiProviderKey, key: string) => {
+    setCustomApiKeys(prev => {
+      const next = { ...prev, [provider]: key.trim() };
+      try {
+        localStorage.setItem(CUSTOM_KEYS_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
   const lockAi = useCallback(() => {
     setIsPasswordUnlocked(false);
     setAiPassword('');
+    setDecryptedKeys({});
     setPasswordError(null);
     try {
       localStorage.removeItem(AI_PASSWORD_STORAGE_KEY);
@@ -141,6 +177,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
+      let verified = false;
+      let keys: Record<string, string> | null = null;
+
       // 1. First try backend endpoint /api/verify-password
       try {
         const res = await fetch('/api/verify-password', {
@@ -151,13 +190,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (res.ok) {
           const data = await res.json();
           if (data.valid) {
-            setAiPassword(trimmed);
-            setIsPasswordUnlocked(true);
-            setPasswordError(null);
-            try {
-              localStorage.setItem(AI_PASSWORD_STORAGE_KEY, trimmed);
-            } catch {}
-            return true;
+            verified = true;
           }
         } else if (res.status === 401) {
           setPasswordError('סיסמה שגויה. אנא נסה שוב.');
@@ -168,39 +201,39 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // 2. Client-side hash check (for static GitHub Pages)
-      if (passwordHash) {
-        try {
-          const msgBuffer = new TextEncoder().encode(trimmed);
-          const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-          const hashArray = Array.from(new Uint8Array(hashBuffer));
-          const hexHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-          if (hexHash === passwordHash) {
-            setAiPassword(trimmed);
-            setIsPasswordUnlocked(true);
-            setPasswordError(null);
-            try {
-              localStorage.setItem(AI_PASSWORD_STORAGE_KEY, trimmed);
-            } catch {}
-            return true;
-          } else {
-            setPasswordError('סיסמה שגויה. אנא נסה שוב.');
-            return false;
-          }
-        } catch (e) {
-          console.warn('Error hashing password in browser:', e);
+      if (!verified && passwordHash) {
+        verified = await verifyPasswordHash(trimmed, passwordHash);
+      }
+
+      // 3. Client-side key decryption (if encrypted keys bundle is present)
+      if (encryptedBundle) {
+        keys = await decryptKeysWithPassword(trimmed, encryptedBundle);
+        if (keys) {
+          verified = true;
+          setDecryptedKeys(keys);
         }
       }
 
-      // If password protection is not required
-      if (!isPasswordRequired) {
+      // 4. If password was not required initially
+      if (!isPasswordRequired && !passwordHash) {
+        verified = true;
+      }
+
+      if (verified) {
+        setAiPassword(trimmed);
         setIsPasswordUnlocked(true);
+        setPasswordError(null);
+        setIsAiOnline(true);
+        try {
+          localStorage.setItem(AI_PASSWORD_STORAGE_KEY, trimmed);
+        } catch {}
         return true;
       }
 
       setPasswordError('סיסמה שגויה. אנא נסה שוב.');
       return false;
     },
-    [passwordHash, isPasswordRequired]
+    [passwordHash, isPasswordRequired, encryptedBundle]
   );
 
   const setSelectedModel = useCallback((model: string) => {
@@ -239,29 +272,45 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
     } catch {
-      // Ignore and fallback to workflow build static bundle
+      // Backend unavailable -> fallback to static GitHub Pages bundle
     }
 
-    // Static GitHub Pages fallback: probe workflow-generated ai-models.json
+    // Static GitHub Pages fallback: probe ai-models.json via multi-path fetch
     try {
-      const staticRes = await fetch('./data/ai-models.json').catch(() => fetch('./ai-models.json'));
-      if (staticRes && staticRes.ok) {
-        const staticBundle = await staticRes.json();
-        if (staticBundle?.isPasswordRequired !== undefined) {
-          setIsPasswordRequired(Boolean(staticBundle.isPasswordRequired));
-          if (staticBundle.passwordHash) {
-            setPasswordHash(staticBundle.passwordHash);
-          }
-          if (!staticBundle.isPasswordRequired) {
-            setIsPasswordUnlocked(true);
-          } else {
-            const saved = localStorage.getItem(AI_PASSWORD_STORAGE_KEY);
-            if (saved) {
-              unlockAi(saved);
-            }
+      const staticBundle = await fetchJsonWithFallback<{
+        updatedAt?: string;
+        isPasswordRequired?: boolean;
+        passwordHash?: string;
+        encryptedKeys?: EncryptedKeysBundle;
+        providers?: Record<string, any>;
+      }>([
+        './data/ai-models.json',
+        'data/ai-models.json',
+        './ai-models.json',
+        'ai-models.json',
+      ]);
+
+      if (staticBundle) {
+        if (staticBundle.passwordHash) {
+          setPasswordHash(staticBundle.passwordHash);
+        }
+        if (staticBundle.encryptedKeys) {
+          setEncryptedBundle(staticBundle.encryptedKeys);
+        }
+
+        const req = Boolean(staticBundle.isPasswordRequired);
+        setIsPasswordRequired(req);
+
+        if (!req) {
+          setIsPasswordUnlocked(true);
+        } else {
+          const saved = localStorage.getItem(AI_PASSWORD_STORAGE_KEY);
+          if (saved) {
+            unlockAi(saved);
           }
         }
-        if (staticBundle?.providers) {
+
+        if (staticBundle.providers) {
           const statuses = {} as Record<AiProviderKey, ProviderInfo>;
           let online = false;
           let actProv: AiProviderKey = 'gemini';
@@ -271,7 +320,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             statuses[key] = {
               id: key,
               name: val.name || key,
-              available: !!val.available,
+              available: Boolean(val.available),
               model: val.defaultModel || '',
               requiredSecret: val.requiredSecret || '',
               codeSnippet: '',
@@ -291,7 +340,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
       }
-    } catch {}
+    } catch (e) {
+      console.warn('Error reading static AI model bundle:', e);
+    }
 
     setIsAiOnline(false);
   }, [unlockAi]);
@@ -314,26 +365,30 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // If server response is unavailable or not marked available, check workflow-generated static bundle
       if (!data || !data.available) {
         try {
-          const staticRes = await fetch('./data/ai-models.json').catch(() => fetch('./ai-models.json'));
-          if (staticRes && staticRes.ok) {
-            const staticBundle = await staticRes.json();
-            const providerData = staticBundle?.providers?.[p];
-            if (providerData) {
-              data = {
-                available: !!providerData.available,
-                provider: p,
-                models: providerData.models || [],
-                defaultModel: providerData.defaultModel,
-                error: providerData.error,
-              };
-            }
+          const staticBundle = await fetchJsonWithFallback<{
+            providers?: Record<string, any>;
+          }>([
+            './data/ai-models.json',
+            'data/ai-models.json',
+            './ai-models.json',
+            'ai-models.json',
+          ]);
+
+          const providerData = staticBundle?.providers?.[p];
+          if (providerData) {
+            data = {
+              available: !!providerData.available,
+              provider: p,
+              models: providerData.models || [],
+              defaultModel: providerData.defaultModel,
+              error: providerData.error,
+            };
           }
         } catch {}
       }
 
       if (data && data.available && Array.isArray(data.models) && data.models.length > 0) {
         setAvailableModels(data.models);
-        // Mark provider as available immediately in providerStatuses state
         setProviderStatuses(prev => {
           if (!prev) return prev;
           return {
@@ -345,7 +400,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             },
           };
         });
-        // If current selectedModel is valid and exists in the list, keep it; otherwise fall back to default
+
         const currentSaved = providerModelPreferences[p];
         const match = currentSaved && currentSaved !== 'gemini-3.1-pro' ? data.models.find(m => m.id === currentSaved) : null;
         if (match) {
@@ -379,7 +434,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       localStorage.setItem(PROVIDER_STORAGE_KEY, p);
     } catch {}
-    // Set fallback model for provider while fetching fresh list
     const savedForProvider = providerModelPreferences[p];
     if (savedForProvider) {
       setSelectedModelState(savedForProvider);
@@ -413,6 +467,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const trimmed = content.trim();
       if (!trimmed || isLoading) return;
 
+      if (isPasswordRequired && !isPasswordUnlocked) {
+        setPasswordError('נדרש להזין סיסמת גישה כדי להשתמש ב-AI.');
+        return;
+      }
+
       const userMsgId = 'user_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
       const userMessage: ChatMessage = {
         id: userMsgId,
@@ -425,11 +484,15 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setMessages(updatedHistory);
       setIsLoading(true);
 
+      const payloadMessages = updatedHistory.map(m => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      // 1. First try backend endpoint /api/chat with a short timeout
       try {
-        const payloadMessages = updatedHistory.map(m => ({
-          role: m.role,
-          content: m.content,
-        }));
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
 
         const res = await fetch('/api/chat', {
           method: 'POST',
@@ -441,55 +504,134 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             model: selectedModel,
             password: aiPassword,
           }),
+          signal: controller.signal,
         });
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          if (res.status === 401 || errData.requirePassword || errData.invalidPassword) {
-            setIsPasswordUnlocked(false);
-            setPasswordError('סיסמת גישה שגויה או שנדרשת סיסמה לשימוש ב-AI.');
-            throw new Error('נדרשת סיסמת גישה תקינה לשימוש ב-AI.');
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data: ChatResponse = await res.json();
+          if (data.isAiOnline !== undefined) setIsAiOnline(data.isAiOnline);
+          if (data.provider) setActiveProvider(data.provider);
+          if (data.model) setActiveModel(data.model);
+
+          const assistantMsgId = 'assistant_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+          const assistantMessage: ChatMessage = {
+            id: assistantMsgId,
+            role: 'assistant',
+            content: data.reply || 'לא התקבלה תשובה מהשרת.',
+            timestamp: Date.now(),
+            recommendedStores: data.recommendedStores || [],
+            recommendedDeals: data.recommendedDeals || [],
+            recommendedBilling: data.recommendedBilling || [],
+            followUps: data.suggestedFollowUps || [],
+            isAiOnline: data.isAiOnline,
+            provider: data.provider,
+            model: data.model,
+            statusNote: data.statusNote,
+          };
+          setMessages(prev => [...prev, assistantMessage]);
+          setIsLoading(false);
+          return;
+        } else if (res.status === 401) {
+          setIsPasswordUnlocked(false);
+          setPasswordError('סיסמת גישה שגויה או שנדרשת סיסמה לשימוש ב-AI.');
+          setIsLoading(false);
+          return;
+        }
+      } catch (err: any) {
+        if (err?.message?.includes('נדרשת סיסמת גישה')) {
+          setIsLoading(false);
+          return;
+        }
+        // Backend not running (static GitHub Pages) -> seamlessly execute client-side AI engine!
+      }
+
+      // 2. Client-side execution for GitHub Pages & static hosting
+      try {
+        console.log('⚡ [Client AI Engine] Executing client-side AI reasoning for static site...');
+        const catalog = await getClientCatalog();
+
+        // Extract topic context from previous conversation turns
+        let previousTopic = '';
+        const userMsgs = updatedHistory.filter(m => m.role === 'user');
+        if (userMsgs.length > 1) {
+          const prior = userMsgs.slice(0, -1).map(m => m.content).join(' ');
+          const topics = ['esim', 'איסים', 'חו ל', 'טיסה', 'פיצה', 'נעליים', 'ספורט', 'סירים', 'כלי בית', 'mastercard', 'uniq', 'בהצדעה'];
+          const matched = topics.filter(t => prior.toLowerCase().includes(t));
+          if (matched.length > 0) previousTopic = matched.join(' ');
+        }
+
+        const { topStores, topDeals, topBilling } = findRelevantCatalogClient(
+          trimmed,
+          catalog,
+          Array.from(activeClubs),
+          previousTopic
+        );
+
+        let catalogContext = '';
+        if (topStores.length > 0) {
+          catalogContext += 'חנויות רלוונטיות מהקטלוג:\n' + topStores.map(s => `- ${s.name} (הנחה: ${s.max_discount || 0}%, מועדונים: ${(s.clubs || []).join(', ')})`).join('\n') + '\n\n';
+        }
+        if (topDeals.length > 0) {
+          catalogContext += 'מבצעים רלוונטיים:\n' + topDeals.map(d => `- "${d.title}" (${d.price ? d.price + ' ₪' : ''} ${d.discount_percent ? d.discount_percent + '% הנחה' : ''} ${d.coupon_code ? 'קוד: ' + d.coupon_code : ''})`).join('\n') + '\n\n';
+        }
+        if (topBilling.length > 0) {
+          catalogContext += 'הנחות באשראי:\n' + topBilling.map(b => `- "${b.name}" (${b.discount}% באשראי ${b.city ? b.city : ''})`).join('\n');
+        }
+
+        // Check if we have an API key for the selected provider
+        const apiKey = decryptedKeys[selectedProvider] || customApiKeys[selectedProvider] || '';
+        let replyContent = '';
+        let directAiSuccess = false;
+
+        if (apiKey) {
+          try {
+            replyContent = await executeDirectAiChat({
+              provider: selectedProvider,
+              model: selectedModel,
+              apiKey,
+              messages: payloadMessages,
+              catalogContext,
+            });
+            directAiSuccess = Boolean(replyContent && replyContent.trim());
+          } catch (apiErr: any) {
+            console.warn(`Direct AI call to ${selectedProvider} failed:`, apiErr);
           }
-          throw new Error(errData.error || `Server responded with ${res.status}`);
         }
 
-        const data: ChatResponse = await res.json();
-
-        if (data.isAiOnline !== undefined) {
-          setIsAiOnline(data.isAiOnline);
-        }
-        if (data.provider) {
-          setActiveProvider(data.provider);
-        }
-        if (data.model) {
-          setActiveModel(data.model);
+        if (!directAiSuccess) {
+          replyContent = generateClientFallbackResponse(
+            trimmed,
+            topStores,
+            topDeals,
+            topBilling,
+            previousTopic
+          );
         }
 
         const assistantMsgId = 'assistant_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
         const assistantMessage: ChatMessage = {
           id: assistantMsgId,
           role: 'assistant',
-          content: data.reply || 'לא התקבלה תשובה מהשרת.',
+          content: replyContent,
           timestamp: Date.now(),
-          recommendedStores: data.recommendedStores || [],
-          recommendedDeals: data.recommendedDeals || [],
-          recommendedBilling: data.recommendedBilling || [],
-          followUps: data.suggestedFollowUps || [],
-          isAiOnline: data.isAiOnline,
-          provider: data.provider,
-          model: data.model,
-          statusNote: data.statusNote,
+          recommendedStores: topStores,
+          recommendedDeals: topDeals,
+          recommendedBilling: topBilling,
+          isAiOnline: directAiSuccess,
+          provider: directAiSuccess ? selectedProvider : 'סייר הקטלוג המקומי',
+          model: directAiSuccess ? selectedModel : undefined,
         };
 
         setMessages(prev => [...prev, assistantMessage]);
-      } catch (err: any) {
-        console.error('Error querying AI assistant:', err);
-        setIsAiOnline(false);
+      } catch (fallbackErr: any) {
+        console.error('Error during client-side AI processing:', fallbackErr);
         const assistantMsgId = 'err_' + Date.now();
         const errorMessage: ChatMessage = {
           id: assistantMsgId,
           role: 'assistant',
-          content: `מצטער, נתקלתי בבעיה טכנית בעת עיבוד השאלה: ${err.message || 'שגיאת רשת'}.\nניתן לנסות שוב או לחפש ישירות בסרגל החיפוש.`,
+          content: 'מצטער, חלה תקלה בעיבוד התשובה. אנא נסה לנסח את השאלה מחדש או לבדוק בסרגל החיפוש.',
           timestamp: Date.now(),
           isAiOnline: false,
         };
@@ -498,7 +640,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
       }
     },
-    [messages, isLoading, activeClubs, selectedProvider, selectedModel, aiPassword]
+    [messages, isLoading, isPasswordRequired, isPasswordUnlocked, activeClubs, selectedProvider, selectedModel, aiPassword, decryptedKeys, customApiKeys]
   );
 
   const openChat = useCallback(
@@ -547,6 +689,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         lockAi,
         passwordError,
         clearPasswordError,
+        customApiKeys,
+        setCustomApiKey,
       }}
     >
       {children}

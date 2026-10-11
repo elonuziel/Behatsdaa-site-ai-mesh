@@ -94,11 +94,15 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
     lockAi,
     passwordError,
     clearPasswordError,
+    customApiKeys,
+    setCustomApiKey,
   } = useChat();
   const [inputText, setInputText] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
+  const [showApiKeyDrawer, setShowApiKeyDrawer] = useState(false);
+  const [customKeyInput, setCustomKeyInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
@@ -152,6 +156,7 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
 
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (isPasswordRequired && !isPasswordUnlocked) return;
     if (!inputText.trim() || isLoading) return;
     const text = inputText;
     setInputText('');
@@ -159,6 +164,7 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
   };
 
   const handlePromptClick = (prompt: string) => {
+    if (isPasswordRequired && !isPasswordUnlocked) return;
     sendMessage(prompt);
   };
 
@@ -244,7 +250,7 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
                 <h3 className="font-black text-sm sm:text-base text-slate-900 dark:text-white">
                   סייר ההטבות והחיסכון
                 </h3>
-                {providerStatuses?.[selectedProvider]?.available ? (
+                {providerStatuses?.[selectedProvider]?.available || customApiKeys[selectedProvider] ? (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300/40 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     AI מחובר ({PROVIDER_OPTIONS.find(p => p.id === selectedProvider)?.name} • {selectedModel})
@@ -255,9 +261,9 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
                     AI מחובר ({activeProvider || PROVIDER_OPTIONS.find(p => p.id === selectedProvider)?.name} • {selectedModel})
                   </span>
                 ) : isAiOnline === false ? (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/50 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3 text-amber-600" />
-                    מצב מקומי (חסר מפתח סודי)
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-emerald-500" />
+                    סייר קטלוג מקומי
                   </span>
                 ) : (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
@@ -272,6 +278,22 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setShowApiKeyDrawer(prev => !prev);
+                setCustomKeyInput(customApiKeys[selectedProvider] || '');
+              }}
+              title="הגדרות מפתח API אישי"
+              className={`p-2 rounded-xl transition cursor-pointer ${
+                showApiKeyDrawer
+                  ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                  : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <KeyRound className="w-4 h-4" />
+            </button>
+
             {isPasswordRequired && (
               isPasswordUnlocked ? (
                 <button
@@ -316,105 +338,143 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
           </div>
         </div>
 
-        {/* Provider Switcher & Dynamic Model Selector Bar */}
-        <div className="px-4 sm:px-6 py-2.5 bg-slate-100/90 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800 space-y-2">
-          {/* Row 1: Direct Provider Switcher */}
-          <div className="flex items-center justify-between gap-2 overflow-x-auto">
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 shrink-0">
-              <span className="font-bold text-slate-700 dark:text-slate-300">ספק AI ישיר:</span>
+        {/* Custom API Key Drawer */}
+        {showApiKeyDrawer && (
+          <div className="px-4 sm:px-6 py-3 bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700 animate-in slide-in-from-top-2 duration-150">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  מפתח API אישי עבור {PROVIDER_OPTIONS.find(p => p.id === selectedProvider)?.name}:
+                </span>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  type="password"
+                  value={customKeyInput}
+                  onChange={e => setCustomKeyInput(e.target.value)}
+                  placeholder={`הזן מפתח ${PROVIDER_OPTIONS.find(p => p.id === selectedProvider)?.secret}...`}
+                  className="flex-1 sm:w-64 text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomApiKey(selectedProvider, customKeyInput);
+                    setShowApiKeyDrawer(false);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition cursor-pointer shrink-0"
+                >
+                  שמור מפתח
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
-              {PROVIDER_OPTIONS.map(opt => {
-                const isSelected = selectedProvider === opt.id;
-                const isAvailable = providerStatuses?.[opt.id]?.available ?? false;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setSelectedProvider(opt.id)}
-                    className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                      isSelected
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700'
-                    }`}
-                    title={`${opt.name} - מפתח סודי: ${opt.secret} ${isAvailable ? '(מוגדר ✓)' : '(חסר מפתח)'}`}
-                  >
-                    <span
-                      className={`w-2 h-2 rounded-full shrink-0 ${
-                        isAvailable
-                          ? isSelected ? 'bg-emerald-200' : 'bg-emerald-500'
-                          : isSelected ? 'bg-amber-300' : 'bg-slate-400'
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              המפתח נשמר מקומית בדפדפן שלך בלבד ומאפשר פנייה ישירה ל-API של הספק מכל סביבה.
+            </p>
+          </div>
+        )}
+
+        {/* Provider Switcher & Dynamic Model Selector Bar (only shown when unlocked) */}
+        {(!isPasswordRequired || isPasswordUnlocked) && (
+          <div className="px-4 sm:px-6 py-2.5 bg-slate-100/90 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800 space-y-2">
+            {/* Row 1: Direct Provider Switcher */}
+            <div className="flex items-center justify-between gap-2 overflow-x-auto">
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 shrink-0">
+                <span className="font-bold text-slate-700 dark:text-slate-300">ספק AI ישיר:</span>
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+                {PROVIDER_OPTIONS.map(opt => {
+                  const isSelected = selectedProvider === opt.id;
+                  const isAvailable = providerStatuses?.[opt.id]?.available ?? false;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setSelectedProvider(opt.id)}
+                      className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700'
                       }`}
-                    />
-                    <span>{opt.name}</span>
-                  </button>
-                );
-              })}
+                      title={`${opt.name} - מפתח סודי: ${opt.secret} ${isAvailable ? '(מוגדר ✓)' : '(חסר מפתח)'}`}
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${
+                          isAvailable
+                            ? isSelected ? 'bg-emerald-200' : 'bg-emerald-500'
+                            : isSelected ? 'bg-amber-300' : 'bg-slate-400'
+                        }`}
+                      />
+                      <span>{opt.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          {/* Row 2: Dynamic Model Selector fetched with the API Key */}
-          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-700/60 flex-wrap sm:flex-nowrap">
-            <div className="flex items-center gap-2 flex-1 min-w-[240px]">
-              <label htmlFor="model-select" className="text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 flex items-center gap-1">
-                <Cpu className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>בחירת מודל:</span>
-              </label>
+            {/* Row 2: Dynamic Model Selector fetched with the API Key */}
+            <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-700/60 flex-wrap sm:flex-nowrap">
+              <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+                <label htmlFor="model-select" className="text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 flex items-center gap-1">
+                  <Cpu className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>בחירת מודל:</span>
+                </label>
 
-              {isLoadingModels ? (
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                  <span>מושך מודלים עם ה-API Key...</span>
-                </div>
-              ) : availableModels.length > 0 ? (
-                <div className="relative flex-1 max-w-md">
-                  <select
-                    id="model-select"
-                    value={selectedModel}
-                    onChange={e => setSelectedModel(e.target.value)}
-                    className="w-full text-xs font-mono font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer shadow-sm"
-                  >
-                    {availableModels.map(m => (
-                      <option key={m.id} value={m.id}>
-                        {m.id} {m.name && m.name !== m.id ? `(${m.name})` : ''}
+                {isLoadingModels ? (
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                    <span>מושך מודלים עם ה-API Key...</span>
+                  </div>
+                ) : availableModels.length > 0 ? (
+                  <div className="relative flex-1 max-w-md">
+                    <select
+                      id="model-select"
+                      value={selectedModel}
+                      onChange={e => setSelectedModel(e.target.value)}
+                      className="w-full text-xs font-mono font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer shadow-sm"
+                    >
+                      {availableModels.map(m => (
+                        <option key={m.id} value={m.id}>
+                          {m.id} {m.name && m.name !== m.id ? `(${m.name})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="relative flex-1 max-w-md">
+                    <select
+                      id="model-select"
+                      disabled
+                      className="w-full text-xs font-medium bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-400 dark:text-slate-500 cursor-not-allowed"
+                    >
+                      <option value="">
+                        {providerStatuses?.[selectedProvider]?.available
+                          ? 'אין מודלים זמינים לספק זה'
+                          : `לא זמין (נדרש ${providerStatuses?.[selectedProvider]?.requiredSecret || PROVIDER_OPTIONS.find(p => p.id === selectedProvider)?.secret} ב-Secrets)`}
                       </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="relative flex-1 max-w-md">
-                  <select
-                    id="model-select"
-                    disabled
-                    className="w-full text-xs font-medium bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-400 dark:text-slate-500 cursor-not-allowed"
-                  >
-                    <option value="">
-                      {providerStatuses?.[selectedProvider]?.available
-                        ? 'אין מודלים זמינים לספק זה'
-                        : `לא זמין (נדרש ${providerStatuses?.[selectedProvider]?.requiredSecret || PROVIDER_OPTIONS.find(p => p.id === selectedProvider)?.secret} ב-Secrets)`}
-                    </option>
-                  </select>
-                </div>
+                    </select>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => fetchModelsForProvider(selectedProvider)}
+                  disabled={isLoadingModels}
+                  title="משיכת רשימת מודלים מעודכנת עם ה-API Key מהספק"
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition cursor-pointer disabled:opacity-50"
+                >
+                  <RotateCw className={`w-3.5 h-3.5 ${isLoadingModels ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+
+              {availableModels.length > 0 && (
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 hidden sm:inline shrink-0 font-medium">
+                  {availableModels.length} מודלים זמינים ב-API
+                </span>
               )}
-
-              <button
-                type="button"
-                onClick={() => fetchModelsForProvider(selectedProvider)}
-                disabled={isLoadingModels}
-                title="משיכת רשימת מודלים מעודכנת עם ה-API Key מהספק"
-                className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition cursor-pointer disabled:opacity-50"
-              >
-                <RotateCw className={`w-3.5 h-3.5 ${isLoadingModels ? 'animate-spin' : ''}`} />
-              </button>
             </div>
-
-            {availableModels.length > 0 && (
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 hidden sm:inline shrink-0 font-medium">
-                {availableModels.length} מודלים זמינים ב-API
-              </span>
-            )}
           </div>
-        </div>
+        )}
 
         {/* Selected Provider Status Alert if missing API key */}
         {providerStatuses && providerStatuses[selectedProvider] && !providerStatuses[selectedProvider].available && availableModels.length === 0 && (
@@ -670,44 +730,51 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
         </div>
 
         {/* Input Footer */}
-        <div className="p-3 sm:p-4 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <form onSubmit={handleSend} className="relative flex items-center">
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputText}
-              onChange={e => setInputText(e.target.value)}
-              placeholder="שאל כל שאלה... (למשל: מה ההבדל בין כרטיס נטען למעמד החיוב? או איפה הכי משתלם?)"
-              className="w-full pl-12 pr-4 py-3 text-xs sm:text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-2xl border border-transparent focus:border-emerald-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition shadow-inner"
-              disabled={isLoading}
-            />
-
-            <button
-              type="submit"
-              disabled={!inputText.trim() || isLoading}
-              className={`absolute left-2 p-2 rounded-xl text-white transition cursor-pointer flex items-center justify-center shadow-2xs ${
-                inputText.trim() && !isLoading
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30'
-                  : 'bg-slate-300 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
-              }`}
-              aria-label="שלח הודעה"
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4 rotate-180" />
-              )}
-            </button>
-          </form>
-
-          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400 px-1">
-            <span className="flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-emerald-500" />
-              סייר ה-AI מחובר ליותר מ-10,000 סניפים, 1,041 רשתות ו-2,670+ מבצעים
-            </span>
-            <span className="hidden sm:inline">הקש Enter לשליחה</span>
+        {isPasswordRequired && !isPasswordUnlocked ? (
+          <div className="p-4 border-t border-slate-200/80 dark:border-slate-800 bg-amber-50/70 dark:bg-amber-950/30 flex items-center justify-center gap-2 text-xs sm:text-sm text-amber-800 dark:text-amber-300 font-bold">
+            <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>השיחה נעולה. יש להזין סיסמת גישה בחלון למעלה כדי לפתוח את אפשרויות השיחה.</span>
           </div>
-        </div>
+        ) : (
+          <div className="p-3 sm:p-4 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <form onSubmit={handleSend} className="relative flex items-center">
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputText}
+                onChange={e => setInputText(e.target.value)}
+                placeholder="שאל כל שאלה... (למשל: מה ההבדל בין כרטיס נטען למעמד החיוב? או איפה הכי משתלם?)"
+                className="w-full pl-12 pr-4 py-3 text-xs sm:text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-2xl border border-transparent focus:border-emerald-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition shadow-inner"
+                disabled={isLoading}
+              />
+
+              <button
+                type="submit"
+                disabled={!inputText.trim() || isLoading}
+                className={`absolute left-2 p-2 rounded-xl text-white transition cursor-pointer flex items-center justify-center shadow-2xs ${
+                  inputText.trim() && !isLoading
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30'
+                    : 'bg-slate-300 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                }`}
+                aria-label="שלח הודעה"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4 rotate-180" />
+                )}
+              </button>
+            </form>
+
+            <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400 px-1">
+              <span className="flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-emerald-500" />
+                סייר ה-AI מחובר ליותר מ-10,000 סניפים, 1,041 רשתות ו-2,670+ מבצעים
+              </span>
+              <span className="hidden sm:inline">הקש Enter לשליחה</span>
+            </div>
+          </div>
+        )}
       </>
     )}
   </div>

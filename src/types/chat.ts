@@ -24,6 +24,13 @@ export interface ProviderInfo {
   codeSnippet: string;
 }
 
+export interface EncryptedKeysBundle {
+  salt: string;
+  iv: string;
+  tag: string;
+  data: string;
+}
+
 export interface AiStatusResponse {
   isAiOnline: boolean;
   provider: string;
@@ -31,6 +38,8 @@ export interface AiStatusResponse {
   providers: Record<AiProviderKey, ProviderInfo>;
   defaultProvider: AiProviderKey;
   isPasswordRequired?: boolean;
+  passwordHash?: string;
+  encryptedKeys?: EncryptedKeysBundle;
 }
 
 export interface VerifyPasswordResponse {

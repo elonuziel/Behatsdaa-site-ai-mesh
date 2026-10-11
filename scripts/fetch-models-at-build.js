@@ -17,7 +17,6 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
-import { GoogleGenAI } from '@google/genai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,11 +56,11 @@ const fileEnv = readEnvFile();
 function getSecret(keys) {
   for (const k of keys) {
     const val = process.env[k];
-    if (val && typeof val === 'string' && !val.startsWith('MY_') && val.trim().length > 5) {
+    if (val && typeof val === 'string' && !val.startsWith('MY_') && val.trim().length > 0) {
       return val.trim();
     }
     const fVal = fileEnv[k];
-    if (fVal && typeof fVal === 'string' && !fVal.startsWith('MY_') && fVal.trim().length > 5) {
+    if (fVal && typeof fVal === 'string' && !fVal.startsWith('MY_') && fVal.trim().length > 0) {
       return fVal.trim();
     }
   }
@@ -76,7 +75,7 @@ function getSecret(keys) {
           for (const k of keys) {
             if (entry.startsWith(`${k}=`)) {
               const val = entry.slice(k.length + 1).trim();
-              if (val && !val.startsWith('MY_') && val.length > 8) {
+              if (val && !val.startsWith('MY_') && val.length > 0) {
                 return val;
               }
             }
@@ -136,14 +135,15 @@ const PROVIDERS_CONFIG = {
 };
 
 async function fetchGeminiModels(apiKey) {
-  const ai = new GoogleGenAI({
-    apiKey,
-    httpOptions: { headers: { 'User-Agent': 'aistudio-build' } },
-  });
-
-  const listRes = await ai.models.list();
+  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  if (!res.ok) {
+    throw new Error(`Gemini HTTP ${res.status}: ${await res.text()}`);
+  }
+  const data = await res.json();
+  const list = Array.isArray(data.models) ? data.models : [];
   const rawList = [];
-  for await (const m of listRes) {
+  for (const m of list) {
     const cleanId = (m.name || '').replace(/^models\//, '');
     if (cleanId) {
       rawList.push({
@@ -286,11 +286,11 @@ async function main() {
     } catch {}
   }
 
-  const aiPassword = getSecret(['AI_PASSWORD', 'AI_ACCESS_PASSWORD', 'AI_SECRET']);
+  const aiPassword = getSecret(['AI_PASSWORD', 'AI_ACCESS_PASSWORD', 'AI_SECRET', 'AI_PASS', 'PASSWORD', 'SECRET_PASSWORD']);
   const isPasswordRequired = Boolean(aiPassword && aiPassword.trim().length > 0);
   const passwordHash = isPasswordRequired
     ? crypto.createHash('sha256').update(aiPassword.trim()).digest('hex')
-    : undefined;
+    : (existingCache.passwordHash || undefined);
 
   if (isPasswordRequired) {
     console.log('🔒 AI Password protection enabled at build time (SHA-256 hash generated)');
@@ -298,10 +298,12 @@ async function main() {
 
   const result = {
     updatedAt: new Date().toISOString(),
-    isPasswordRequired,
+    isPasswordRequired: isPasswordRequired || Boolean(existingCache.isPasswordRequired),
     ...(passwordHash ? { passwordHash } : {}),
     providers: existingCache.providers || {},
   };
+
+  const availableKeys = {};
 
   for (const [providerKey, config] of Object.entries(PROVIDERS_CONFIG)) {
     const key = getSecret(config.envKeys);
@@ -310,6 +312,7 @@ async function main() {
       if (!result.providers[providerKey] || !result.providers[providerKey].available) {
         result.providers[providerKey] = {
           available: providerKey === 'gemini', // Gemini is always default available
+          hasDirectSecret: false,
           name: config.name,
           defaultModel: config.defaultModel,
           requiredSecret: config.requiredSecret,
@@ -319,6 +322,8 @@ async function main() {
       }
       continue;
     }
+
+    availableKeys[providerKey] = key;
 
     try {
       console.log(`⚡ Fetching fresh models for ${config.name} using configured API Key...`);
@@ -339,6 +344,7 @@ async function main() {
       console.log(`✅ Successfully fetched ${models.length} models for ${config.name}!`);
       result.providers[providerKey] = {
         available: true,
+        hasDirectSecret: true,
         name: config.name,
         defaultModel: config.defaultModel,
         requiredSecret: config.requiredSecret,
@@ -351,6 +357,7 @@ async function main() {
       if (providerKey === 'gemini') {
         result.providers[providerKey] = {
           available: true,
+          hasDirectSecret: true,
           name: config.name,
           defaultModel: config.defaultModel,
           requiredSecret: config.requiredSecret,
@@ -360,6 +367,7 @@ async function main() {
       } else if (!result.providers[providerKey]) {
         result.providers[providerKey] = {
           available: false,
+          hasDirectSecret: true,
           name: config.name,
           defaultModel: config.defaultModel,
           requiredSecret: config.requiredSecret,
@@ -368,6 +376,31 @@ async function main() {
         };
       }
     }
+  }
+
+  // Encrypt available provider API keys with AI password for secure static execution on GitHub Pages
+  if (isPasswordRequired && Object.keys(availableKeys).length > 0) {
+    try {
+      const salt = 'behatsdaa-ai-secure-salt-v1';
+      const keyBuffer = crypto.pbkdf2Sync(aiPassword.trim(), salt, 100000, 32, 'sha256');
+      const iv = crypto.randomBytes(12);
+      const cipher = crypto.createCipheriv('aes-256-gcm', keyBuffer, iv);
+      let encrypted = cipher.update(JSON.stringify(availableKeys), 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+      const tag = cipher.getAuthTag().toString('hex');
+      result.encryptedKeys = {
+        salt,
+        iv: iv.toString('hex'),
+        tag,
+        data: encrypted,
+      };
+      console.log(`🔒 Encrypted ${Object.keys(availableKeys).length} provider API keys with AI password`);
+    } catch (e) {
+      console.warn('⚠️ Error encrypting keys:', e);
+    }
+  } else if (!isPasswordRequired && existingCache.encryptedKeys) {
+    // Retain existing encrypted keys if already present
+    result.encryptedKeys = existingCache.encryptedKeys;
   }
 
   const jsonStr = JSON.stringify(result, null, 2);
