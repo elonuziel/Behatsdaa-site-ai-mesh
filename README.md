@@ -18,6 +18,7 @@ Explore the portal live at: **[https://elonuziel.github.io/Behatsdaa-site-ai-mes
 
 - 🤖 **AI Catalog Intelligence & Personal Financial Advisor**:
   - **13,600+ Grounded Catalog Records**: Powered by multi-club data ingestion across all 3 clubs.
+  - **AI Function Calling & Whole-Database Aggregation**: Real-time tools (`aggregate_catalog` and `search_catalog`) on Gemini, OpenAI, Claude, Groq, and DeepSeek enabling accurate calculations (counts, averages, top discounts) across all 13,600+ businesses in memory (e.g., exact count of businesses in Jerusalem or specific categories).
   - **Dual-Tier Location Search**: City-based queries (e.g. "פיצה בפתח תקווה", "ספורט בחיפה") combine **Tier A (Local Physical Businesses)** from the 10,650+ billing directory with **Tier B (Nationwide Mall Chains)** that operate local branches in that city (e.g. Pizza Hut, Domino's, Mega Sport, Fox Home).
   - **Dynamic Context Sizing (10 → 40 → 80)**: Dynamically sizes AI prompt tokens based on intent (specific store queries = ~10 items, category/city searches = ~40 items, broad "list all" queries = ~80-90 items).
   - **Strict UI Card Capping**: Chat popup stays clean and fast by capping visual highlight cards to the top 3–4 items.

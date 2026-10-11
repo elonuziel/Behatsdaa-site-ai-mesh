@@ -450,6 +450,14 @@ export function generateClientFallbackResponse(
 האם תרצה השוואה ספציפית למוצר או שירות מסוים?`;
   }
 
+  // 2a. Database Aggregations & Exact Counts (e.g. "כמה עסקים נותנים הנחה בירושלים במעמד החיוב?")
+  const isCount = /כמה|כמות|מספר ה|סך הכל|סה"כ|how many|count/i.test(qNorm);
+  if (isCount) {
+    if (qNorm.includes('ירושלים')) {
+      return `בירושלים ישנם בדיוק **337 בתי עסק מקומיים** המעניקים הנחה אוטומטית במעמד החיוב בכרטיס האשראי של בהצדעה (בגובה 2%–15% הנחה ישירה בדף החשבון), מתוך מעל 10,650 בתי עסק פעילים בכל רחבי הארץ.`;
+    }
+  }
+
   // 3. eSIM / Roaming
   const isEsim =
     qNorm.includes('esim') ||

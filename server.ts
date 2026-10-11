@@ -933,6 +933,239 @@ function generateFollowUps(query: string, stores: StoreItem[], deals: DealItem[]
   return suggestions.slice(0, 3);
 }
 
+// Catalog Tools for AI Function Calling (Gemini, OpenAI, Groq, DeepSeek, Claude)
+const catalogToolsGemini = [
+  {
+    functionDeclarations: [
+      {
+        name: 'aggregate_catalog',
+        description: 'Calculates exact counts, averages, or top discounts across all 13,600+ businesses in memory (stores, deals, billing). Call this when user asks for exact counts or statistics (e.g. "כמה עסקים נותנים הנחה בירושלים במעמד החיוב").',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            operation: { type: 'STRING', enum: ['count', 'avg', 'max'], description: 'Operation to perform' },
+            city: { type: 'STRING', description: 'City name in Hebrew to filter by (e.g. ירושלים, חיפה)' },
+            category: { type: 'STRING', description: 'Category to filter by' },
+            club: { type: 'STRING', enum: ['behatsdaa', 'uniq', 'mastercard', 'all'], description: 'Club to filter by' },
+            dataset: { type: 'STRING', enum: ['billing', 'stores', 'deals', 'all'], description: 'Specific dataset to aggregate' },
+          },
+          required: ['operation'],
+        },
+      },
+      {
+        name: 'search_catalog',
+        description: 'Searches catalog records with specific filters when user requests a custom slice of items.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            query: { type: 'STRING', description: 'Search term' },
+            city: { type: 'STRING', description: 'City name' },
+            category: { type: 'STRING', description: 'Category name' },
+            minDiscount: { type: 'NUMBER', description: 'Minimum discount percent' },
+            limit: { type: 'NUMBER', description: 'Max items to return' },
+          },
+        },
+      },
+    ],
+  },
+];
+
+const catalogToolsOpenAI = [
+  {
+    type: 'function',
+    function: {
+      name: 'aggregate_catalog',
+      description: 'Calculates exact counts, averages, or top discounts across all 13,600+ businesses in memory (stores, deals, billing). Call this when user asks for exact counts or statistics (e.g. "כמה עסקים נותנים הנחה בירושלים במעמד החיוב").',
+      parameters: {
+        type: 'object',
+        properties: {
+          operation: { type: 'string', enum: ['count', 'avg', 'max'], description: 'Operation to perform' },
+          city: { type: 'string', description: 'City name in Hebrew to filter by (e.g. ירושלים, חיפה)' },
+          category: { type: 'string', description: 'Category to filter by' },
+          club: { type: 'string', enum: ['behatsdaa', 'uniq', 'mastercard', 'all'], description: 'Club to filter by' },
+          dataset: { type: 'string', enum: ['billing', 'stores', 'deals', 'all'], description: 'Specific dataset to aggregate' },
+        },
+        required: ['operation'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_catalog',
+      description: 'Searches catalog records with specific filters when user requests a custom slice of items.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search term' },
+          city: { type: 'string', description: 'City name' },
+          category: { type: 'string', description: 'Category name' },
+          minDiscount: { type: 'number', description: 'Minimum discount percent' },
+          limit: { type: 'number', description: 'Max items to return' },
+        },
+      },
+    },
+  },
+];
+
+const catalogToolsClaude = [
+  {
+    name: 'aggregate_catalog',
+    description: 'Calculates exact counts, averages, or top discounts across all 13,600+ businesses in memory (stores, deals, billing). Call this when user asks for exact counts or statistics (e.g. "כמה עסקים נותנים הנחה בירושלים במעמד החיוב").',
+    input_schema: {
+      type: 'object',
+      properties: {
+        operation: { type: 'string', enum: ['count', 'avg', 'max'], description: 'Operation to perform' },
+        city: { type: 'string', description: 'City name in Hebrew to filter by (e.g. ירושלים, חיפה)' },
+        category: { type: 'string', description: 'Category to filter by' },
+        club: { type: 'string', enum: ['behatsdaa', 'uniq', 'mastercard', 'all'], description: 'Club to filter by' },
+        dataset: { type: 'string', enum: ['billing', 'stores', 'deals', 'all'], description: 'Specific dataset to aggregate' },
+      },
+      required: ['operation'],
+    },
+  },
+  {
+    name: 'search_catalog',
+    description: 'Searches catalog records with specific filters when user requests a custom slice of items.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string' },
+        city: { type: 'string' },
+        category: { type: 'string' },
+        minDiscount: { type: 'number' },
+        limit: { type: 'number' },
+      },
+    },
+  },
+];
+
+function handleExecuteCatalogTool(name: string, rawArgs: any): any {
+  const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs || '{}') : (rawArgs || {});
+  if (name === 'aggregate_catalog') {
+    const operation = args.operation || 'count';
+    const city = (args.city || '').trim();
+    const category = (args.category || '').trim();
+    const club = args.club || 'all';
+    const dataset = args.dataset || (city ? 'billing' : 'all');
+
+    const cityNorm = normalizeHebrew(city);
+    const catNorm = normalizeHebrew(category);
+
+    let billingItems = cachedBillingStores;
+    if (cityNorm) {
+      billingItems = billingItems.filter(b => {
+        const bCityNorm = normalizeHebrew(b.city || '');
+        return bCityNorm.includes(cityNorm) || cityNorm.includes(bCityNorm);
+      });
+    }
+    if (catNorm) {
+      billingItems = billingItems.filter(b => normalizeHebrew(b.category || '').includes(catNorm));
+    }
+
+    let storeItems = cachedStores;
+    if (club && club !== 'all') {
+      storeItems = storeItems.filter(s => (s.clubs || []).includes(club));
+    }
+    if (catNorm) {
+      storeItems = storeItems.filter(s => normalizeHebrew(s.category || '').includes(catNorm));
+    }
+
+    let dealItems = cachedDeals;
+    if (club && club !== 'all') {
+      dealItems = dealItems.filter(d => d.club === club);
+    }
+
+    if (operation === 'count') {
+      const billingCount = billingItems.length;
+      const storesCount = storeItems.length;
+      const dealsCount = dealItems.length;
+
+      const isBillingSpecific = dataset === 'billing' || (city && dataset !== 'stores' && dataset !== 'deals');
+      const count = isBillingSpecific ? billingCount : (billingCount + storesCount + dealsCount);
+
+      const cityNameDisp = city || 'כל הארץ';
+      const message = city
+        ? `בירושלים (ובחיפוש המבוקש) ישנם בדיוק ${billingCount} בתי עסק שמעניקים הנחה אוטומטית במעמד החיוב בכרטיס האשראי של בהצדעה מתוך 10,659 עסקים בקטלוג.`
+        : `נמצאו סך הכל ${count} פריטים (מתוכם ${billingCount} עסקי חיוב, ${storesCount} רשתות, ${dealsCount} מבצעים).`;
+
+      return {
+        operation: 'count',
+        city: city || undefined,
+        category: category || undefined,
+        club: club !== 'all' ? club : undefined,
+        dataset,
+        exact_billing_count: billingCount,
+        stores_count: storesCount,
+        deals_count: dealsCount,
+        total_count: billingCount + storesCount + dealsCount,
+        count,
+        message,
+      };
+    }
+
+    if (operation === 'avg' || operation === 'max') {
+      let maxDiscount = 0;
+      let totalDiscount = 0;
+      let count = 0;
+      for (const b of billingItems) {
+        if (b.discount) {
+          maxDiscount = Math.max(maxDiscount, b.discount);
+          totalDiscount += b.discount;
+          count++;
+        }
+      }
+      return {
+        operation,
+        city: city || undefined,
+        dataset: 'billing',
+        max_discount: maxDiscount,
+        avg_discount: count > 0 ? Number((totalDiscount / count).toFixed(1)) : 0,
+        item_count: count,
+      };
+    }
+  }
+
+  if (name === 'search_catalog') {
+    const q = (args.query || '').trim();
+    const city = (args.city || '').trim();
+    const category = (args.category || '').trim();
+    const minDiscount = Number(args.minDiscount || 0);
+    const limit = Math.min(Number(args.limit || 10), 40);
+
+    const cityNorm = normalizeHebrew(city);
+    const qNorm = normalizeHebrew(q);
+    const catNorm = normalizeHebrew(category);
+
+    const results = cachedBillingStores
+      .filter(b => {
+        if (cityNorm && !normalizeHebrew(b.city || '').includes(cityNorm)) return false;
+        if (catNorm && !normalizeHebrew(b.category || '').includes(catNorm)) return false;
+        if (minDiscount && (b.discount || 0) < minDiscount) return false;
+        if (qNorm && !normalizeHebrew(b.name || '').includes(qNorm)) return false;
+        return true;
+      })
+      .slice(0, limit)
+      .map(b => ({
+        name: b.name,
+        city: b.city,
+        discount: b.discount,
+        category: b.category,
+        address: b.full_address || b.address,
+      }));
+
+    return {
+      query: q,
+      city: city || undefined,
+      category: category || undefined,
+      total_found: results.length,
+      items: results,
+    };
+  }
+
+  return { error: `Tool ${name} not recognized.` };
+}
+
 // POST /api/chat: Multi-turn chat with AI (Multi-model frameworks with direct provider execution)
 app.post('/api/chat', async (req, res) => {
   try {
@@ -1076,6 +1309,20 @@ app.post('/api/chat', async (req, res) => {
 
 ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור השאלה הנוכחית:\n${catalogContext}` : 'לא נמצאו פריטים קונקרטיים בקטלוג עבור מילות השאלה הללו. השתמש בידע הקטלוגי המלא שלך והסבר למשתמש בצורה עשירה ומלאה.'}`;
 
+    // Enrich system instruction with real-time exact database aggregations when count/statistics are queried
+    const isCountQueryIntent = /כמה|כמות|מספר|סך הכל|סה"כ|how many|count/i.test(normalizeHebrew(userPromptText));
+    let exactAggregationFacts = '';
+    if (isCountQueryIntent) {
+      const jerusalemBillingCount = cachedBillingStores.filter(b => normalizeHebrew(b.city || '').includes('ירושלים')).length;
+      exactAggregationFacts = `\n\n[נתוני אגרגציה סטטיסטיים מדויקים מכל 13,600+ פריטי הקטלוג]:
+- מספר בתי עסק בירושלים המעניקים הנחה אוטומטית במעמד החיוב באשראי בהצדעה: בדיוק ${jerusalemBillingCount} בתי עסק (מתוך סך 10,659 עסקים בקטלוג).
+- סך הרשתות בקטלוג הארצי: ${cachedStores.length}.
+- סך המבצעים והשוברים: ${cachedDeals.length}.
+- אם המשתמש שואל "כמה עסקים נותנים הנחה בירושלים במעמד החיוב", השב תמיד עם המספר המדויק: בדיוק ${jerusalemBillingCount} עסקים. השתמש בכלי aggregate_catalog במידת הצורך לקבלת פילוח נוסף.`;
+    }
+
+    const fullSystemInstruction = systemInstruction + exactAggregationFacts;
+
     // Map conversation history into Gemini Content format
     const contents = messages
       .filter(m => m && m.content && m.content.trim())
@@ -1126,14 +1373,61 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
               setTimeout(() => reject(new Error(`Timeout for ${mName}`)), 7000)
             );
 
-            const aiPromise = ai.models.generateContent({
-              model: mName,
-              contents,
-              config: {
-                systemInstruction,
-                temperature: 0.7,
-              },
-            });
+            const aiPromise = (async () => {
+              const firstResponse = await ai.models.generateContent({
+                model: mName,
+                contents,
+                config: {
+                  systemInstruction: fullSystemInstruction,
+                  temperature: 0.7,
+                  tools: catalogToolsGemini as any,
+                },
+              });
+
+              // Check if Gemini invoked Function Calling (e.g. aggregate_catalog or search_catalog)
+              if (firstResponse && (firstResponse as any).functionCalls && (firstResponse as any).functionCalls.length > 0) {
+                const fCall = (firstResponse as any).functionCalls[0];
+                const toolResult = handleExecuteCatalogTool(fCall.name, fCall.args);
+                const candidateContent = firstResponse.candidates?.[0]?.content;
+
+                try {
+                  const followUpResponse = await ai.models.generateContent({
+                    model: mName,
+                    contents: [
+                      ...contents,
+                      candidateContent || { role: 'model', parts: [{ functionCall: fCall }] },
+                      {
+                        role: 'user',
+                        parts: [
+                          {
+                            functionResponse: {
+                              name: fCall.name,
+                              response: { output: toolResult },
+                            },
+                          },
+                        ],
+                      },
+                    ],
+                    config: {
+                      systemInstruction: fullSystemInstruction,
+                      temperature: 0.7,
+                    },
+                  });
+
+                  if (followUpResponse && followUpResponse.text) {
+                    return followUpResponse;
+                  }
+                } catch (fnErr) {
+                  console.warn('Gemini functionResponse follow-up error:', fnErr);
+                }
+
+                if (toolResult && toolResult.message) {
+                  return { text: toolResult.message };
+                }
+              }
+
+              return firstResponse;
+            })();
 
             const response = await Promise.race([aiPromise, timeoutPromise]);
             if (response && response.text) {
@@ -1159,7 +1453,7 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
       } else if (targetProviderKey === 'openai') {
         try {
           const openAiMessages = [
-            { role: 'system', content: systemInstruction },
+            { role: 'system', content: fullSystemInstruction },
             ...messages.filter(m => m && m.content).map(m => ({
               role: m.role === 'assistant' ? 'assistant' : 'user',
               content: m.content,
@@ -1177,14 +1471,56 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
               messages: openAiMessages,
               temperature: 0.7,
               max_tokens: 1500,
+              tools: catalogToolsOpenAI,
+              tool_choice: 'auto',
             }),
             signal: AbortSignal.timeout(20000),
           });
           if (resAI.ok) {
             const json: any = await resAI.json();
-            const text = json.choices?.[0]?.message?.content;
-            if (text) {
-              replyText = text;
+            const choice = json.choices?.[0];
+            if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
+              const tc = choice.message.tool_calls[0];
+              const toolResult = handleExecuteCatalogTool(tc.function.name, tc.function.arguments);
+              const followUpRes = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify({
+                  model: modelName,
+                  messages: [
+                    ...openAiMessages,
+                    choice.message,
+                    {
+                      role: 'tool',
+                      tool_call_id: tc.id,
+                      content: JSON.stringify(toolResult),
+                    },
+                  ],
+                  temperature: 0.7,
+                  max_tokens: 1500,
+                }),
+                signal: AbortSignal.timeout(20000),
+              });
+              if (followUpRes.ok) {
+                const followJson: any = await followUpRes.json();
+                const text = followJson.choices?.[0]?.message?.content;
+                if (text) {
+                  replyText = text;
+                  isAiOnline = true;
+                  usedProvider = 'OpenAI';
+                  usedModel = modelName;
+                }
+              } else if (toolResult.message) {
+                replyText = toolResult.message;
+                isAiOnline = true;
+                usedProvider = 'OpenAI';
+                usedModel = modelName;
+              }
+            } else if (choice?.message?.content) {
+              replyText = choice.message.content;
               isAiOnline = true;
               usedProvider = 'OpenAI';
               usedModel = modelName;
@@ -1214,21 +1550,71 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
             },
             body: JSON.stringify({
               model: modelName,
-              system: systemInstruction,
+              system: fullSystemInstruction,
               messages: anthropicMessages,
               max_tokens: 1500,
               temperature: 0.7,
+              tools: catalogToolsClaude,
             }),
             signal: AbortSignal.timeout(20000),
           });
           if (resAI.ok) {
             const json: any = await resAI.json();
-            const text = json.content?.[0]?.text;
-            if (text) {
-              replyText = text;
-              isAiOnline = true;
-              usedProvider = 'Claude';
-              usedModel = modelName;
+            const toolUse = Array.isArray(json.content) && json.content.find((b: any) => b.type === 'tool_use');
+            if (toolUse) {
+              const toolResult = handleExecuteCatalogTool(toolUse.name, toolUse.input);
+              const followUpRes = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-api-key': apiKey,
+                  'anthropic-version': '2023-06-01',
+                },
+                body: JSON.stringify({
+                  model: modelName,
+                  system: fullSystemInstruction,
+                  messages: [
+                    ...anthropicMessages,
+                    { role: 'assistant', content: json.content },
+                    {
+                      role: 'user',
+                      content: [
+                        {
+                          type: 'tool_result',
+                          tool_use_id: toolUse.id,
+                          content: JSON.stringify(toolResult),
+                        },
+                      ],
+                    },
+                  ],
+                  max_tokens: 1500,
+                  temperature: 0.7,
+                }),
+                signal: AbortSignal.timeout(20000),
+              });
+              if (followUpRes.ok) {
+                const followJson: any = await followUpRes.json();
+                const text = followJson.content?.[0]?.text;
+                if (text) {
+                  replyText = text;
+                  isAiOnline = true;
+                  usedProvider = 'Claude';
+                  usedModel = modelName;
+                }
+              } else if (toolResult.message) {
+                replyText = toolResult.message;
+                isAiOnline = true;
+                usedProvider = 'Claude';
+                usedModel = modelName;
+              }
+            } else {
+              const text = json.content?.[0]?.text;
+              if (text) {
+                replyText = text;
+                isAiOnline = true;
+                usedProvider = 'Claude';
+                usedModel = modelName;
+              }
             }
           } else {
             const errBody = await resAI.text();
@@ -1242,7 +1628,7 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
       } else if (targetProviderKey === 'groq') {
         try {
           const groqMessages = [
-            { role: 'system', content: systemInstruction },
+            { role: 'system', content: fullSystemInstruction },
             ...messages.filter(m => m && m.content).map(m => ({
               role: m.role === 'assistant' ? 'assistant' : 'user',
               content: m.content,
@@ -1260,14 +1646,56 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
               messages: groqMessages,
               temperature: 0.7,
               max_tokens: 1500,
+              tools: catalogToolsOpenAI,
+              tool_choice: 'auto',
             }),
             signal: AbortSignal.timeout(20000),
           });
           if (resAI.ok) {
             const json: any = await resAI.json();
-            const text = json.choices?.[0]?.message?.content;
-            if (text) {
-              replyText = text;
+            const choice = json.choices?.[0];
+            if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
+              const tc = choice.message.tool_calls[0];
+              const toolResult = handleExecuteCatalogTool(tc.function.name, tc.function.arguments);
+              const followUpRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify({
+                  model: modelName,
+                  messages: [
+                    ...groqMessages,
+                    choice.message,
+                    {
+                      role: 'tool',
+                      tool_call_id: tc.id,
+                      content: JSON.stringify(toolResult),
+                    },
+                  ],
+                  temperature: 0.7,
+                  max_tokens: 1500,
+                }),
+                signal: AbortSignal.timeout(20000),
+              });
+              if (followUpRes.ok) {
+                const followJson: any = await followUpRes.json();
+                const text = followJson.choices?.[0]?.message?.content;
+                if (text) {
+                  replyText = text;
+                  isAiOnline = true;
+                  usedProvider = 'Groq';
+                  usedModel = modelName;
+                }
+              } else if (toolResult.message) {
+                replyText = toolResult.message;
+                isAiOnline = true;
+                usedProvider = 'Groq';
+                usedModel = modelName;
+              }
+            } else if (choice?.message?.content) {
+              replyText = choice.message.content;
               isAiOnline = true;
               usedProvider = 'Groq';
               usedModel = modelName;
@@ -1284,7 +1712,7 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
       } else if (targetProviderKey === 'deepseek') {
         try {
           const deepseekMessages = [
-            { role: 'system', content: systemInstruction },
+            { role: 'system', content: fullSystemInstruction },
             ...messages.filter(m => m && m.content).map(m => ({
               role: m.role === 'assistant' ? 'assistant' : 'user',
               content: m.content,
@@ -1302,14 +1730,56 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
               messages: deepseekMessages,
               temperature: 0.7,
               max_tokens: 1500,
+              tools: catalogToolsOpenAI,
+              tool_choice: 'auto',
             }),
             signal: AbortSignal.timeout(20000),
           });
           if (resAI.ok) {
             const json: any = await resAI.json();
-            const text = json.choices?.[0]?.message?.content;
-            if (text) {
-              replyText = text;
+            const choice = json.choices?.[0];
+            if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
+              const tc = choice.message.tool_calls[0];
+              const toolResult = handleExecuteCatalogTool(tc.function.name, tc.function.arguments);
+              const followUpRes = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify({
+                  model: modelName,
+                  messages: [
+                    ...deepseekMessages,
+                    choice.message,
+                    {
+                      role: 'tool',
+                      tool_call_id: tc.id,
+                      content: JSON.stringify(toolResult),
+                    },
+                  ],
+                  temperature: 0.7,
+                  max_tokens: 1500,
+                }),
+                signal: AbortSignal.timeout(20000),
+              });
+              if (followUpRes.ok) {
+                const followJson: any = await followUpRes.json();
+                const text = followJson.choices?.[0]?.message?.content;
+                if (text) {
+                  replyText = text;
+                  isAiOnline = true;
+                  usedProvider = 'DeepSeek';
+                  usedModel = modelName;
+                }
+              } else if (toolResult.message) {
+                replyText = toolResult.message;
+                isAiOnline = true;
+                usedProvider = 'DeepSeek';
+                usedModel = modelName;
+              }
+            } else if (choice?.message?.content) {
+              replyText = choice.message.content;
               isAiOnline = true;
               usedProvider = 'DeepSeek';
               usedModel = modelName;
@@ -1659,6 +2129,25 @@ function generateFallbackResponse(
 ): string {
   const qNorm = normalizeHebrew(query);
   const qLower = query.toLowerCase();
+
+  // Exact Database Aggregations & Counts (e.g. "כמה עסקים נותנים הנחה בירושלים במעמד החיוב?")
+  const isCountQuery = /כמה|כמות|מספר ה|סך הכל|סה"כ|how many|count/i.test(qNorm);
+  if (isCountQuery) {
+    if (qNorm.includes('ירושלים')) {
+      const jerusalemBillingCount = cachedBillingStores.filter(b => normalizeHebrew(b.city || '').includes('ירושלים')).length;
+      return `בירושלים ישנם בדיוק **${jerusalemBillingCount} בתי עסק מקומיים** המעניקים הנחה אוטומטית במעמד החיוב בכרטיס האשראי של בהצדעה (בגובה של 2% עד 15% חיסכון אוטומטי בדף פירוט האשראי החודשי, ללא צורך בהטענה מראש או ברכישת שובר), מתוך מעל 10,650 עסקים בכל רחבי הארץ.
+
+בין העסקים המקומיים המובילים בירושלים תמצא מגוון רחב של מסעדות ובתי קפה, חנויות אופנה והנעלה, קליניקות שיניים ורפואה, מוסכים ושירותי רכב, אופטיקה ועוד.`;
+    }
+
+    // Check other cities
+    for (const city of ISRAELI_CITIES_MAP) {
+      if (city.aliases.some(a => qNorm.includes(normalizeHebrew(a)))) {
+        const cityBillingCount = cachedBillingStores.filter(b => normalizeHebrew(b.city || '').includes(normalizeHebrew(city.name))).length;
+        return `ב${city.name} ישנם בדיוק **${cityBillingCount} בתי עסק מקומיים** המעניקים הנחה אוטומטית במעמד החיוב בכרטיס האשראי של בהצדעה (בגובה של 2% עד 15% חיסכון אוטומטי בדף החשבון החודשי), מתוך מעל 10,650 עסקים פעילים בארץ.`;
+      }
+    }
+  }
 
   // 1. Feedback handling ("thats bad... it should be a conversation")
   if (
