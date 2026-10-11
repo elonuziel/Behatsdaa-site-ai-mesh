@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-11T02:23:44.362Z",
+  "updatedAt": "2026-10-11T02:31:11.408Z",
   "providers": {
     "gemini": {
       "available": true,
@@ -308,7 +308,7 @@
           "description": "Veo 3.1 lite"
         }
       ],
-      "fetchedAt": "2026-10-11T02:23:44.569Z"
+      "fetchedAt": "2026-10-11T02:31:11.709Z"
     },
     "openai": {
       "available": false,
