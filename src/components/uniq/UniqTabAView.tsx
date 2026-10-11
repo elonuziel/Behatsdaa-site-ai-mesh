@@ -140,6 +140,7 @@ export const UniqTabAView: React.FC = () => {
                   <span className="px-2.5 py-0.5 rounded-full bg-purple-400/20 text-purple-200 border border-purple-300/30 text-xs font-bold">
                     31 קבוצות מותגים
                   </span>
+                  <ClubLastUpdatedBadge clubId="uniq" variant="pill" className="bg-white/10 text-white border-white/20" />
                 </div>
                 <p className="text-xs md:text-sm text-purple-200/80">
                   {data.global_rules.eligible_cards}
@@ -391,6 +392,10 @@ export const UniqTabAView: React.FC = () => {
         ))}
       </div>
       )}
+
+      <div className="pt-4 border-t border-purple-200/60 dark:border-purple-900/60">
+        <ClubLastUpdatedBadge clubId="uniq" variant="footer" />
+      </div>
     </div>
   );
 };

@@ -8,6 +8,7 @@ import { useClubs } from './context/ClubContext';
 import { useFavorites } from './context/FavoritesContext';
 import { useChat } from './context/ChatContext';
 import { useMiniSearch } from './hooks/useMiniSearch';
+import { ClubLastUpdatedBadge } from './components/ClubLastUpdatedBadge';
 import { Bot } from 'lucide-react';
 
 const PaymentAdvisorModal = React.lazy(() =>
@@ -113,10 +114,10 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="mt-12 py-6 border-t border-slate-200/60 dark:border-slate-800 text-center text-xs text-slate-500">
+      <footer className="mt-12 py-6 border-t border-slate-200/60 dark:border-slate-800 text-center text-xs text-slate-500 space-y-3">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p>ההטבות שלי — פורטל מאוחד למועדוני בהצדעה, UNIQ ו-Mastercard Day</p>
-          <p className="text-slate-400">הנתונים מתעדכנים ישירות ממערכות המועדונים והמבצעים</p>
+          <ClubLastUpdatedBadge showAll={true} variant="footer" />
         </div>
       </footer>
 
