@@ -1,3 +1,4 @@
+import { capacitorFetch } from '../utils/capacitorHttp';
 /**
  * Client-Side AI Service for Static Hosting (e.g. GitHub Pages) & Hybrid Deployments.
  *
@@ -666,7 +667,7 @@ ${catalogContext ? `\nמידע שנשלף מהקטלוג עבור השאלה ה�
       },
     };
 
-    const res = await fetch(url, {
+    const res = await capacitorFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -691,7 +692,7 @@ ${catalogContext ? `\nמידע שנשלף מהקטלוג עבור השאלה ה�
       ...messages.map(m => ({ role: m.role, content: m.content })),
     ];
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await capacitorFetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -721,7 +722,7 @@ ${catalogContext ? `\nמידע שנשלף מהקטלוג עבור השאלה ה�
       ...messages.map(m => ({ role: m.role, content: m.content })),
     ];
 
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await capacitorFetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -751,7 +752,7 @@ ${catalogContext ? `\nמידע שנשלף מהקטלוג עבור השאלה ה�
       ...messages.map(m => ({ role: m.role, content: m.content })),
     ];
 
-    const res = await fetch('https://api.deepseek.com/chat/completions', {
+    const res = await capacitorFetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -781,7 +782,7 @@ ${catalogContext ? `\nמידע שנשלף מהקטלוג עבור השאלה ה�
       content: m.content,
     }));
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await capacitorFetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
