@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-11T02:58:25.689Z",
+  "updatedAt": "2026-10-11T03:02:31.936Z",
   "isPasswordRequired": false,
   "providers": {
     "gemini": {
@@ -309,7 +309,7 @@
           "description": "Veo 3.1 lite"
         }
       ],
-      "fetchedAt": "2026-10-11T02:58:25.891Z"
+      "fetchedAt": "2026-10-11T03:02:32.139Z"
     },
     "openai": {
       "available": false,
@@ -389,7 +389,7 @@
           "description": "ספק: OpenAI"
         }
       ],
-      "fetchedAt": "2026-10-11T02:58:26.091Z"
+      "fetchedAt": "2026-10-11T03:02:32.586Z"
     },
     "deepseek": {
       "available": false,

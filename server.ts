@@ -865,7 +865,6 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
         parts: [{ text: m.content.trim() }],
       }));
 
-    const env = readEnvSecrets();
     const targetProviderKey = (typeof requestedProvider === 'string' && DIRECT_AI_PROVIDERS[requestedProvider])
       ? requestedProvider
       : 'gemini';
