@@ -6,7 +6,7 @@
     "predev": "node scripts/merge_all_clubs.js && node scripts/split-data.js && node scripts/fetch-models-at-build.js",
     "dev": "tsx server.ts",
     "build": "node scripts/merge_all_clubs.js && node scripts/split-data.js && node scripts/fetch-models-at-build.js && tsc && vite build",
-    "test": "node scripts/merge_all_clubs.js && node scripts/split-data.js && node tests/test_data_integrity.js && node tests/test_multi_club_integration.js && node tests/test_payment_advisor.js && node tests/test_client_ai.js",
+    "test": "node scripts/merge_all_clubs.js && node scripts/split-data.js && node scripts/fetch-models-at-build.js && node --import tsx/esm tests/test_data_integrity.js && node --import tsx/esm tests/test_multi_club_integration.js && node --import tsx/esm tests/test_payment_advisor.js && node --import tsx/esm tests/test_client_ai.js",
     "typecheck": "tsc --noEmit",
     "start": "node server.ts",
     "process-data": "node scripts/split-data.js",
