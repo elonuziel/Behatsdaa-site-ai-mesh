@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ClubId, CLUBS } from '../types/club';
 
+/**
+ * Formats an ISO date string into a dd.MM.yyyy display string for club "last updated" badges.
+ * Falls back to the raw input (or a Hebrew "not available" label) when parsing fails.
+ */
 export function formatClubDate(dateStr?: string | null): string {
   if (!dateStr) return 'לא זמין';
   try {
@@ -44,6 +48,10 @@ const DEFAULT_LAST_UPDATED_FORMATTED: Record<ClubId, string> = {
 
 const ClubContext = createContext<ClubContextType | undefined>(undefined);
 
+/**
+ * Provides active club selection state and per-club "last updated" timestamps to descendants,
+ * syncing persisted club toggles from localStorage and live timestamps from the search index.
+ */
 export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeClubs, setActiveClubs] = useState<Set<ClubId>>(() => {
     try {
@@ -156,6 +164,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+/**
+ * Hook to access club activation state and per-club "last updated" timestamps.
+ * Must be used within a ClubProvider.
+ */
 export const useClubs = () => {
   const context = useContext(ClubContext);
   if (!context) {

@@ -3,6 +3,10 @@ import { useClubs } from '../context/ClubContext';
 import { CLUBS, ClubId } from '../types/club';
 import { Check, ShieldCheck, Clock } from 'lucide-react';
 
+/**
+ * Renders toggleable pills for each club, showing active state and its per-club
+ * "last updated" date, plus a summary of all clubs' last-updated timestamps.
+ */
 export const MyClubsPills: React.FC = () => {
   const { activeClubs, toggleClub, resetAllClubs } = useClubs();
 

@@ -10,6 +10,10 @@ interface ClubLastUpdatedBadgeProps {
   showAll?: boolean;
 }
 
+/**
+ * Displays the "last updated" timestamp for one club, or a combined summary for all clubs,
+ * in a header, footer, pill, or banner style depending on the given variant.
+ */
 export const ClubLastUpdatedBadge: React.FC<ClubLastUpdatedBadgeProps> = ({
   clubId,
   variant = 'header',

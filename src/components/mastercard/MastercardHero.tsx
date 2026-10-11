@@ -20,6 +20,10 @@ interface MastercardHeroProps {
   lastUpdated?: string;
 }
 
+/**
+ * Hero banner for the Mastercard Day tab showing a live countdown to the next
+ * Mastercard Day, deal metrics, the main coupon code, and the data's last-updated date.
+ */
 export const MastercardHero: React.FC<MastercardHeroProps> = ({
   totalDeals,
   activeTodayCount,
