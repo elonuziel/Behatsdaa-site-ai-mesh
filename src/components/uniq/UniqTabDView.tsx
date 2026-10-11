@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Sparkles
 } from 'lucide-react';
+import { decodeHtml } from '../../utils/textUtils';
 
 interface UniqBillingStageItem {
   id: string;
@@ -286,7 +287,7 @@ export const UniqTabDView: React.FC = () => {
                   {/* Terms / Description */}
                   {b.terms && (
                     <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 mb-3">
-                      {b.terms}
+                      {decodeHtml(b.terms)}
                     </p>
                   )}
                 </div>

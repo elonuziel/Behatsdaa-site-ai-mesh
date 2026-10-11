@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   Sparkles
 } from 'lucide-react';
+import { decodeHtml } from '../../utils/textUtils';
 
 interface UniqBrandDiscount {
   id: string;
@@ -294,7 +295,7 @@ export const UniqTabCView: React.FC = () => {
                   {/* Terms */}
                   {b.terms && (
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mb-3">
-                      {b.terms}
+                      {decodeHtml(b.terms)}
                     </p>
                   )}
                 </div>

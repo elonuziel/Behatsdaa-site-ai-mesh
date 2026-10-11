@@ -8,6 +8,7 @@ import {
   Ticket,
   Sparkles
 } from 'lucide-react';
+import { decodeHtml } from '../../utils/textUtils';
 
 interface UniqItemDeal {
   id: string;
@@ -302,7 +303,7 @@ export const UniqTabBView: React.FC = () => {
                 {/* Terms Snippet */}
                 {d.terms && (
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mb-3">
-                    {d.terms}
+                    {decodeHtml(d.terms)}
                   </p>
                 )}
               </div>

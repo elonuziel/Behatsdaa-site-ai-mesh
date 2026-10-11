@@ -278,6 +278,24 @@ function normalizeBrandKey(name) {
   return s.replace(/[^a-z0-9\u0590-\u05fe]/g, '');
 }
 
+function decodeHtmlEntities(str) {
+  if (!str || typeof str !== 'string') return str || '';
+  return str
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#39;|&apos;|&#x27;/gi, "'")
+    .replace(/&quot;|&#34;/gi, '"')
+    .replace(/&amp;|&#38;/gi, '&')
+    .replace(/&lt;|&#60;/gi, '<')
+    .replace(/&gt;|&#62;/gi, '>')
+    .replace(/&ndash;|&#8211;/gi, '–')
+    .replace(/&mdash;|&#8212;/gi, '—')
+    .replace(/&rlm;|&lrm;/gi, '')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/[ \t]+/g, ' ')
+    .trim();
+}
+
 function parseDiscountRate(val) {
   if (typeof val === 'number') return val;
   if (!val) return 0;
@@ -621,11 +639,11 @@ const unifiedDeals = [];
 for (const d of (behDealsRaw.deals || [])) {
   unifiedDeals.push({
     id: String(d.id),
-    title: d.title,
+    title: decodeHtmlEntities(d.title),
     slug: d.slug || createSlug(d.title, d.id),
     club: 'behatsdaa',
-    supplier: d.supplier || '',
-    category: d.category || 'כללי',
+    supplier: decodeHtmlEntities(d.supplier || ''),
+    category: decodeHtmlEntities(d.category || 'כללי'),
     price: d.price ?? null,
     original_price: d.original_price ?? null,
     discount_percent: Number(d.discount_percent || 0),
@@ -635,10 +653,10 @@ for (const d of (behDealsRaw.deals || [])) {
     min_spend: null,
     image: d.image || null,
     url: d.url || null,
-    description: d.description || '',
-    terms_of_use: d.terms_of_use || '',
-    tags: Array.isArray(d.tags) ? d.tags : [],
-    locations: Array.isArray(d.locations) ? d.locations.join(', ') : (d.locations || ''),
+    description: decodeHtmlEntities(d.description || ''),
+    terms_of_use: decodeHtmlEntities(d.terms_of_use || ''),
+    tags: Array.isArray(d.tags) ? d.tags.map(t => decodeHtmlEntities(t)) : [],
+    locations: decodeHtmlEntities(Array.isArray(d.locations) ? d.locations.join(', ') : (d.locations || '')),
     matched_store_id: d.matched_store_id || null,
     matched_store_name: d.matched_store_name || null
   });
@@ -649,11 +667,11 @@ for (const d of uniqItemDeals) {
   const discPercent = parseDiscountRate(d.discount);
   unifiedDeals.push({
     id: `uniq-${d.id}`,
-    title: d.name,
+    title: decodeHtmlEntities(d.name),
     slug: createSlug(d.name, `uniq-${d.id}`),
     club: 'uniq',
-    supplier: d.name,
-    category: d.category || 'כללי',
+    supplier: decodeHtmlEntities(d.name),
+    category: decodeHtmlEntities(d.category || 'כללי'),
     price: d.price ?? null,
     original_price: d.original_price ?? null,
     discount_percent: discPercent,
@@ -663,8 +681,8 @@ for (const d of uniqItemDeals) {
     min_spend: null,
     image: d.image_url || null,
     url: d.direct_url || null,
-    description: d.terms || '',
-    terms_of_use: d.terms || '',
+    description: decodeHtmlEntities(d.terms || ''),
+    terms_of_use: decodeHtmlEntities(d.terms || ''),
     tags: d.tags || ['UNIQ'],
     locations: 'כל הארץ',
     matched_store_id: null,
@@ -677,11 +695,11 @@ for (const d of uniqBrandDiscounts) {
   const discPercent = parseDiscountRate(d.discount);
   unifiedDeals.push({
     id: `uniq-${d.id}`,
-    title: d.name,
+    title: decodeHtmlEntities(d.name),
     slug: createSlug(d.name, `uniq-${d.id}`),
     club: 'uniq',
-    supplier: d.name,
-    category: d.category || 'כללי',
+    supplier: decodeHtmlEntities(d.name),
+    category: decodeHtmlEntities(d.category || 'כללי'),
     price: d.price ?? null,
     original_price: d.original_price ?? null,
     discount_percent: discPercent,
@@ -691,8 +709,8 @@ for (const d of uniqBrandDiscounts) {
     min_spend: null,
     image: d.image_url || null,
     url: d.direct_url || null,
-    description: d.terms || '',
-    terms_of_use: d.terms || '',
+    description: decodeHtmlEntities(d.terms || ''),
+    terms_of_use: decodeHtmlEntities(d.terms || ''),
     tags: d.tags || ['UNIQ', 'שובר'],
     locations: 'כל הארץ',
     matched_store_id: null,
@@ -731,11 +749,11 @@ for (const d of mcDealsList) {
 
   unifiedDeals.push({
     id: `mc-${d.id}`,
-    title: d.title,
+    title: decodeHtmlEntities(d.title),
     slug: createSlug(d.title, `mc-${d.id}`),
     club: 'mastercard',
-    supplier: d.brand,
-    category: d.category || 'כללי',
+    supplier: decodeHtmlEntities(d.brand),
+    category: decodeHtmlEntities(d.category || 'כללי'),
     price: null,
     original_price: null,
     discount_percent: isPercent ? Number(d.discount_numeric || 0) : 0,
@@ -748,10 +766,10 @@ for (const d of mcDealsList) {
     min_spend_display: d.min_spend || null,
     image: d.image || null,
     url: d.url || null,
-    description: d.description || '',
-    terms_of_use: d.description || '',
+    description: decodeHtmlEntities(d.description || ''),
+    terms_of_use: decodeHtmlEntities(d.description || ''),
     tags: Array.from(new Set(['Mastercard Day', '10 בחודש', d.coupon, ...extraTags].filter(Boolean))),
-    locations: (d.terms_bullets || []).join(' | '),
+    locations: decodeHtmlEntities((d.terms_bullets || []).join(' | ')),
     matched_store_id: d._assignedStoreId || null,
     matched_store_name: d.brand
   });

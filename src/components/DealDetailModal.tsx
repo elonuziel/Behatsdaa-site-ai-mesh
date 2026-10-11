@@ -12,8 +12,10 @@ import {
   AlertCircle,
   MapPin,
   Calendar,
-  Ticket
+  Ticket,
+  FileText
 } from 'lucide-react';
+import { decodeHtml, parseTermsBullets } from '../utils/textUtils';
 
 interface DealDetailModalProps {
   id: string | null;
@@ -200,16 +202,38 @@ export const DealDetailModal: React.FC<DealDetailModalProps> = ({
             {/* Description & Terms */}
             {deal.description && (
               <div className="mb-4 text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
-                {deal.description}
+                {decodeHtml(deal.description)}
               </div>
             )}
 
-            {deal.terms_of_use && deal.terms_of_use !== deal.description && (
-              <div className="mb-5 pt-3 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                <span className="font-semibold text-slate-700 dark:text-slate-300">תנאי שימוש: </span>
-                {deal.terms_of_use}
-              </div>
-            )}
+            {deal.terms_of_use && deal.terms_of_use !== deal.description && (() => {
+              const bullets = parseTermsBullets(deal.terms_of_use);
+              const cleanTerms = decodeHtml(deal.terms_of_use);
+              if (!cleanTerms) return null;
+
+              return (
+                <div className="mb-5 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-200 mb-2">
+                    <FileText className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span>תנאי שימוש והערות:</span>
+                  </div>
+                  {bullets.length > 1 ? (
+                    <ul className="space-y-1.5 pr-1">
+                      {bullets.map((bullet, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500/80 shrink-0 mt-1.5" />
+                          <span>{bullet}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                      {bullets[0] || cleanTerms}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Linked Store Shortcut */}
             {deal.linked_store && onSelectStore && (

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-11T15:13:31.613Z",
+  "updatedAt": "2026-10-11T15:22:23.524Z",
   "isPasswordRequired": true,
   "passwordHash": "4aa7c75f447a322ef6880842b631cdc226eeb598cac8f5c813dc06f7d6a58493",
   "providers": {
@@ -251,7 +251,7 @@
           "description": "Veo 3.1"
         }
       ],
-      "fetchedAt": "2026-10-11T15:13:31.943Z"
+      "fetchedAt": "2026-10-11T15:22:23.846Z"
     },
     "openai": {
       "available": false,
@@ -334,7 +334,7 @@
           "description": "ספק: OpenAI"
         }
       ],
-      "fetchedAt": "2026-10-11T15:13:32.536Z"
+      "fetchedAt": "2026-10-11T15:22:24.396Z"
     },
     "deepseek": {
       "available": false,
@@ -348,8 +348,8 @@
   },
   "encryptedKeys": {
     "salt": "behatsdaa-ai-secure-salt-v1",
-    "iv": "eae01f4220c704cb3b2d7c8e",
-    "tag": "457b67659ea95fcebee4e621761133f8",
-    "data": "386fd6e3ef3f6da0a8b10ef9cc51b3db3f70c7322989f913ff2873a9e219f1e0cbb29ac0d1b6b6c2e2660738052238502ff5329b5fb0497b976885000a669ed7d4d0a2cecdb2140fbd66fc317d9c310c6b173af3a2a3f016681e038d48789386a9a40ff6a6391685aebf5627e2abdfc2c5c97d3e9e19f54c3f6124c163f97f053ffbd3ab"
+    "iv": "e607ec137cd88a4e4e2e8dff",
+    "tag": "e43727860a871363376098f97df80a1b",
+    "data": "3f8e3c436923b143b0db8f119a00c583797188fcf88d69f2adb51b082b254e150f520af9cd4c25310e5b63bcf291e5ca1d7482318e77103b63a978b49621995ef2c158a0db5b3381daf01f6a717b1c6a353e9f8a1c33c1b8e54f1301bf990cb9dd54e1e6551fc90949c625e76b2f633e6106bc1f61239fedbec1db747b6535320aa1365e"
   }
 }

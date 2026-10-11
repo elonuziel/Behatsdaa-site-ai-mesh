@@ -12,6 +12,7 @@ import {
   CheckSquare,
   Sparkles
 } from 'lucide-react';
+import { decodeHtml } from '../../utils/textUtils';
 
 interface MastercardDealCardProps {
   deal: MastercardDeal;
@@ -163,7 +164,7 @@ export const MastercardDealCard: React.FC<MastercardDealCardProps> = ({ deal }) 
               <ul className="text-[11px] text-slate-600 dark:text-slate-400 space-y-1">
                 {deal.terms_bullets.map((b, idx) => (
                   <li key={idx} className="flex items-start gap-1 leading-snug">
-                    <span>{b}</span>
+                    <span>{decodeHtml(b)}</span>
                   </li>
                 ))}
               </ul>
@@ -212,8 +213,8 @@ export const MastercardDealCard: React.FC<MastercardDealCardProps> = ({ deal }) 
                   <span>תקנון מלא ואותיות קטנות</span>
                   <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200 group-open:rotate-180" />
                 </summary>
-                <div className="mt-2 p-2.5 rounded-lg bg-slate-100/70 dark:bg-slate-900/60 text-[11px] leading-relaxed border border-slate-200/60 dark:border-slate-800 text-slate-600 dark:text-slate-400">
-                  {deal.description}
+                <div className="mt-2 p-2.5 rounded-lg bg-slate-100/70 dark:bg-slate-900/60 text-[11px] leading-relaxed border border-slate-200/60 dark:border-slate-800 text-slate-600 dark:text-slate-400 whitespace-pre-line">
+                  {decodeHtml(deal.description)}
                 </div>
               </details>
             )}

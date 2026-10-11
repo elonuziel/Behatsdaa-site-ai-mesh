@@ -64,6 +64,24 @@ const allBilling = billingRaw.stores || [];
 
 console.log(`📊 Raw counts: ${allStores.length} Stores, ${allDeals.length} Deals, ${allBilling.length} Billing businesses.`);
 
+function decodeHtmlEntities(str) {
+  if (!str || typeof str !== 'string') return str || '';
+  return str
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#39;|&apos;|&#x27;/gi, "'")
+    .replace(/&quot;|&#34;/gi, '"')
+    .replace(/&amp;|&#38;/gi, '&')
+    .replace(/&lt;|&#60;/gi, '<')
+    .replace(/&gt;|&#62;/gi, '>')
+    .replace(/&ndash;|&#8211;/gi, '–')
+    .replace(/&mdash;|&#8212;/gi, '—')
+    .replace(/&rlm;|&lrm;/gi, '')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/[ \t]+/g, ' ')
+    .trim();
+}
+
 function formatFullAddress(address, city) {
   let cleanAddr = address ? String(address).trim().replace(/[\s,]+$/, "") : "";
   let cleanCity = city ? String(city).trim() : "";
@@ -616,12 +634,12 @@ allDeals.forEach(d => {
     min_spend_display: d.min_spend_display ?? null,
     is_external: Boolean(d.is_external),
     shipping_included: Boolean(d.shipping_included),
-    locations: d.locations || '',
+    locations: decodeHtmlEntities(d.locations || ''),
     image: d.image || null,
-    tag: d.tag || null,
-    tags: d.tags || [],
-    description: d.description || '',
-    terms_of_use: d.terms_of_use || '',
+    tag: d.tag ? decodeHtmlEntities(d.tag) : null,
+    tags: Array.isArray(d.tags) ? d.tags.map(t => decodeHtmlEntities(t)) : [],
+    description: decodeHtmlEntities(d.description || ''),
+    terms_of_use: decodeHtmlEntities(d.terms_of_use || ''),
     expiration_date: d.expiration_date || d.validity || null,
     limits: d.limits || null,
     url: d.url || null,
