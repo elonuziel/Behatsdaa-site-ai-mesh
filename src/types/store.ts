@@ -57,6 +57,8 @@ export interface UnifiedStore {
   logo: string | null;
   website: string | null;
   conditions: string;
+  coverage?: 'nationwide' | 'online' | string;
+  is_mall_chain?: boolean;
   cards: (string | { card_id?: string; card_name?: string; discount?: string; discount_numeric?: number; notes?: string })[];
   discounts: CardDiscount[];
   payment_options: PaymentOption[];
@@ -74,4 +76,6 @@ export interface SearchIndexStore {
   d: number;
   clubs?: ClubId[];
   cd?: Partial<Record<ClubId, number>>;
+  cv?: string;
+  mc?: boolean;
 }

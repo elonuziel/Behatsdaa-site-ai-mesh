@@ -454,6 +454,12 @@ const searchIndexStores = allStores.map(s => {
   if (Object.keys(cd).length > 1) {
     item.cd = cd;
   }
+  if (s.coverage) {
+    item.cv = s.coverage;
+  }
+  if (s.is_mall_chain) {
+    item.mc = true;
+  }
   return item;
 });
 
@@ -561,6 +567,8 @@ allStores.forEach(s => {
     logo: s.logo || null,
     website: s.website || null,
     conditions: s.conditions || '',
+    coverage: s.coverage || 'nationwide',
+    is_mall_chain: Boolean(s.is_mall_chain),
     cards: s.cards || [],
     discounts: s.discounts || [],
     payment_options: s.payment_options || [],

@@ -160,6 +160,75 @@ export async function getClientCatalog(): Promise<CachedCatalog> {
   }
 }
 
+const CLIENT_CITIES_MAP: Array<{ name: string; aliases: string[] }> = [
+  { name: 'פתח תקווה', aliases: ['פתח תקווה', 'פתח תקוה', 'פת'] },
+  { name: 'תל אביב', aliases: ['תל אביב', 'תל אביב יפו', 'תל אביב - יפו', 'ת"א', 'תא'] },
+  { name: 'ירושלים', aliases: ['ירושלים', 'י-ם'] },
+  { name: 'חיפה', aliases: ['חיפה'] },
+  { name: 'ראשון לציון', aliases: ['ראשון לציון', 'ראשלצ', 'ראשל"צ', 'ראשון'] },
+  { name: 'אשדוד', aliases: ['אשדוד'] },
+  { name: 'נתניה', aliases: ['נתניה'] },
+  { name: 'באר שבע', aliases: ['באר שבע', 'ב"ש', 'בש'] },
+  { name: 'בני ברק', aliases: ['בני ברק'] },
+  { name: 'חולון', aliases: ['חולון'] },
+  { name: 'רמת גן', aliases: ['רמת גן', 'ר"ג', 'רג'] },
+  { name: 'אשקלון', aliases: ['אשקלון'] },
+  { name: 'רחובות', aliases: ['רחובות'] },
+  { name: 'בת ים', aliases: ['בת ים'] },
+  { name: 'בית שמש', aliases: ['בית שמש'] },
+  { name: 'כפר סבא', aliases: ['כפר סבא', 'כפ"ס', 'כפס'] },
+  { name: 'הרצליה', aliases: ['הרצליה'] },
+  { name: 'חדרה', aliases: ['חדרה'] },
+  { name: 'מודיעין', aliases: ['מודיעין', 'מודיעין מכבים רעות'] },
+  { name: 'רמלה', aliases: ['רמלה'] },
+  { name: 'רעננה', aliases: ['רעננה'] },
+  { name: 'הוד השרון', aliases: ['הוד השרון'] },
+  { name: 'גבעתיים', aliases: ['גבעתיים'] },
+  { name: 'קרית אתא', aliases: ['קרית אתא', 'קריית אתא'] },
+  { name: 'נהריה', aliases: ['נהריה'] },
+  { name: 'קרית גת', aliases: ['קרית גת', 'קריית גת'] },
+  { name: 'עפולה', aliases: ['עפולה'] },
+  { name: 'אילת', aliases: ['אילת'] },
+  { name: 'ראש העין', aliases: ['ראש העין'] },
+  { name: 'טבריה', aliases: ['טבריה'] },
+  { name: 'עכו', aliases: ['עכו'] },
+  { name: 'קרית מוצקין', aliases: ['קרית מוצקין'] },
+  { name: 'קרית ים', aliases: ['קרית ים'] },
+  { name: 'קרית ביאליק', aliases: ['קרית ביאליק'] },
+  { name: 'נס ציונה', aliases: ['נס ציונה'] },
+  { name: 'אלעד', aliases: ['אלעד'] },
+  { name: 'יבנה', aliases: ['יבנה'] },
+  { name: 'רמת השרון', aliases: ['רמת השרון'] },
+  { name: 'כרמיאל', aliases: ['כרמיאל'] },
+  { name: 'טירת כרמל', aliases: ['טירת כרמל'] },
+  { name: 'נתיבות', aliases: ['נתיבות'] },
+  { name: 'אופקים', aliases: ['אופקים'] },
+  { name: 'שדרות', aliases: ['שדרות'] },
+  { name: 'קרית אונו', aliases: ['קרית אונו'] },
+  { name: 'דימונה', aliases: ['דימונה'] },
+  { name: 'פרדס חנה', aliases: ['פרדס חנה', 'כרכור'] }
+];
+
+function detectCityClient(text: string): { name: string; normalized: string; aliasMatched: string } | null {
+  const norm = normalizeHebrew(text);
+  for (const item of CLIENT_CITIES_MAP) {
+    for (const alias of item.aliases) {
+      const aNorm = normalizeHebrew(alias);
+      if (aNorm.length < 2) continue;
+      const escaped = aNorm.replace(/\s+/g, '\\s+');
+      const re = new RegExp(`(?:^|\\s)(?:ב|מ|ל)?${escaped}(?:$|\\s)`);
+      if (re.test(norm)) {
+        return {
+          name: item.name,
+          normalized: normalizeHebrew(item.name),
+          aliasMatched: aNorm,
+        };
+      }
+    }
+  }
+  return null;
+}
+
 export function findRelevantCatalogClient(
   query: string,
   catalog: CachedCatalog,
@@ -168,13 +237,24 @@ export function findRelevantCatalogClient(
 ) {
   const combined = conversationTopic ? `${query} ${conversationTopic}` : query;
   const qNorm = normalizeHebrew(combined);
-  const qTokens = qNorm.split(/\s+/).filter(t => t.length >= 2);
+  const detectedCity = detectCityClient(combined);
+  const isDining = /פיצה|פיצרי|בורגר|המבורגר|מסעד|קפה|סושי|שווארמה|שניצל|גליד|מאפי|אוכל|בשר|דגים|איטלקית|אסייתית|משלוח|וולט|משלוחה|קולינרי|pizza|burger|sushi|dining|restaurant|cafe/i.test(qNorm);
+
+  let queryWithoutCity = qNorm;
+  if (detectedCity) {
+    queryWithoutCity = queryWithoutCity
+      .replace(new RegExp(`(?:^|\\s)(?:ב|מ|ל)?${detectedCity.aliasMatched.replace(/\s+/g, '\\s+')}(?:$|\\s)`, 'g'), ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  const qTokens = (queryWithoutCity || qNorm).split(/\s+/).filter(t => t.length >= 2);
 
   const matchedStores: any[] = [];
   const matchedDeals: any[] = [];
   const matchedBilling: any[] = [];
 
-  // 1. Search Stores
+  // 1. Search Stores (Tier B when city is detected: Nationwide chains & mall chains with local branches)
   for (const s of catalog.stores) {
     if (activeClubs && activeClubs.length > 0) {
       const sClubs = s.clubs || ['behatsdaa'];
@@ -184,10 +264,19 @@ export function findRelevantCatalogClient(
 
     const sNameNorm = normalizeHebrew(s.name);
     let score = 0;
-    if (qNorm.includes(sNameNorm) || sNameNorm.includes(qNorm)) score += 10;
+    if (queryWithoutCity && (qNorm.includes(sNameNorm) || sNameNorm.includes(queryWithoutCity))) score += 10;
     for (const token of qTokens) {
       if (sNameNorm.includes(token)) score += 3;
     }
+
+    if (isDining && /פיצה|פיצה האט|דומינוס|מקדונלד|בורגר|ארומה|קפה|גולדה|rebar|משלוחה|וולט/.test(sNameNorm)) {
+      score += 8;
+    }
+
+    if (detectedCity && (s.cv !== 'online' || s.mc)) {
+      score += 4;
+    }
+
     if (score > 0) {
       matchedStores.push({
         id: s.id || s.slug,
@@ -195,6 +284,8 @@ export function findRelevantCatalogClient(
         slug: s.slug,
         max_discount: s.d || s.max_discount || 0,
         clubs: s.clubs || ['behatsdaa'],
+        coverage: s.cv || 'nationwide',
+        is_mall_chain: Boolean(s.mc),
         score,
       });
     }
@@ -211,10 +302,13 @@ export function findRelevantCatalogClient(
     const dTitleNorm = normalizeHebrew(d.title);
     const dSupplierNorm = normalizeHebrew(d.supplier || d.s || '');
     let score = 0;
-    if (qNorm.includes(dTitleNorm) || dTitleNorm.includes(qNorm)) score += 10;
+    if (queryWithoutCity && (qNorm.includes(dTitleNorm) || dTitleNorm.includes(queryWithoutCity))) score += 10;
     for (const token of qTokens) {
       if (dTitleNorm.includes(token)) score += 3;
       if (dSupplierNorm.includes(token)) score += 2;
+    }
+    if (isDining && /פיצה|פיצה האט|דומינוס|מקדונלד|בורגר|ארומה|קפה|גולדה|rebar|משלוחה|וולט/.test(dTitleNorm)) {
+      score += 8;
     }
     if (score > 0) {
       matchedDeals.push({
@@ -234,15 +328,31 @@ export function findRelevantCatalogClient(
 
   matchedDeals.sort((a, b) => b.score - a.score);
 
-  // 3. Search Billing Stores (if loaded)
+  // 3. Search Billing Stores (Tier A when city is detected: Local physical businesses)
   if (catalog.billing && catalog.billing.length > 0) {
     for (const b of catalog.billing.slice(0, 3000)) {
       const bNameNorm = normalizeHebrew(b.name);
+      const bCityNorm = normalizeHebrew(b.c || b.city || '');
+      const bCatNorm = normalizeHebrew(b.cat || b.category || '');
+
       let score = 0;
-      if (qNorm.includes(bNameNorm) || bNameNorm.includes(qNorm)) score += 10;
-      for (const token of qTokens) {
-        if (bNameNorm.includes(token)) score += 2;
+
+      if (detectedCity) {
+        const isCityMatch = bCityNorm.includes(detectedCity.normalized) || detectedCity.normalized.includes(bCityNorm);
+        if (!isCityMatch) continue;
+        score += 15;
       }
+
+      if (queryWithoutCity && (qNorm.includes(bNameNorm) || bNameNorm.includes(queryWithoutCity))) score += 10;
+      for (const token of qTokens) {
+        if (bNameNorm.includes(token)) score += 3;
+        if (bCatNorm.includes(token)) score += 2;
+      }
+
+      if (isDining && (bCatNorm.includes('מסעדות') || bCatNorm.includes('אוכל') || /פיצה|בורגר|קפה|סושי|גליד/.test(bNameNorm))) {
+        score += 8;
+      }
+
       if (score > 0) {
         matchedBilling.push({
           id: b.id,
@@ -258,11 +368,20 @@ export function findRelevantCatalogClient(
     matchedBilling.sort((a, b) => b.score - a.score || b.discount - a.discount);
   }
 
-  const topStores = matchedStores.slice(0, 6) as RecommendedStore[];
-  const topDeals = matchedDeals.slice(0, 6) as RecommendedDeal[];
-  const topBilling = matchedBilling.slice(0, 5) as RecommendedBilling[];
+  // Strictly cap visual UI highlights to top 4 cards
+  const topStores = matchedStores.slice(0, 4) as RecommendedStore[];
+  const topDeals = matchedDeals.slice(0, 4) as RecommendedDeal[];
+  const topBilling = matchedBilling.slice(0, 4) as RecommendedBilling[];
 
-  return { topStores, topDeals, topBilling };
+  return {
+    topStores,
+    topDeals,
+    topBilling,
+    promptStores: matchedStores.slice(0, 20) as RecommendedStore[],
+    promptDeals: matchedDeals.slice(0, 20) as RecommendedDeal[],
+    promptBilling: matchedBilling.slice(0, 20) as RecommendedBilling[],
+    detectedCity: detectedCity ? detectedCity.name : null,
+  };
 }
 
 // -------------------------------------------------------------
@@ -390,6 +509,36 @@ export function generateClientFallbackResponse(
    • פועל בלמעלה מ-10,650 בתי עסק, מסעדות וחנויות מקומיות בכל הארץ.
 
 💡 **כלל אצבע**: אם הרשת מופיעה בארנק הנטען (כמו מגה ספורט, פוקס, שילב) – טען ארנק ותקבל 20%! אם זו חנות מקומית או מסעדה – שלם באשראי בהצדעה להנחה במעמד החיוב.`;
+  }
+
+  // 5.5 Dual-Tier Location Search handling
+  const detectedCity = detectCityClient(query);
+  if (detectedCity) {
+    let locText = `### תוצאות והטבות ב${detectedCity.name} (עסקים מקומיים ורשתות ארציות):\n\n`;
+    if (topBilling.length > 0) {
+      locText += `**עסקים ומקומות מקומיים ב${detectedCity.name} (הנחות אוטומטיות באשראי בהצדעה):**\n`;
+      topBilling.slice(0, 4).forEach((b, idx) => {
+        locText += `${idx + 1}. **${b.name}** – **${b.discount}% הנחה** באשראי (${b.full_address || b.city || detectedCity.name})\n`;
+      });
+      locText += `\n`;
+    }
+    if (topStores.length > 0) {
+      locText += `**רשתות ארציות מובילות הפועלות בעיר (ארנק נטען / הטבות מועדון):**\n`;
+      topStores.slice(0, 4).forEach((s, idx) => {
+        locText += `${idx + 1}. **${s.name}** – הנחה של עד **${s.max_discount || 20}%** (סניפים בפריסה ארצית)\n`;
+      });
+      locText += `\n`;
+    }
+    if (topDeals.length > 0) {
+      locText += `**מבצעים ושוברים רלוונטיים:**\n`;
+      topDeals.slice(0, 3).forEach((d, idx) => {
+        const discStr = d.discount_percent ? ` (${d.discount_percent}% הנחה)` : '';
+        locText += `${idx + 1}. **${d.title}**${discStr}\n`;
+      });
+      locText += `\n`;
+    }
+    locText += `באפשרותך ללחוץ על כל כרטיס למטה להנחיות תשלום והגעה.`;
+    return locText;
   }
 
   // 6. Generic catalog grounded answer

@@ -86,6 +86,12 @@ assert(foxStores.length >= 2, `Fox group stores have UNIQ benefits (found ${foxS
 const golfStores = stores.filter(s => /גולף/i.test(s.name) && (s.clubs || []).includes('uniq'));
 assert(golfStores.length >= 2, `Golf group stores have UNIQ benefits (found ${golfStores.length})`);
 
+// Verify Coverage & Mall Chain Enrichment
+const nationwideStores = stores.filter(s => s.coverage === 'nationwide');
+const mallChains = stores.filter(s => Boolean(s.is_mall_chain));
+assert(nationwideStores.length >= 800, `Found ${nationwideStores.length} stores with nationwide coverage`);
+assert(mallChains.length >= 20, `Found ${mallChains.length} prominent mall chains`);
+
 // 3. "My Clubs" Filtering Logic Simulation
 console.log('\n🎛️ 3. Verifying "My Clubs" Filtering Logic:');
 

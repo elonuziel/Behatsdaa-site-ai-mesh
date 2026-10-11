@@ -286,6 +286,52 @@ function parseDiscountRate(val) {
   return 0;
 }
 
+// Mall chains & Coverage Detection
+const MALL_CHAIN_PATTERNS = [
+  /פוקס|fox/i, /קסטרו|castro/i, /רנואר|renuar/i, /מגה ספורט|mega sport/i,
+  /סולתם|soltam/i, /נעמן|naaman/i, /ורדינון|vardinon/i, /ארקוסטיל|arcosteel/i,
+  /סטימצקי|steimatzky/i, /צומת ספרים/i, /פיצה האט|pizza hut/i, /דומינוס|domino/i,
+  /מקדונלד|mcdonald/i, /ארומה|aroma/i, /קפה קפה|cafe cafe/i, /רולידין|roladin/i,
+  /גרג|קפה גרג/i, /לנדוור/i, /ביגה|biga/i, /ריבר|rebar/i, /גולדה|golda/i,
+  /שילב|shilav/i, /מינינה|minene/i, /סופר פארם|סופר-פארם|super pharm/i, /בי פארם|be pharm/i,
+  /קרביץ|kravitz/i, /באג|bug/i, /קיי אס פי|ksp/i, /אייבורי|ivory/i,
+  /גולף|golf/i, /פולגת|polgat/i, /כיתן|kitan/i, /ללין|laline/i, /מנגו|mango/i,
+  /אלדו|aldo/i, /גלי|gali/i, /לי קופר|lee cooper/i, /טימברלנד|timberland/i, /נאוטיקה|nautica/i,
+  /קולומביה|columbia/i, /דה נורת פייס|north face/i, /פוט לוקר|foot locker/i,
+  /הום סנטר|home center/i, /אייס|ace/i, /שופרסל|shufersal/i, /קרפור|carrefour/i,
+  /יוחננוף|yohananof/i, /רמי לוי|rami levy/i, /אושר עד|osher ad/i, /ויקטורי|victory/i,
+  /פז|סונול|דור אלון|דלק/i, /אופטיקנה|אירוקה/i, /המשביר לצרכן/i
+];
+
+function detectIsMallChain(name, category) {
+  const combined = `${name || ''} ${category || ''}`;
+  return MALL_CHAIN_PATTERNS.some(re => re.test(combined));
+}
+
+function detectIsOnlineOnly(name, category, conditions, website) {
+  const str = `${name || ''} ${category || ''} ${conditions || ''} ${website || ''}`.toLowerCase();
+  
+  if (detectIsMallChain(name, category)) {
+    return false;
+  }
+  
+  if (
+    /voye|airalo|globalesim|besim|esim|איסים/.test(str) ||
+    /terminal x|טרמינל איקס|asos|amazon|aliexpress|shein|iherb|booking\.com|gett/.test(str)
+  ) {
+    return true;
+  }
+  
+  if (
+    (str.includes('רכישה אונליין') || str.includes('online') || str.includes('באתר בלבד') || str.includes('אתר אינטרנט')) &&
+    !str.includes('סניפ') && !str.includes('קופה') && !str.includes('חנויות')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 // 3. Process Stores
 console.log('⚡ Processing and unifying stores...');
 
@@ -355,6 +401,9 @@ for (const s of (behStoresRaw.stores || [])) {
     });
   }
 
+  const isOnline = detectIsOnlineOnly(s.name, s.category, s.conditions, s.website);
+  const isMall = detectIsMallChain(s.name, s.category);
+
   const unified = {
     id: s.id,
     name: s.name,
@@ -365,6 +414,8 @@ for (const s of (behStoresRaw.stores || [])) {
     logo: s.logo || null,
     website: s.website || null,
     conditions: s.conditions || '',
+    coverage: isOnline ? 'online' : 'nationwide',
+    is_mall_chain: isMall,
     cards: s.cards || [],
     discounts: s.discounts || [],
     payment_options: paymentOptions,
@@ -432,6 +483,9 @@ for (const b of uniqRecBrands) {
   } else {
     // Create new store entry for this UNIQ brand
     const storeId = `uniq-${b.id}`;
+    const isOnline = detectIsOnlineOnly(b.name, b.category, (b.restrictions || []).join(' | '), null);
+    const isMall = detectIsMallChain(b.name, b.category);
+
     const newStore = {
       id: storeId,
       name: b.name,
@@ -442,6 +496,8 @@ for (const b of uniqRecBrands) {
       logo: null,
       website: null,
       conditions: (b.restrictions || []).join(' | '),
+      coverage: isOnline ? 'online' : 'nationwide',
+      is_mall_chain: isMall,
       cards: ['כרטיס נטען UNIQ'],
       discounts: [{ card_name: 'כרטיס נטען UNIQ', discount_rate: rate }],
       payment_options: [option],

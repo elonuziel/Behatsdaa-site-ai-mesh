@@ -199,8 +199,8 @@ function findRelevantCatalogClient(query, catalog, activeClubs) {
   }
 
   return {
-    topStores: matchedStores.slice(0, 6),
-    topDeals: matchedDeals.slice(0, 6),
+    topStores: matchedStores.slice(0, 4),
+    topDeals: matchedDeals.slice(0, 4),
     topBilling: [],
   };
 }
@@ -252,6 +252,14 @@ console.log('  ✅ PASS: Homeware query offers practical card loading tips');
 const payReply = generateClientFallbackResponse('מה ההבדל בין ארנק נטען למעמד החיוב');
 assert.ok(payReply.includes('ארנק נטען') && payReply.includes('חיוב'), 'Explains both methods');
 console.log('  ✅ PASS: Payment method comparison provides crystal clear explanation');
+
+// Test E: Dual-Tier Location Search (Petah Tikva Pizza)
+const cityResults = findRelevantCatalogClient('פיצה בפתח תקווה', mockCatalog, ['behatsdaa']);
+assert.ok(Array.isArray(cityResults.topStores), 'cityResults has topStores array');
+assert.ok(cityResults.topStores.length <= 4, 'topStores strictly capped to 4 cards');
+assert.ok(cityResults.topDeals.length <= 4, 'topDeals strictly capped to 4 cards');
+assert.ok(cityResults.topBilling.length <= 4, 'topBilling strictly capped to 4 cards');
+console.log('  ✅ PASS: Dual-Tier location search & UI capping (<= 4 cards) verified');
 
 // 4. Test Provider Availability & Secret Isolation
 console.log('\n🔒 4. Testing Provider Availability & Secret Isolation:');

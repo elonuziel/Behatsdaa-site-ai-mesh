@@ -349,7 +349,98 @@ function matchesToken(text: string, token: string): boolean {
 const isWaterOrFitness = (text: string) =>
   /מועדון גלישה|שיעורי גלישה|חוף הצוק|ווי סרף|we surf|סאפ|קייט|גלשן|ספורט ימי|חוף נאות|דאדיז|פילאטיס|כושר|הולמס פלייס/i.test(text);
 
-// Find relevant stores & deals from query across all 10,000+ businesses with context awareness
+// Israeli Cities Dictionary for Location Intent Recognition
+const ISRAELI_CITIES_MAP: Array<{ name: string; aliases: string[] }> = [
+  { name: 'פתח תקווה', aliases: ['פתח תקווה', 'פתח תקוה', 'פת'] },
+  { name: 'תל אביב', aliases: ['תל אביב', 'תל אביב יפו', 'תל אביב - יפו', 'ת"א', 'תא'] },
+  { name: 'ירושלים', aliases: ['ירושלים', 'י-ם'] },
+  { name: 'חיפה', aliases: ['חיפה'] },
+  { name: 'ראשון לציון', aliases: ['ראשון לציון', 'ראשלצ', 'ראשל"צ', 'ראשון'] },
+  { name: 'אשדוד', aliases: ['אשדוד'] },
+  { name: 'נתניה', aliases: ['נתניה'] },
+  { name: 'באר שבע', aliases: ['באר שבע', 'ב"ש', 'בש'] },
+  { name: 'בני ברק', aliases: ['בני ברק'] },
+  { name: 'חולון', aliases: ['חולון'] },
+  { name: 'רמת גן', aliases: ['רמת גן', 'ר"ג', 'רג'] },
+  { name: 'אשקלון', aliases: ['אשקלון'] },
+  { name: 'רחובות', aliases: ['רחובות'] },
+  { name: 'בת ים', aliases: ['בת ים'] },
+  { name: 'בית שמש', aliases: ['בית שמש'] },
+  { name: 'כפר סבא', aliases: ['כפר סבא', 'כפ"ס', 'כפס'] },
+  { name: 'הרצליה', aliases: ['הרצליה'] },
+  { name: 'חדרה', aliases: ['חדרה'] },
+  { name: 'מודיעין', aliases: ['מודיעין', 'מודיעין מכבים רעות', 'מכבים רעות'] },
+  { name: 'רמלה', aliases: ['רמלה'] },
+  { name: 'רעננה', aliases: ['רעננה'] },
+  { name: 'הוד השרון', aliases: ['הוד השרון', 'הודש'] },
+  { name: 'גבעתיים', aliases: ['גבעתיים'] },
+  { name: 'קרית אתא', aliases: ['קרית אתא', 'קריית אתא'] },
+  { name: 'נהריה', aliases: ['נהריה'] },
+  { name: 'קרית גת', aliases: ['קרית גת', 'קריית גת'] },
+  { name: 'עפולה', aliases: ['עפולה'] },
+  { name: 'אילת', aliases: ['אילת'] },
+  { name: 'ראש העין', aliases: ['ראש העין', 'רה"ע'] },
+  { name: 'טבריה', aliases: ['טבריה'] },
+  { name: 'עכו', aliases: ['עכו'] },
+  { name: 'קרית מוצקין', aliases: ['קרית מוצקין', 'קריית מוצקין'] },
+  { name: 'קרית ים', aliases: ['קרית ים', 'קריית ים'] },
+  { name: 'קרית ביאליק', aliases: ['קרית ביאליק', 'קריית ביאליק'] },
+  { name: 'נס ציונה', aliases: ['נס ציונה'] },
+  { name: 'אלעד', aliases: ['אלעד'] },
+  { name: 'יבנה', aliases: ['יבנה'] },
+  { name: 'רמת השרון', aliases: ['רמת השרון', 'רה"ש'] },
+  { name: 'כרמיאל', aliases: ['כרמיאל'] },
+  { name: 'טירת כרמל', aliases: ['טירת כרמל', 'טירת הכרמל'] },
+  { name: 'נתיבות', aliases: ['נתיבות'] },
+  { name: 'אופקים', aliases: ['אופקים'] },
+  { name: 'שדרות', aliases: ['שדרות'] },
+  { name: 'מגדל העמק', aliases: ['מגדל העמק'] },
+  { name: 'קרית אונו', aliases: ['קרית אונו', 'קריית אונו'] },
+  { name: 'אור יהודה', aliases: ['אור יהודה'] },
+  { name: 'דימונה', aliases: ['דימונה'] },
+  { name: 'צפת', aliases: ['צפת'] },
+  { name: 'חריש', aliases: ['חריש'] },
+  { name: 'פרדס חנה', aliases: ['פרדס חנה', 'פרדס חנה כרכור', 'כרכור'] },
+  { name: 'זכרון יעקב', aliases: ['זכרון יעקב', 'זכרון'] },
+  { name: 'שוהם', aliases: ['שוהם'] },
+  { name: 'גבעת שמואל', aliases: ['גבעת שמואל'] },
+  { name: 'יהוד', aliases: ['יהוד', 'יהוד מונסון'] },
+  { name: 'אריאל', aliases: ['אריאל'] },
+  { name: 'מעלה אדומים', aliases: ['מעלה אדומים'] },
+  { name: 'קרית שמונה', aliases: ['קרית שמונה', 'קריית שמונה'] },
+  { name: 'קרית מלאכי', aliases: ['קרית מלאכי', 'קריית מלאכי'] },
+  { name: 'גדרה', aliases: ['גדרה'] },
+  { name: 'גן יבנה', aliases: ['גן יבנה'] },
+  { name: 'מבשרת ציון', aliases: ['מבשרת ציון', 'מבשרת'] }
+];
+
+function detectCityInQuery(text: string): { name: string; normalized: string; aliasMatched: string } | null {
+  const norm = normalizeHebrew(text);
+  for (const item of ISRAELI_CITIES_MAP) {
+    for (const alias of item.aliases) {
+      const aNorm = normalizeHebrew(alias);
+      if (aNorm.length < 2) continue;
+      const escaped = aNorm.replace(/\s+/g, '\\s+');
+      const re = new RegExp(`(?:^|\\s)(?:ב|מ|ל)?${escaped}(?:$|\\s)`);
+      if (re.test(norm)) {
+        return {
+          name: item.name,
+          normalized: normalizeHebrew(item.name),
+          aliasMatched: aNorm,
+        };
+      }
+    }
+  }
+  return null;
+}
+
+function isDiningIntent(text: string): boolean {
+  const tNorm = normalizeHebrew(text);
+  return /פיצה|פיצרי|בורגר|המבורגר|מסעד|קפה|סושי|שווארמה|שניצל|גליד|מאפי|אוכל|בשר|דגים|איטלקית|אסייתית|משלוח|וולט|משלוחה|קולינרי|pizza|burger|sushi|dining|restaurant|cafe/i.test(tNorm);
+}
+
+// Find relevant stores & deals from query across all 13,600+ businesses with context awareness,
+// dual-tier location search (local businesses + nationwide mall chains), and dynamic context sizing.
 function findRelevantCatalog(query: string, activeClubs?: string[], conversationTopic?: string) {
   // If the query is purely a meta question, greeting, or conceptual explanation, don't force random store cards
   if (isPurelyConversationalOrInformational(query) && !conversationTopic) {
@@ -357,13 +448,23 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
       topStores: [],
       topDeals: [],
       topBilling: [],
+      promptStores: [],
+      promptDeals: [],
+      promptBilling: [],
+      detectedCity: null,
     };
   }
 
   const combinedSearchQuery = conversationTopic ? `${query} ${conversationTopic}` : query;
   const qNorm = normalizeHebrew(combinedSearchQuery);
 
-  // Detect explicit club targeting from the query or conversation topic
+  // 1. Detect City / Location Intent
+  const detectedCity = detectCityInQuery(combinedSearchQuery);
+
+  // 2. Detect Dining & Food Intent
+  const isDining = isDiningIntent(combinedSearchQuery);
+
+  // 3. Detect explicit club targeting from the query or conversation topic
   const isMastercardMentioned =
     qNorm.includes('mastercard') || qNorm.includes('מאסטרקארד') || qNorm.includes('מסטרקארד') ||
     qNorm.includes('mastercarday') || qNorm.includes('matercarday') || qNorm.includes('matercard');
@@ -393,7 +494,7 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
     qNorm.includes('עוד מבצעים') || qNorm.includes('כל המבצעים') || qNorm.includes('הטבות נוספות') ||
     qNorm.includes('שאר ההטבות') || qNorm.includes('מבצעים ואפשרויות');
 
-  // Intent detection for Homeware / Kitchenware / House Goods
+  // 4. Intent detection for Homeware / Kitchenware / House Goods
   const isHomewareQuery =
     qNorm.includes('כלי בית') ||
     qNorm.includes('כלי מטבח') ||
@@ -418,14 +519,12 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
     qNorm.includes('cookware') ||
     qNorm.includes('home decor');
 
-  // Curated prominent homeware and kitchenware brands
   const HOME_BRANDS = [
     'סולתם', 'ורדינון', 'נעמן', 'פורצלן', 'פוקס הום', 'גולף אנד קו', 'ace', 'הום סנטר',
     'ארקוסטיל', 'arcosteel', 'קיטן', 'kitan', 'הום סטייל', 'הום דקור', 'נאוטיקה הום',
     'נעמן ורדינון', 'cotton club', 'סולתם אונליין', 'פוקס הום אונליין'
   ];
 
-  // Helper to reject theaters, hotels, museums and eateries when searching for goods/homeware
   const isIrrelevantVenueForGoods = (name: string, category: string) => {
     const text = (name + ' ' + category).toLowerCase();
     return (
@@ -439,7 +538,43 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
     );
   };
 
-  const rawWords = qNorm.split(/\s+/).filter(w => w.length > 1);
+  // 5. Dynamic Context Sizing Classification (10 -> 40 -> 80)
+  const isBroadListQuery =
+    /כל הרשתות|כל המבצעים|כל החנויות|כל ההטבות|כל המסעדות|תראה לי הכל|הצג הכל|רשימה של|איזה רשתות|אילו רשתות|איזה חנויות|איזה עוד|מה עוד|list all|show all|all stores|all brands|all deals|all options/i.test(qNorm) ||
+    Boolean(isAllDealsRequest);
+
+  const isSpecificStoreQuery = !isBroadListQuery && !detectedCity && (
+    /מגה ספורט|שופרסל|סולתם|קרפור|טרמינל|פוקס הום|פוקס|נייקי|אדידס|פיצה האט|דומינוס|מקדונלד|ksp|באג|אייבורי|זארה|קסטרו|רנואר|ארומה|גולדה|וולט|משלוחה|voye|airalo|יוחננוף|רמי לוי|אושר עד|ויקטורי|הום סנטר|אייס|סטימצקי|צומת ספרים/i.test(qNorm)
+  );
+
+  let maxContextStores: number;
+  let maxContextBilling: number;
+
+  if (isSpecificStoreQuery) {
+    // 1. Specific Store Query: Laser-focused and ultra-fast (~100 tokens, <0.8s)
+    maxContextStores = 5;
+    maxContextBilling = 5;
+  } else if (isBroadListQuery) {
+    // 2. Broad "List All" Request: Comprehensive view (~1,200 tokens)
+    maxContextStores = 50;
+    maxContextBilling = 40;
+  } else {
+    // 3. Category / City Query (The Golden Default): ~35-40 items (~500 tokens, ~1.0s)
+    // Covers 100% of local shops + nationwide chains without noise
+    maxContextStores = 20;
+    maxContextBilling = 20;
+  }
+
+  // Extract clean subject query without the city alias for accurate category/product search
+  let queryWithoutCity = qNorm;
+  if (detectedCity) {
+    queryWithoutCity = queryWithoutCity
+      .replace(new RegExp(`(?:^|\\s)(?:ב|מ|ל)?${detectedCity.aliasMatched.replace(/\s+/g, '\\s+')}(?:$|\\s)`, 'g'), ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  const rawWords = (queryWithoutCity || qNorm).split(/\s+/).filter(w => w.length > 1);
   const keywords = rawWords.filter(w => !HEBREW_STOP_WORDS.has(w));
   const activeWords = keywords.length > 0 ? keywords : rawWords;
 
@@ -464,19 +599,17 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
       ? [...activeClubs, targetClub]
       : activeClubs;
 
-  // 1. Filter primary club stores
+  // 1. Filter primary club stores (Tier B when city is detected: Nationwide chains & mall chains with local branches)
   for (const s of cachedStores) {
     if (effectiveClubs && effectiveClubs.length > 0) {
       const hasClub = (s.clubs || []).some(c => effectiveClubs.includes(c));
       if (!hasClub) continue;
     }
 
-    // When targeting mastercard, only consider mastercard partner stores
     if (targetClub === 'mastercard' && !(s.clubs || []).includes('mastercard')) {
       continue;
     }
 
-    // Exclude water surfing / unrelated fitness when searching for cellular eSIM
     if (isEsimTopic && isWaterOrFitness(s.name || '')) {
       continue;
     }
@@ -488,16 +621,39 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
       (s.cards || []).map((c: any) => typeof c === 'string' ? c : c.card_name || '').join(' ')
     );
 
-    // Reject venues when user wants homeware / kitchen goods
     if (isHomewareQuery && isIrrelevantVenueForGoods(s.name, s.category || '')) {
       continue;
     }
 
-    let score = 0;
-    if (nameNorm.includes(qNorm)) score += 80;
-    if (catNorm.includes(qNorm)) score += 35;
+    // If searching for physical city location, reject purely online platforms unless directly named
+    const isOnlinePlatform = s.coverage === 'online';
+    if (detectedCity && isOnlinePlatform && !nameNorm.includes(queryWithoutCity)) {
+      continue;
+    }
 
-    // Prioritize and boost genuine homeware stores
+    let score = 0;
+    if (queryWithoutCity && nameNorm.includes(queryWithoutCity)) score += 80;
+    if (queryWithoutCity && catNorm.includes(queryWithoutCity)) score += 35;
+
+    // Dining intent boosting for national food chains
+    if (isDining) {
+      if (catNorm.includes('מסעדות') || catNorm.includes('בתי קפה') || catNorm.includes('קולינריה') || catNorm.includes('אוכל')) {
+        score += 35;
+      }
+      if (/פיצה|פיצה האט|דומינוס|מקדונלד|בורגר|ארומה|קפה|גולדה|rebar|משלוחה|וולט/.test(nameNorm)) {
+        score += 60;
+      }
+    }
+
+    // Dual-Tier Tier B boost: When searching in a city, boost nationwide chains with branches in every Israeli city
+    if (detectedCity) {
+      const isNationwideOrMall = s.coverage !== 'online' || Boolean(s.is_mall_chain);
+      if (isNationwideOrMall) {
+        if (s.is_mall_chain) score += 40;
+        score += 30; // Nationwide branch availability in the city
+      }
+    }
+
     if (isHomewareQuery) {
       if (catNorm.includes('הכל לבית') || catNorm.includes('לבית ולגן') || catNorm.includes('מוצרי חשמל')) {
         score += 70;
@@ -510,7 +666,6 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
     }
 
     for (const w of expandedWords) {
-      // Disambiguate standalone Hebrew root "בית" (home/house) so it doesn't falsely match random businesses
       if (w === 'בית') {
         if (catNorm.includes('הכל לבית') || catNorm.includes('לבית ולגן')) {
           score += 25;
@@ -523,12 +678,10 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
       if (matchesToken(condNorm, w)) score += 3;
     }
 
-    // Boost club if explicitly targeted
     if (targetClub && (s.clubs || []).includes(targetClub)) {
       score += 40;
     }
 
-    // Boost eSIM providers if relevant
     if (isEsimTopic) {
       const sId = (s.id || '').toLowerCase();
       if (sId.includes('voye') || sId.includes('airalo') || nameNorm.includes('voye') || nameNorm.includes('airalo')) {
@@ -540,7 +693,11 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
       score += 30;
     }
 
-    // Require threshold to avoid noisy random suggestions
+    // In city mode without specific keywords, show top mall chains in that city
+    if (detectedCity && expandedWords.length === 0 && s.is_mall_chain) {
+      score += 50;
+    }
+
     if (score >= 25) {
       score += (s.max_discount || 0) * 0.5;
       matchedStores.push({ store: s, score });
@@ -553,17 +710,14 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
       if (d.club && !effectiveClubs.includes(d.club)) continue;
     }
 
-    // If query targeted a specific club, filter out other clubs so they don't pollute
     if (targetClub && d.club && d.club !== targetClub) {
       continue;
     }
 
-    // Reject venues when user wants homeware / kitchen goods
     if (isHomewareQuery && isIrrelevantVenueForGoods(d.title, d.category || '')) {
       continue;
     }
 
-    // Exclude water sports / gym when looking for eSIM
     if (isEsimTopic) {
       const dTitle = d.title || '';
       const dSupp = d.supplier || '';
@@ -580,11 +734,19 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
     const tagsNorm = normalizeHebrew((d.tags || []).join(' '));
 
     let score = 0;
-    if (titleNorm.includes(qNorm)) score += 70;
-    if (suppNorm.includes(qNorm)) score += 45;
-    if (catNorm.includes(qNorm)) score += 20;
+    if (queryWithoutCity && titleNorm.includes(queryWithoutCity)) score += 70;
+    if (queryWithoutCity && suppNorm.includes(queryWithoutCity)) score += 45;
+    if (queryWithoutCity && catNorm.includes(queryWithoutCity)) score += 20;
 
-    // Prioritize genuine cookware/bedding/homeware vouchers
+    if (isDining) {
+      if (catNorm.includes('מסעדות') || catNorm.includes('בתי קפה') || catNorm.includes('קולינריה') || catNorm.includes('אוכל')) {
+        score += 35;
+      }
+      if (/פיצה|פיצה האט|דומינוס|מקדונלד|בורגר|ארומה|קפה|גולדה|rebar|משלוחה|וולט/.test(titleNorm) || /פיצה|דומינוס|מקדונלד/.test(suppNorm)) {
+        score += 55;
+      }
+    }
+
     if (isHomewareQuery) {
       if (catNorm.includes('הכל לבית') || catNorm.includes('לבית ולגן')) {
         score += 70;
@@ -605,25 +767,20 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
       }
       if (matchesToken(titleNorm, w)) score += 25;
       if (matchesToken(suppNorm, w)) score += 25;
-      if (matchesToken(tagsNorm, w)) score += 30; // Tags are curated and highly accurate
+      if (matchesToken(tagsNorm, w)) score += 30;
       if (matchesToken(catNorm, w)) score += 10;
       if (matchesToken(descNorm, w)) score += 5;
     }
 
-    // Target club boost
     if (targetClub && d.club === targetClub) {
       score += 40;
     }
 
-    // eSIM & travel data boost
     if (isEsimTopic) {
       const suppLow = (d.supplier || '').toLowerCase();
       const titleLow = (d.title || '').toLowerCase();
       if (suppLow.includes('voye') || suppLow.includes('airalo') || titleLow.includes('voye') || titleLow.includes('airalo') || (titleLow.includes('גלישה') && titleLow.includes('חול'))) {
         score += 200;
-        if (targetClub && d.club === targetClub) {
-          score += 40;
-        }
       }
     }
 
@@ -631,14 +788,13 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
       score += 35;
     }
 
-    // Require strong relevance threshold
     if (score >= 25) {
       score += (d.discount_percent || 0) * 0.5;
       matchedDeals.push({ deal: d, score });
     }
   }
 
-  // 3. Filter 10,000+ billing stores directory (only if not restricted to mastercard)
+  // 3. Filter 10,600+ billing stores directory (Tier A when city is detected: Local physical businesses)
   const matchedBilling: { store: BillingStoreItem; score: number }[] = [];
   if (!targetClub || targetClub === 'behatsdaa') {
     for (const b of cachedBillingStores) {
@@ -657,9 +813,36 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
       }
 
       let score = 0;
-      if (nameNorm.includes(qNorm)) score += 75;
-      if (catNorm.includes(qNorm)) score += 35;
+
+      // Tier A Location Matching: When city is detected, check exact city correspondence
+      const isCityMatch = Boolean(
+        detectedCity && (
+          cityNorm.includes(detectedCity.normalized) ||
+          detectedCity.normalized.includes(cityNorm) ||
+          (detectedCity.aliasMatched && cityNorm.includes(detectedCity.aliasMatched))
+        )
+      );
+
+      if (detectedCity) {
+        if (!isCityMatch) {
+          // In city-specific mode, strictly filter billing stores to the requested city
+          continue;
+        }
+        score += 80; // High baseline for local businesses in the requested city
+      }
+
+      if (queryWithoutCity && nameNorm.includes(queryWithoutCity)) score += 75;
+      if (queryWithoutCity && catNorm.includes(queryWithoutCity)) score += 35;
       if (cityNorm && cityNorm.includes(qNorm)) score += 40;
+
+      if (isDining) {
+        if (catNorm.includes('מסעדות') || catNorm.includes('בתי קפה') || catNorm.includes('מזון') || catNorm.includes('קולינריה') || catNorm.includes('אוכל')) {
+          score += 45;
+        }
+        if (/פיצה|פיצרי|בורגר|המבורגר|קפה|סושי|שווארמה|שניצל|גליד|מאפי/.test(nameNorm)) {
+          score += 60;
+        }
+      }
 
       if (isHomewareQuery) {
         if (catNorm.includes('בית') || catNorm.includes('מטבח') || catNorm.includes('חשמל') || catNorm.includes('עיצוב')) {
@@ -679,13 +862,17 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
         if (descNorm && matchesToken(descNorm, w)) score += 5;
       }
 
-      // Boost eSIM billing stores
       if (isEsimTopic && (nameNorm.includes('globalesim') || nameNorm.includes('besim') || nameNorm.includes('סים פור פליי'))) {
         score += 200;
       }
 
-      // Strict threshold: do not include random businesses on loose word matches
-      if (score >= 35) {
+      // If in city mode and user simply searched for city (e.g. "הטבות בפתח תקווה"), show top businesses in that city
+      if (detectedCity && expandedWords.length === 0) {
+        score += 30;
+      }
+
+      const threshold = detectedCity ? 40 : 35;
+      if (score >= threshold) {
         score += (b.discount || 0) * 0.8;
         matchedBilling.push({ store: b, score });
       }
@@ -697,9 +884,17 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
   matchedBilling.sort((a, b) => b.score - a.score);
 
   return {
-    topStores: matchedStores.slice(0, 6).map(m => m.store),
-    topDeals: matchedDeals.slice(0, 6).map(m => m.deal),
-    topBilling: matchedBilling.slice(0, 8).map(m => m.store),
+    // Dynamic context sizing (10 / 40 / 80 items) for AI model reasoning
+    promptStores: matchedStores.slice(0, maxContextStores).map(m => m.store),
+    promptDeals: matchedDeals.slice(0, Math.min(maxContextStores, 25)).map(m => m.deal),
+    promptBilling: matchedBilling.slice(0, maxContextBilling).map(m => m.store),
+
+    // Strictly capped to top 3-4 highlights for clean, lightning-fast UI visual popup
+    topStores: matchedStores.slice(0, 4).map(m => m.store),
+    topDeals: matchedDeals.slice(0, 4).map(m => m.deal),
+    topBilling: matchedBilling.slice(0, 4).map(m => m.store),
+
+    detectedCity: detectedCity ? detectedCity.name : null,
   };
 }
 
@@ -790,21 +985,38 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
-    // Search catalog for grounded knowledge with conversation awareness
-    const { topStores, topDeals, topBilling } = findRelevantCatalog(userPromptText, activeClubs, previousTopic);
+    // Search catalog for grounded knowledge with conversation awareness, Dual-Tier location search, and dynamic sizing
+    const {
+      topStores,
+      topDeals,
+      topBilling,
+      promptStores,
+      promptDeals,
+      promptBilling,
+      detectedCity
+    } = findRelevantCatalog(userPromptText, activeClubs, previousTopic);
 
-    // Build catalog context summary
+    // Build catalog context summary using dynamic context sizing (10 / 40 / 80 items)
     let catalogContext = '';
-    if (topStores.length > 0) {
-      catalogContext += '\nרשתות וחנויות רלוונטיות מהקטלוג:\n' + topStores.map((s, idx) => {
+    if (detectedCity) {
+      catalogContext += `\n📍 **זוהתה כוונת חיפוש מקומי בעיר: ${detectedCity}**\nהקטלוג שולב במודל Dual-Tier: עסקים מקומיים פיזיים בעיר (Tier A) לצד רשתות ארציות הפועלות עם סניפים פעילים בעיר (Tier B).\n`;
+    }
+
+    const storesForPrompt = promptStores && promptStores.length > 0 ? promptStores : topStores;
+    const dealsForPrompt = promptDeals && promptDeals.length > 0 ? promptDeals : topDeals;
+    const billingForPrompt = promptBilling && promptBilling.length > 0 ? promptBilling : topBilling;
+
+    if (storesForPrompt.length > 0) {
+      catalogContext += '\nרשתות וחנויות רלוונטיות מהקטלוג:\n' + storesForPrompt.map((s, idx) => {
         const clubsStr = (s.clubs || []).join(', ');
         const cardsStr = (s.cards || []).map((c: any) => `${c.card_name} (${c.discount})`).join(', ');
-        return `${idx + 1}. ${s.name} (קטגוריה: ${s.category || 'כללי'}, הנחה מרבית: ${s.max_discount || 0}%, מועדונים: ${clubsStr}${cardsStr ? ', כרטיסים: ' + cardsStr : ''})`;
+        const coverageTag = s.coverage === 'online' ? ' [רכישה אונליין בלבד]' : (s.is_mall_chain ? ' [רשת קניונים ארצית עם פריסה מקומית]' : ' [פריסה ארצית]');
+        return `${idx + 1}. ${s.name} (קטגוריה: ${s.category || 'כללי'}, הנחה מרבית: ${s.max_discount || 0}%, מועדונים: ${clubsStr}${cardsStr ? ', כרטיסים: ' + cardsStr : ''})${coverageTag}`;
       }).join('\n');
     }
 
-    if (topDeals.length > 0) {
-      catalogContext += '\n\nמבצעים ושוברים רלוונטיים מהקטלוג:\n' + topDeals.map((d, idx) => {
+    if (dealsForPrompt.length > 0) {
+      catalogContext += '\n\nמבצעים ושוברים רלוונטיים מהקטלוג:\n' + dealsForPrompt.map((d, idx) => {
         const priceStr = d.price ? `${d.price} ₪` : 'ללא מחיר נקוב';
         const discStr = d.discount_percent ? ` (${d.discount_percent}% הנחה)` : '';
         const couponStr = d.coupon_code ? `, קוד קופון: ${d.coupon_code}` : '';
@@ -812,10 +1024,11 @@ app.post('/api/chat', async (req, res) => {
       }).join('\n');
     }
 
-    if (topBilling.length > 0) {
-      catalogContext += '\n\nעסקים וחנויות מהקטלוג המורחב (הנחות במעמד החיוב באשראי בהצדעה מתוך 10,000+ סניפים):\n' + topBilling.map((b, idx) => {
+    if (billingForPrompt.length > 0) {
+      catalogContext += '\n\nעסקים וחנויות מהקטלוג המורחב (הנחות במעמד החיוב באשראי בהצדעה מתוך 10,650+ סניפים):\n' + billingForPrompt.map((b, idx) => {
         const locStr = b.full_address || b.city || '';
-        return `${idx + 1}. "${b.name}" - ${b.discount}% הנחה במעמד החיוב באשראי${locStr ? ' (' + locStr + ')' : ''}, תחום: ${b.category || 'כללי'}`;
+        const isLocalTag = detectedCity ? ' [עסק מקומי בעיר]' : '';
+        return `${idx + 1}. "${b.name}" - ${b.discount}% הנחה במעמד החיוב באשראי${locStr ? ' (' + locStr + ')' : ''}, תחום: ${b.category || 'כללי'}${isLocalTag}`;
       }).join('\n');
     }
 
@@ -853,6 +1066,12 @@ app.post('/api/chat', async (req, res) => {
   ערוך עבורו השוואה חכמה: ב-10-11 לחודש VOYE נותן את ההנחה הגבוהה ביותר (25%), Airalo נותן 20% ומציע את הכיסוי הגלובלי הנרחב ביותר, ואילו בבהצדעה יש 15% ב-GlobaleSIM ו-10% ב-BeSIM שתקפים בכל יום בשנה אוטומטית באשראי בלי לחכות לקופון. הזכר גם את הטבות הנסיעות המשלימות של מאסטרקארד (20 ₪ ב-Gett ו-4% ב-Booking.com).
 - **מענה לגבי שאר המבצעים והאפשרויות (All other deals and options)**:
   אם המשתמש מבקש לראות גם את שאר המבצעים של Mastercard Day או להכיר אפשרויות נוספות, פתח בפניו סקירה שיחתית, עשירה ומסודרת של ההטבות הבולטות לפי תחומי עניין (אופנה, מסעדות ואוכל, מחשבים וטכנולוגיה, קניות אונליין).
+- **מענה לחיפושים לפי עיר או מיקום (Dual-Tier Location Search - עסקים מקומיים לצד רשתות ארציות)**:
+  כאשר המשתמש שואל על עיר ספציפית (כגון: "פיצה בפתח תקווה", "מסעדות בתל אביב", "ספורט בחיפה"):
+  השתמש תמיד במודל הדו-שכבתי:
+  1. הדגש עסקים ומסעדות מקומיים פיזיים הפועלים בעיר זו מתוך ספריית החיוב (הנחות אוטומטיות באשראי של 5%-15% במעמד החיוב).
+  2. שלב לצדם רשתות ארציות מובילות ורשתות קניונים (כמו פיצה האט, דומינוס, מגה ספורט, פוקס וכו') שמפעילות סניפים פעילים בעיר ומציעות ארנק נטען מוזל של 20% או שוברים מסובסדים.
+  3. הסבר למשתמש בצורה ישירה ומועילה על שתי האפשרויות: גם המקומות המקומיים וגם הרשתות הארציות הפועלות בעיר!
 - **שיחה זורמת, אנושית ומקצועית**: שוחח כמו יועץ חיסכון אישי שמבין בדיוק מה הצרכים של המשתמש. אל תזרוק רשימות אקראיות של חנויות שאינן קשורות לנושא!
 
 ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור השאלה הנוכחית:\n${catalogContext}` : 'לא נמצאו פריטים קונקרטיים בקטלוג עבור מילות השאלה הללו. השתמש בידע הקטלוגי המלא שלך והסבר למשתמש בצורה עשירה ומלאה.'}`;

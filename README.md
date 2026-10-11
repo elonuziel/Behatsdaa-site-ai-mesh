@@ -4,10 +4,11 @@
 > **Live Web Application:** [https://elonuziel.github.io/Behatsdaa-site-ai-mesh/](https://elonuziel.github.io/Behatsdaa-site-ai-mesh/)
 
 A modern, lightning-fast React & TypeScript application unifying Israel's premier consumer clubs into a single high-performance discovery portal:
-1. **בהצדעה (Behatsdaa)**: 980+ participating chain stores across 8 rechargeable wallets, rotating time-limited deals and vouchers, and 10,600+ credit card statement discounts (הנחות במעמד החיוב powered by Be-Plus / Max).
-2. **מועדון UNIQ (הייטק ואקדמיה)**: 4 dedicated views for UNIQ club members including participating brands, loaded cards, Max benefits, and student/alumni deals.
-3. **Mastercard Day (יום המאסטרקארד)**: Real-time deals active on the 10th of every month, countdowns, terms, and merchant voucher validations.
+1. **בהצדעה (Behatsdaa)**: 1,040+ participating chain stores across rechargeable wallets, rotating time-limited deals and vouchers, and 10,650+ credit card statement discounts (הנחות במעמד החיוב powered by Max / Isracard).
+2. **מועדון UNIQ (הייטק ואקדמיה)**: 4 dedicated views for UNIQ club members including participating brands, loaded cards (כרטיס נטען 15%), Max benefits, and student/alumni deals.
+3. **Mastercard Day (יום המאסטרקארד)**: Real-time deals active on the 10th of every month (VOYE 25%, Airalo 20%, McDonald's 50%, Terminal X, etc.), countdowns, terms, and merchant voucher validations.
 4. **Mega Search & Payment Advisor (מגה חיפוש ויועץ תשלום)**: Cross-club search with Hebrew normalization, intelligent category clustering, interactive Google Maps branch view, and an instant calculator showing the best payment method for maximum savings.
+5. **AI Catalog Intelligence (סייר AI ויועץ חיסכון אישי)**: Grounded AI reasoning across 13,600+ catalog records, dynamic context sizing (10 / 40 / 80 items), dual-tier location search (local physical businesses + nationwide mall chains), and multi-provider support (Gemini, OpenAI, Claude, Groq, DeepSeek).
 
 ---
 
@@ -15,26 +16,30 @@ A modern, lightning-fast React & TypeScript application unifying Israel's premie
 
 Explore the portal live at: **[https://elonuziel.github.io/Behatsdaa-site-ai-mesh/](https://elonuziel.github.io/Behatsdaa-site-ai-mesh/)**
 
+- 🤖 **AI Catalog Intelligence & Personal Financial Advisor**:
+  - **13,600+ Grounded Catalog Records**: Powered by multi-club data ingestion across all 3 clubs.
+  - **Dual-Tier Location Search**: City-based queries (e.g. "פיצה בפתח תקווה", "ספורט בחיפה") combine **Tier A (Local Physical Businesses)** from the 10,650+ billing directory with **Tier B (Nationwide Mall Chains)** that operate local branches in that city (e.g. Pizza Hut, Domino's, Mega Sport, Fox Home).
+  - **Dynamic Context Sizing (10 → 40 → 80)**: Dynamically sizes AI prompt tokens based on intent (specific store queries = ~10 items, category/city searches = ~40 items, broad "list all" queries = ~80-90 items).
+  - **Strict UI Card Capping**: Chat popup stays clean and fast by capping visual highlight cards to the top 3–4 items.
+  - **Multi-Provider & Offline Fallback**: Direct support for Gemini, OpenAI, Claude, Groq, and DeepSeek, with offline Web Crypto AES-256 decryption and static client-side fallback reasoning.
 - 🌐 **מגה חיפוש (Mega Search Dashboard)**:
   - **Cross-Club Filtering**: Search and compare deals across Behatsdaa, UNIQ, and Mastercard simultaneously.
-  - **Intelligent Category Clustering**: 8+ curated discovery categories (מסעדות ובתי קפה, אופנה ולייף סטייל, סופרמרקט ומזון, מחשבים וטכנולוגיה, תיירות ונופש, בילוי ותרבות, ספא ובריאות, רכישה אונליין) that intelligently cross-reference both stores and deals.
-  - **UI Density Modes**: Toggle between **מצב נקי (Clean Mode)** for focused discovery and **מצב מפורט (Detailed Mode)** with full filter bars and carousels.
-  - **Interactive Map View**: Discover branches and stores geocoded across Israel with Google Maps integration.
+  - **Intelligent Category Clustering**: Curated primary discovery categories with bi-directional matching between stores and deals.
+  - **UI Density Modes**: Toggle between **מצב נקי (Clean Mode)** with responsive hero cards and **מצב מפורט (Detailed Mode)** with full filter bars and carousels.
+  - **Interactive Map View**: Discover branches and stores geocoded across Israel with Google Maps & MarkerClusterer integration.
   - **Comparison View**: Cross-compare discounts between different payment cards and clubs side-by-side.
 - 💡 **יועץ תשלומים חכם (Smart Payment Advisor)**:
   - Click any store to calculate whether it's best to pay with a loaded gift card (e.g., 20% ארנק רשתות), a credit card statement discount (הנחה במעמד חיוב), or an active coupon/voucher.
 - 🎖️ **פורטל בהצדעה (Behatsdaa Hub)**:
-  - **רשתות וכרטיסים נטענים**: 980+ participating store chains with loaded wallet discount rates.
-  - **מבצעים ושוברים ייעודיים**: Rotating food vouchers, holiday specials, attractions, and consumer goods.
-  - **הנחות במעמד החיוב**: Virtualized, ultra-fast search across 10,600+ businesses and local shops.
+  - **רשתות וכרטיסים נטענים**: 1,040+ participating store chains with loaded wallet discount rates.
+  - **מבצעים ושוברים ייעודיים**: 1,920+ rotating food vouchers, holiday specials, attractions, and consumer goods.
+  - **הנחות במעמד החיוב**: Virtualized, ultra-fast search across 10,650+ businesses and local shops.
 - 🎓 **מועדון UNIQ (UNIQ Club)**:
   - Dedicated views for brands, loaded cards, Max ++ credit card deals, and academic partner promotions.
 - 💳 **Mastercard Day**:
   - Live status for the monthly 10th-of-month promotion with merchant terms and direct redemption links.
 - 🔗 **URL-as-State Deep Linking**:
   - Full synchronization of search queries, tabs, subtabs, categories, store modals, and deals via standard URL search parameters (`?q=...&tab=...&cat=...`). Supports seamless browser Back / Forward history navigation.
-- 🤖 **סייר AI מבוסס Gemini**:
-  - Client-side AI assistant enabling natural language queries over the entire 10,000+ catalog.
 - 🌙 **Dark & Light Themes & RTL Support**:
   - Built with Tailwind CSS and full RTL Hebrew typography.
 

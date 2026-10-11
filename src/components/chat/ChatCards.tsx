@@ -18,17 +18,22 @@ export const ChatCards: React.FC<ChatCardsProps> = ({
   onSelectStore,
   onSelectDeal,
 }) => {
-  if (stores.length === 0 && deals.length === 0 && billing.length === 0) return null;
+  // Safeguard: Strictly cap visual UI cards to the top 4 highlights to keep modal lightweight & fast
+  const displayedStores = stores.slice(0, 4);
+  const displayedBilling = billing.slice(0, 4);
+  const displayedDeals = deals.slice(0, 4);
+
+  if (displayedStores.length === 0 && displayedDeals.length === 0 && displayedBilling.length === 0) return null;
 
   return (
     <div className="mt-3.5 space-y-4">
       {/* 1. TOP SECTION: Primary Recommended Stores & Service Providers */}
-      {stores.length > 0 && (
+      {displayedStores.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
             <div className="flex items-center gap-1.5">
               <Store className="w-3.5 h-3.5 text-emerald-500" />
-              <span>רשתות וספקים מומלצים ({stores.length}):</span>
+              <span>רשתות וספקים מומלצים ({displayedStores.length}):</span>
             </div>
             <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
               מובילי הקטגוריה
@@ -36,7 +41,7 @@ export const ChatCards: React.FC<ChatCardsProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {stores.map(store => (
+            {displayedStores.map(store => (
               <div
                 key={store.id}
                 onClick={() => onSelectStore(store.slug)}
@@ -100,12 +105,12 @@ export const ChatCards: React.FC<ChatCardsProps> = ({
       )}
 
       {/* 2. DIRECT CREDIT BILLING STORES: Kept at top alongside partner stores */}
-      {billing.length > 0 && (
+      {displayedBilling.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
             <div className="flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5 text-blue-500" />
-              <span>עסקים וסניפים בהנחה במעמד החיוב באשראי ({billing.length}):</span>
+              <span>עסקים וסניפים בהנחה במעמד החיוב באשראי ({displayedBilling.length}):</span>
             </div>
             <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">
               הנחה ישירה בחשבון
@@ -113,7 +118,7 @@ export const ChatCards: React.FC<ChatCardsProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {billing.map(store => (
+            {displayedBilling.map(store => (
               <div
                 key={store.id}
                 className="group bg-white dark:bg-slate-800/90 rounded-xl p-2.5 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs hover:shadow-md hover:border-blue-500/70 transition flex flex-col justify-between"
@@ -179,12 +184,12 @@ export const ChatCards: React.FC<ChatCardsProps> = ({
       )}
 
       {/* 3. SEPARATED LOWER SECTION: Deals, Vouchers & Complementary Benefits */}
-      {deals.length > 0 && (
+      {displayedDeals.length > 0 && (
         <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700/70 space-y-2">
           <div className="flex items-center justify-between gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
             <div className="flex items-center gap-1.5">
               <Tag className="w-3.5 h-3.5 text-amber-500" />
-              <span>מבצעים, שוברים והטבות משלימות ({deals.length}):</span>
+              <span>מבצעים, שוברים והטבות משלימות ({displayedDeals.length}):</span>
             </div>
             <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400">
               קופונים ושוברים מוזלים
@@ -192,7 +197,7 @@ export const ChatCards: React.FC<ChatCardsProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {deals.map(deal => (
+            {displayedDeals.map(deal => (
               <div
                 key={deal.id}
                 onClick={() => onSelectDeal(deal.id)}
