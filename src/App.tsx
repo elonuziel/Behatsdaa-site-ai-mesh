@@ -9,6 +9,7 @@ import { useFavorites } from './context/FavoritesContext';
 import { useChat } from './context/ChatContext';
 import { useMiniSearch } from './hooks/useMiniSearch';
 import { ClubLastUpdatedBadge } from './components/ClubLastUpdatedBadge';
+import { OnlineStatusIndicator } from './components/OnlineStatusIndicator';
 import { Bot } from 'lucide-react';
 
 const PaymentAdvisorModal = React.lazy(() =>
@@ -120,7 +121,10 @@ export const App: React.FC = () => {
       <footer className="mt-12 py-6 pb-safe border-t border-slate-200/60 dark:border-slate-800 text-center text-xs text-slate-500 space-y-3">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p>ההטבות שלי — פורטל מאוחד למועדוני בהצדעה, UNIQ ו-Mastercard Day</p>
-          <ClubLastUpdatedBadge showAll={true} variant="footer" />
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <OnlineStatusIndicator />
+            <ClubLastUpdatedBadge showAll={true} variant="footer" />
+          </div>
         </div>
       </footer>
 

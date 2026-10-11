@@ -64,7 +64,7 @@ jobs:
           umask 077
           export ORG_GRADLE_PROJECT_RELEASE_STORE_FILE="$(mktemp "$RUNNER_TEMP/android-release-XXXXXX.keystore")"
           trap 'rm -f "$ORG_GRADLE_PROJECT_RELEASE_STORE_FILE"' EXIT
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" \vert{} base64 --decode > "$ORG_GRADLE_PROJECT_RELEASE_STORE_FILE"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ORG_GRADLE_PROJECT_RELEASE_STORE_FILE"
           unset ANDROID_KEYSTORE_BASE64
           cd android
           ./gradlew assembleRelease --no-daemon
