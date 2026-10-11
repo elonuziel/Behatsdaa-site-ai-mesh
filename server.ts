@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import crypto from 'crypto';
 import { GoogleGenAI } from '@google/genai';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -64,7 +65,7 @@ function readEnvSecrets(): Record<string, string> {
 
   // Copy valid environment variables (skipping MY_ placeholders)
   for (const [k, v] of Object.entries(process.env)) {
-    if (v && !v.startsWith('MY_') && v.length > 5) {
+    if (v && !v.startsWith('MY_') && v.length >= 2) {
       result[k] = v;
     }
   }
@@ -79,8 +80,11 @@ function readEnvSecrets(): Record<string, string> {
         const eqIdx = trimmed.indexOf('=');
         if (eqIdx > 0) {
           const key = trimmed.slice(0, eqIdx).trim();
-          const val = trimmed.slice(eqIdx + 1).trim();
-          if (val && !val.startsWith('MY_') && val.length > 8) {
+          let val = trimmed.slice(eqIdx + 1).trim();
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.slice(1, -1);
+          }
+          if (val && !val.startsWith('MY_') && val.length >= 2) {
             result[key] = val;
           }
         }
@@ -99,7 +103,7 @@ function readEnvSecrets(): Record<string, string> {
             const eqPos = entry.indexOf('=');
             const k = entry.slice(0, eqPos);
             const v = entry.slice(eqPos + 1);
-            if (k && v && (!result[k] || result[k].length < 10) && !v.startsWith('MY_') && v.length > 8) {
+            if (k && v && (!result[k] || result[k].length < 2) && !v.startsWith('MY_') && v.length >= 2) {
               result[k] = v;
             }
           }
@@ -109,6 +113,17 @@ function readEnvSecrets(): Record<string, string> {
   } catch {}
 
   return result;
+}
+
+function getAiPassword(env: Record<string, string>): string {
+  const candidateKeys = ['AI_PASSWORD', 'AI_ACCESS_PASSWORD', 'AI_SECRET', 'VITE_AI_PASSWORD'];
+  for (const k of candidateKeys) {
+    const val = env[k];
+    if (val && typeof val === 'string' && !val.startsWith('MY_') && val.trim().length > 0) {
+      return val.trim();
+    }
+  }
+  return '';
 }
 
 function getProviderKey(providerId: string, env: Record<string, string>): string {
@@ -726,6 +741,24 @@ function generateFollowUps(query: string, stores: StoreItem[], deals: DealItem[]
 // POST /api/chat: Multi-turn chat with AI (Multi-model frameworks with direct provider execution)
 app.post('/api/chat', async (req, res) => {
   try {
+    const env = readEnvSecrets();
+    const serverPassword = getAiPassword(env);
+
+    // If an AI access password is configured on the server, ensure it is matched
+    if (serverPassword) {
+      const userPassword = (req.body?.password || '').trim();
+      const userPassHash = crypto.createHash('sha256').update(userPassword).digest('hex');
+      const serverPassHash = crypto.createHash('sha256').update(serverPassword).digest('hex');
+
+      if (userPassword !== serverPassword && userPassHash !== serverPassHash) {
+        return res.status(401).json({
+          error: 'נדרשת סיסמת גישה תקינה לשימוש ב-AI (סיסמה שגויה או חסרה).',
+          requirePassword: true,
+          invalidPassword: true,
+        });
+      }
+    }
+
     const { messages, activeClubs, provider: requestedProvider = 'gemini', model: requestedModel } = req.body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -1348,9 +1381,30 @@ app.get('/api/models', async (req, res) => {
   }
 });
 
+// POST /api/verify-password: Check if user-entered password matches AI secret password
+app.post('/api/verify-password', (req, res) => {
+  const env = readEnvSecrets();
+  const serverPassword = getAiPassword(env);
+
+  if (!serverPassword) {
+    return res.json({ valid: true, notRequired: true });
+  }
+
+  const userPassword = (req.body?.password || '').trim();
+  const userPassHash = crypto.createHash('sha256').update(userPassword).digest('hex');
+  const serverPassHash = crypto.createHash('sha256').update(serverPassword).digest('hex');
+
+  if (userPassword === serverPassword || userPassHash === serverPassHash) {
+    return res.json({ valid: true });
+  }
+
+  return res.status(401).json({ valid: false, error: 'סיסמה שגויה. אנא נסה שוב.' });
+});
+
 // GET /api/ai-status: Health check for current AI providers and secrets
 app.get('/api/ai-status', (req, res) => {
   const env = readEnvSecrets();
+  const serverPassword = getAiPassword(env);
   const providerStatuses: Record<string, any> = {};
 
   for (const [id, def] of Object.entries(DIRECT_AI_PROVIDERS)) {
@@ -1373,6 +1427,7 @@ app.get('/api/ai-status', (req, res) => {
     model: providerStatuses[availableProvider]?.model,
     providers: providerStatuses,
     defaultProvider: availableProvider,
+    isPasswordRequired: Boolean(serverPassword),
   });
 });
 

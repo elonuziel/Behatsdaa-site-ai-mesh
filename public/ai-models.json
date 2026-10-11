@@ -1,5 +1,6 @@
 {
-  "updatedAt": "2026-10-11T02:31:11.408Z",
+  "updatedAt": "2026-10-11T02:58:25.689Z",
+  "isPasswordRequired": false,
   "providers": {
     "gemini": {
       "available": true,
@@ -308,7 +309,7 @@
           "description": "Veo 3.1 lite"
         }
       ],
-      "fetchedAt": "2026-10-11T02:31:11.709Z"
+      "fetchedAt": "2026-10-11T02:58:25.891Z"
     },
     "openai": {
       "available": false,
@@ -327,12 +328,68 @@
       "error": "נדרש מפתח סודי ANTHROPIC_API_KEY ב-GitHub Secrets"
     },
     "groq": {
-      "available": false,
+      "available": true,
       "name": "Groq",
       "defaultModel": "llama-3.3-70b-versatile",
       "requiredSecret": "GROQ_API_KEY",
-      "models": [],
-      "error": "נדרש מפתח סודי GROQ_API_KEY ב-GitHub Secrets"
+      "models": [
+        {
+          "id": "allam-2-7b",
+          "name": "allam-2-7b",
+          "description": "ספק: SDAIA"
+        },
+        {
+          "id": "canopylabs/orpheus-arabic-saudi",
+          "name": "canopylabs/orpheus-arabic-saudi",
+          "description": "ספק: Canopy Labs"
+        },
+        {
+          "id": "canopylabs/orpheus-v1-english",
+          "name": "canopylabs/orpheus-v1-english",
+          "description": "ספק: Canopy Labs"
+        },
+        {
+          "id": "meta-llama/llama-prompt-guard-2-22m",
+          "name": "meta-llama/llama-prompt-guard-2-22m",
+          "description": "ספק: Meta"
+        },
+        {
+          "id": "meta-llama/llama-prompt-guard-2-86m",
+          "name": "meta-llama/llama-prompt-guard-2-86m",
+          "description": "ספק: Meta"
+        },
+        {
+          "id": "openai/gpt-oss-120b",
+          "name": "openai/gpt-oss-120b",
+          "description": "ספק: OpenAI"
+        },
+        {
+          "id": "openai/gpt-oss-20b",
+          "name": "openai/gpt-oss-20b",
+          "description": "ספק: OpenAI"
+        },
+        {
+          "id": "openai/gpt-oss-safeguard-20b",
+          "name": "openai/gpt-oss-safeguard-20b",
+          "description": "ספק: OpenAI"
+        },
+        {
+          "id": "qwen/qwen3.8-27b",
+          "name": "qwen/qwen3.8-27b",
+          "description": "ספק: Alibaba Cloud"
+        },
+        {
+          "id": "whisper-large-v3",
+          "name": "whisper-large-v3",
+          "description": "ספק: OpenAI"
+        },
+        {
+          "id": "whisper-large-v3-turbo",
+          "name": "whisper-large-v3-turbo",
+          "description": "ספק: OpenAI"
+        }
+      ],
+      "fetchedAt": "2026-10-11T02:58:26.091Z"
     },
     "deepseek": {
       "available": false,

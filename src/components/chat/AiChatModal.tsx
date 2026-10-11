@@ -13,6 +13,11 @@ import {
   AlertTriangle,
   RotateCw,
   Cpu,
+  Lock,
+  KeyRound,
+  Eye,
+  EyeOff,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface AiChatModalProps {
@@ -82,11 +87,41 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
     providerStatuses,
     closeChat,
     sendMessage,
-    clearChat
+    clearChat,
+    isPasswordRequired,
+    isPasswordUnlocked,
+    unlockAi,
+    lockAi,
+    passwordError,
+    clearPasswordError,
   } = useChat();
   const [inputText, setInputText] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus password input if password required
+  useEffect(() => {
+    if (isChatOpen && isPasswordRequired && !isPasswordUnlocked) {
+      setTimeout(() => {
+        passwordInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isChatOpen, isPasswordRequired, isPasswordUnlocked]);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordInput.trim() || isVerifyingPassword) return;
+    setIsVerifyingPassword(true);
+    const ok = await unlockAi(passwordInput.trim());
+    setIsVerifyingPassword(false);
+    if (ok) {
+      setPasswordInput('');
+    }
+  };
 
   // Auto-scroll to bottom of conversation
   const scrollToBottom = () => {
@@ -237,7 +272,29 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5">
-            {messages.length > 0 && (
+            {isPasswordRequired && (
+              isPasswordUnlocked ? (
+                <button
+                  type="button"
+                  onClick={lockAi}
+                  title="נעילת גישת ה-AI / שינוי סיסמה"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">מאומת</span>
+                  <Lock className="w-3 h-3 opacity-60" />
+                </button>
+              ) : (
+                <div
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>מוגן בסיסמה</span>
+                </div>
+              )
+            )}
+
+            {messages.length > 0 && (!isPasswordRequired || isPasswordUnlocked) && (
               <button
                 type="button"
                 onClick={clearChat}
@@ -386,8 +443,84 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
           </div>
         )}
 
-        {/* Scrollable Conversation Thread */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        {/* Scrollable Conversation Thread OR Password Screen */}
+        {isPasswordRequired && !isPasswordUnlocked ? (
+          <div className="flex-1 overflow-y-auto p-6 sm:p-10 flex flex-col items-center justify-center text-center bg-slate-50/70 dark:bg-slate-900/60">
+            <div className="w-16 h-16 rounded-3xl bg-amber-500/10 dark:bg-amber-400/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4 border border-amber-500/20 shadow-xs">
+              <Lock className="w-8 h-8" />
+            </div>
+
+            <h3 className="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100 mb-2">
+              גישה מוגנת ליכולות ה-AI
+            </h3>
+
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-sm mb-6 leading-relaxed">
+              השימוש בסייר ה-AI החכם מוגן בסיסמת מערכת סודית (Secret Password). יש להזין את הסיסמה התואמת כדי לפתוח את אפשרויות השיחה.
+            </p>
+
+            <form onSubmit={handlePasswordSubmit} className="w-full max-w-xs space-y-3">
+              <div className="relative">
+                <input
+                  ref={passwordInputRef}
+                  type={showPassword ? 'text' : 'password'}
+                  value={passwordInput}
+                  onChange={e => {
+                    setPasswordInput(e.target.value);
+                    if (passwordError) clearPasswordError();
+                  }}
+                  placeholder="הזן סיסמת גישה (AI Password)..."
+                  className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl border border-slate-300 dark:border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs text-right"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+                  tabIndex={-1}
+                  title={showPassword ? 'הסתר סיסמה' : 'הצג סיסמה'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {passwordError && (
+                <div className="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 p-2.5 rounded-xl border border-rose-200 dark:border-rose-900/50 flex items-center gap-1.5 justify-center">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={!passwordInput.trim() || isVerifyingPassword}
+                className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm text-white shadow-sm flex items-center justify-center gap-2 transition cursor-pointer ${
+                  passwordInput.trim() && !isVerifyingPassword
+                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
+                    : 'bg-slate-300 dark:bg-slate-700 text-slate-400 cursor-not-allowed'
+                }`}
+              >
+                {isVerifyingPassword ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>מאמת סיסמה...</span>
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="w-4 h-4" />
+                    <span>אימות והמשך לשיחה</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-8 text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <span>הסיסמה נבדקת ומאומתת מול המפתח הסודי של המערכת</span>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {messages.length === 0 ? (
             /* Welcome Empty State with Category Starters */
             <div className="py-6 sm:py-8 space-y-6 max-w-xl mx-auto text-center">
@@ -575,7 +708,9 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
             <span className="hidden sm:inline">הקש Enter לשליחה</span>
           </div>
         </div>
-      </div>
-    </div>
-  );
+      </>
+    )}
+  </div>
+</div>
+);
 };

@@ -31,6 +31,12 @@ interface ChatContextType {
   closeChat: () => void;
   sendMessage: (content: string) => Promise<void>;
   clearChat: () => void;
+  isPasswordRequired: boolean;
+  isPasswordUnlocked: boolean;
+  unlockAi: (password: string) => Promise<boolean>;
+  lockAi: () => void;
+  passwordError: string | null;
+  clearPasswordError: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -38,6 +44,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 const STORAGE_KEY = 'behatsdaa_ai_chat_messages_v1';
 const PROVIDER_STORAGE_KEY = 'behatsdaa_ai_selected_provider_v1';
 const MODEL_PREFS_KEY = 'behatsdaa_ai_models_by_provider_v1';
+const AI_PASSWORD_STORAGE_KEY = 'behatsdaa_ai_user_password_v1';
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeClubs } = useClubs();
@@ -59,6 +66,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeProvider, setActiveProvider] = useState<string | null>(null);
   const [activeModel, setActiveModel] = useState<string | null>(null);
   const [providerStatuses, setProviderStatuses] = useState<Record<AiProviderKey, ProviderInfo> | null>(null);
+
+  // Secret Password protection state
+  const [isPasswordRequired, setIsPasswordRequired] = useState<boolean>(false);
+  const [isPasswordUnlocked, setIsPasswordUnlocked] = useState<boolean>(false);
+  const [passwordHash, setPasswordHash] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [aiPassword, setAiPassword] = useState<string>(() => {
+    try {
+      return localStorage.getItem(AI_PASSWORD_STORAGE_KEY) || '';
+    } catch {
+      return '';
+    }
+  });
 
   const [selectedProvider, setSelectedProviderState] = useState<AiProviderKey>(() => {
     try {
@@ -100,6 +120,89 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoadingModels, setIsLoadingModels] = useState<boolean>(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
 
+  const clearPasswordError = useCallback(() => {
+    setPasswordError(null);
+  }, []);
+
+  const lockAi = useCallback(() => {
+    setIsPasswordUnlocked(false);
+    setAiPassword('');
+    setPasswordError(null);
+    try {
+      localStorage.removeItem(AI_PASSWORD_STORAGE_KEY);
+    } catch {}
+  }, []);
+
+  const unlockAi = useCallback(
+    async (candidatePassword: string): Promise<boolean> => {
+      const trimmed = candidatePassword.trim();
+      if (!trimmed) {
+        setPasswordError('אנא הזן סיסמת גישה.');
+        return false;
+      }
+
+      // 1. First try backend endpoint /api/verify-password
+      try {
+        const res = await fetch('/api/verify-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: trimmed }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.valid) {
+            setAiPassword(trimmed);
+            setIsPasswordUnlocked(true);
+            setPasswordError(null);
+            try {
+              localStorage.setItem(AI_PASSWORD_STORAGE_KEY, trimmed);
+            } catch {}
+            return true;
+          }
+        } else if (res.status === 401) {
+          setPasswordError('סיסמה שגויה. אנא נסה שוב.');
+          return false;
+        }
+      } catch {
+        // Backend unavailable (e.g. static GitHub Pages)
+      }
+
+      // 2. Client-side hash check (for static GitHub Pages)
+      if (passwordHash) {
+        try {
+          const msgBuffer = new TextEncoder().encode(trimmed);
+          const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const hexHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+          if (hexHash === passwordHash) {
+            setAiPassword(trimmed);
+            setIsPasswordUnlocked(true);
+            setPasswordError(null);
+            try {
+              localStorage.setItem(AI_PASSWORD_STORAGE_KEY, trimmed);
+            } catch {}
+            return true;
+          } else {
+            setPasswordError('סיסמה שגויה. אנא נסה שוב.');
+            return false;
+          }
+        } catch (e) {
+          console.warn('Error hashing password in browser:', e);
+        }
+      }
+
+      // If password protection is not required
+      if (!isPasswordRequired) {
+        setIsPasswordUnlocked(true);
+        return true;
+      }
+
+      setPasswordError('סיסמה שגויה. אנא נסה שוב.');
+      return false;
+    },
+    [passwordHash, isPasswordRequired]
+  );
+
   const setSelectedModel = useCallback((model: string) => {
     setSelectedModelState(model);
     setProviderModelPreferences(prev => {
@@ -122,6 +225,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.providers) {
           setProviderStatuses(data.providers);
         }
+        if (data.isPasswordRequired !== undefined) {
+          setIsPasswordRequired(Boolean(data.isPasswordRequired));
+          if (!data.isPasswordRequired) {
+            setIsPasswordUnlocked(true);
+          } else {
+            const saved = localStorage.getItem(AI_PASSWORD_STORAGE_KEY);
+            if (saved) {
+              unlockAi(saved);
+            }
+          }
+        }
         return;
       }
     } catch {
@@ -133,6 +247,20 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const staticRes = await fetch('./data/ai-models.json').catch(() => fetch('./ai-models.json'));
       if (staticRes && staticRes.ok) {
         const staticBundle = await staticRes.json();
+        if (staticBundle?.isPasswordRequired !== undefined) {
+          setIsPasswordRequired(Boolean(staticBundle.isPasswordRequired));
+          if (staticBundle.passwordHash) {
+            setPasswordHash(staticBundle.passwordHash);
+          }
+          if (!staticBundle.isPasswordRequired) {
+            setIsPasswordUnlocked(true);
+          } else {
+            const saved = localStorage.getItem(AI_PASSWORD_STORAGE_KEY);
+            if (saved) {
+              unlockAi(saved);
+            }
+          }
+        }
         if (staticBundle?.providers) {
           const statuses = {} as Record<AiProviderKey, ProviderInfo>;
           let online = false;
@@ -166,7 +294,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {}
 
     setIsAiOnline(false);
-  }, []);
+  }, [unlockAi]);
 
   const fetchModelsForProvider = useCallback(async (providerToFetch?: AiProviderKey) => {
     const p = providerToFetch || selectedProvider;
@@ -311,11 +439,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             activeClubs: Array.from(activeClubs),
             provider: selectedProvider,
             model: selectedModel,
+            password: aiPassword,
           }),
         });
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
+          if (res.status === 401 || errData.requirePassword || errData.invalidPassword) {
+            setIsPasswordUnlocked(false);
+            setPasswordError('סיסמת גישה שגויה או שנדרשת סיסמה לשימוש ב-AI.');
+            throw new Error('נדרשת סיסמת גישה תקינה לשימוש ב-AI.');
+          }
           throw new Error(errData.error || `Server responded with ${res.status}`);
         }
 
@@ -364,7 +498,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
       }
     },
-    [messages, isLoading, activeClubs, selectedProvider, selectedModel]
+    [messages, isLoading, activeClubs, selectedProvider, selectedModel, aiPassword]
   );
 
   const openChat = useCallback(
@@ -407,6 +541,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         closeChat,
         sendMessage,
         clearChat,
+        isPasswordRequired,
+        isPasswordUnlocked,
+        unlockAi,
+        lockAi,
+        passwordError,
+        clearPasswordError,
       }}
     >
       {children}

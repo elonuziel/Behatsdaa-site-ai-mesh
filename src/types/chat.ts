@@ -30,6 +30,13 @@ export interface AiStatusResponse {
   model: string;
   providers: Record<AiProviderKey, ProviderInfo>;
   defaultProvider: AiProviderKey;
+  isPasswordRequired?: boolean;
+}
+
+export interface VerifyPasswordResponse {
+  valid: boolean;
+  error?: string;
+  notRequired?: boolean;
 }
 
 export interface ChatMessage {
@@ -99,4 +106,5 @@ export interface ChatResponse {
   model?: string;
   statusNote?: string;
   error?: string;
+  requirePassword?: boolean;
 }

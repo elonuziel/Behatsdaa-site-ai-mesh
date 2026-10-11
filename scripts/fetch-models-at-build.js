@@ -15,6 +15,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 
@@ -285,8 +286,20 @@ async function main() {
     } catch {}
   }
 
+  const aiPassword = getSecret(['AI_PASSWORD', 'AI_ACCESS_PASSWORD', 'AI_SECRET']);
+  const isPasswordRequired = Boolean(aiPassword && aiPassword.trim().length > 0);
+  const passwordHash = isPasswordRequired
+    ? crypto.createHash('sha256').update(aiPassword.trim()).digest('hex')
+    : undefined;
+
+  if (isPasswordRequired) {
+    console.log('🔒 AI Password protection enabled at build time (SHA-256 hash generated)');
+  }
+
   const result = {
     updatedAt: new Date().toISOString(),
+    isPasswordRequired,
+    ...(passwordHash ? { passwordHash } : {}),
     providers: existingCache.providers || {},
   };
 
