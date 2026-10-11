@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ClubId, CLUBS } from '../types/club';
 
+/**
+ * Formats an ISO date string into a localized dd.mm.yyyy display string, falling back
+ * to a default label when the input is missing or unparseable.
+ */
 export function formatClubDate(dateStr?: string | null): string {
   if (!dateStr) return 'לא זמין';
   try {
@@ -44,6 +48,10 @@ const DEFAULT_LAST_UPDATED_FORMATTED: Record<ClubId, string> = {
 
 const ClubContext = createContext<ClubContextType | undefined>(undefined);
 
+/**
+ * Provides active-club selection state and per-club last-updated timestamps to descendants,
+ * persisting the active club set to localStorage and syncing timestamps from the search index.
+ */
 export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeClubs, setActiveClubs] = useState<Set<ClubId>>(() => {
     try {
@@ -159,6 +167,9 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useClubs = () => {
   const context = useContext(ClubContext);
   if (!context) {
+/**
+ * Hook for accessing the club context, throwing if used outside of a ClubProvider.
+ */
     throw new Error('useClubs must be used within a ClubProvider');
   }
   return context;

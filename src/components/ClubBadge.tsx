@@ -7,6 +7,9 @@ interface ClubBadgeProps {
   className?: string;
 }
 
+/**
+ * Renders a small badge displaying a club's short name, styled with that club's colors.
+ */
 export const ClubBadge: React.FC<ClubBadgeProps> = ({ clubId, size = 'sm', className = '' }) => {
   const config = CLUBS[clubId] || CLUBS.behatsdaa;
 
