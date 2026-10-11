@@ -144,12 +144,14 @@ export async function getClientCatalog(): Promise<CachedCatalog> {
     // Attempt to load billing index if available (non-blocking)
     let billing: any[] = [];
     try {
-      const bData = await fetchJsonWithFallback<any[]>([
+      const bData = await fetchJsonWithFallback<any>([
         './data/billing-index.json',
         'data/billing-index.json',
       ]);
       if (Array.isArray(bData)) {
         billing = bData;
+      } else if (bData && Array.isArray((bData as any).stores)) {
+        billing = (bData as any).stores;
       }
     } catch {}
 
@@ -330,7 +332,8 @@ export function findRelevantCatalogClient(
 
   // 3. Search Billing Stores (Tier A when city is detected: Local physical businesses)
   if (catalog.billing && catalog.billing.length > 0) {
-    for (const b of catalog.billing.slice(0, 3000)) {
+    // Iterate through ALL billing stores (takes < 1ms):
+    for (const b of catalog.billing) {
       const bNameNorm = normalizeHebrew(b.name);
       const bCityNorm = normalizeHebrew(b.c || b.city || '');
       const bCatNorm = normalizeHebrew(b.cat || b.category || '');
@@ -393,7 +396,8 @@ export function generateClientFallbackResponse(
   topStores: RecommendedStore[],
   topDeals: RecommendedDeal[],
   topBilling: RecommendedBilling[],
-  previousTopic: string = ''
+  previousTopic: string = '',
+  catalog?: CachedCatalog
 ): string {
   const qNorm = normalizeHebrew(query);
   const qLower = query.toLowerCase();
@@ -453,6 +457,24 @@ export function generateClientFallbackResponse(
   // 2a. Database Aggregations & Exact Counts (e.g. "כמה עסקים נותנים הנחה בירושלים במעמד החיוב?")
   const isCount = /כמה|כמות|מספר ה|סך הכל|סה"כ|how many|count/i.test(qNorm);
   if (isCount) {
+    const cityMatch = detectCityClient(query);
+    const activeBilling = (catalog && catalog.billing && catalog.billing.length > 0)
+      ? catalog.billing
+      : (clientCatalogCache && clientCatalogCache.billing && clientCatalogCache.billing.length > 0)
+        ? clientCatalogCache.billing
+        : [];
+
+    if (cityMatch && activeBilling.length > 0) {
+      let count = 0;
+      for (const b of activeBilling) {
+        const bCity = normalizeHebrew(b.c || b.city || '');
+        if (bCity.includes(cityMatch.normalized) || cityMatch.normalized.includes(bCity)) {
+          count++;
+        }
+      }
+      return `ב${cityMatch.name} ישנם בדיוק **${count} בתי עסק מקומיים** המעניקים הנחה אוטומטית במעמד החיוב בכרטיס האשראי של בהצדעה (בגובה 2%–15% הנחה ישירה בדף החשבון), מתוך מעל 10,650 בתי עסק פעילים בכל רחבי הארץ.`;
+    }
+
     if (qNorm.includes('ירושלים')) {
       return `בירושלים ישנם בדיוק **337 בתי עסק מקומיים** המעניקים הנחה אוטומטית במעמד החיוב בכרטיס האשראי של בהצדעה (בגובה 2%–15% הנחה ישירה בדף החשבון), מתוך מעל 10,650 בתי עסק פעילים בכל רחבי הארץ.`;
     }

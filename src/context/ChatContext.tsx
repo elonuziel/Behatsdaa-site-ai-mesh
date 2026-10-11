@@ -632,7 +632,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             topStores,
             topDeals,
             topBilling,
-            previousTopic
+            previousTopic,
+            catalog
           );
           if (!apiKey) {
             replyContent = `> ℹ️ **סייר קטלוג מקומי:** לא הוגדר מפתח סודי לספק ${selectedProvider.toUpperCase()} ב-GitHub Secrets (או בהגדרות המפתח 🔑). המענה מבוסס על סריקת קטלוג ההטבות והמועדונים:\n\n` + fallbackText;
