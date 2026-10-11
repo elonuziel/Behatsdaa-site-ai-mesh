@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '../../context/ChatContext';
 import { ChatCards } from './ChatCards';
+import { AiProviderKey } from '../../types/chat';
 import {
   Sparkles,
   Send,
@@ -8,7 +9,8 @@ import {
   Trash2,
   Bot,
   User,
-  Loader2
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 
 interface AiChatModalProps {
@@ -16,11 +18,24 @@ interface AiChatModalProps {
   onSelectDeal: (id: string) => void;
 }
 
+const PROVIDER_OPTIONS: { id: AiProviderKey; name: string; model: string; secret: string }[] = [
+  { id: 'gemini', name: 'Gemini', model: 'gemini-2.5-pro', secret: 'GOOGLE_API_KEY' },
+  { id: 'openai', name: 'OpenAI', model: 'gpt-4o', secret: 'OPENAI_API_KEY' },
+  { id: 'claude', name: 'Claude', model: 'claude-3-5-sonnet', secret: 'ANTHROPIC_API_KEY' },
+  { id: 'groq', name: 'Groq', model: 'llama-3.3-70b', secret: 'GROQ_API_KEY' },
+  { id: 'deepseek', name: 'DeepSeek', model: 'deepseek-chat', secret: 'DEEPSEEK_API_KEY' },
+];
+
 const STARTER_PROMPTS = [
   {
     icon: '🤖',
     title: 'הכרת ה-AI והאתר',
     prompt: 'האם אתה באמת AI, איך אתה עובד ואיך אתה יכול לעזור לי?',
+  },
+  {
+    icon: '🏠',
+    title: 'כלי בית וסירים',
+    prompt: 'איפה הכי משתלם לקנות כלי בית, סירים ומחבתות עם הנחה?',
   },
   {
     icon: '💳',
@@ -38,11 +53,6 @@ const STARTER_PROMPTS = [
     prompt: 'איפה כדאי לקנות נעלי ריצה ובגדי ספורט עם ההנחה הכי גדולה?',
   },
   {
-    icon: '🛒',
-    title: 'סופרמרקט ומזון',
-    prompt: 'איזה רשתות סופרמרקט מכבדות כרטיס נטען או הנחה במעמד החיוב?',
-  },
-  {
     icon: '⚡',
     title: 'Mastercard Day',
     prompt: 'אילו קופונים שווים פעילים החודש ב-Mastercard Day?',
@@ -53,7 +63,20 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
   onSelectStore,
   onSelectDeal,
 }) => {
-  const { messages, isLoading, isChatOpen, closeChat, sendMessage, clearChat } = useChat();
+  const {
+    messages,
+    isLoading,
+    isChatOpen,
+    isAiOnline,
+    activeProvider,
+    activeModel,
+    selectedProvider,
+    setSelectedProvider,
+    providerStatuses,
+    closeChat,
+    sendMessage,
+    clearChat
+  } = useChat();
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -167,17 +190,35 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
         {/* Modal Header */}
         <div className="px-4 sm:px-6 py-3.5 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/25">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md ${
+              isAiOnline === false
+                ? 'bg-amber-600 shadow-amber-600/25'
+                : 'bg-gradient-to-tr from-emerald-600 via-teal-600 to-indigo-600 shadow-emerald-600/25'
+            }`}>
               <Bot className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-black text-sm sm:text-base text-slate-900 dark:text-white">
-                  סייר ההטבות החכם (Gemini AI)
+                  סייר ההטבות והחיסכון
                 </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300/40">
-                  חיפוש בשפה חופשית
-                </span>
+                {isAiOnline === true && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300/40 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    AI מחובר ({activeProvider || 'Gemini'} {activeModel ? `• ${activeModel}` : ''})
+                  </span>
+                )}
+                {isAiOnline === false && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/50 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 text-amber-600" />
+                    מודל לא זמין (מצב קטלוג מקומי)
+                  </span>
+                )}
+                {isAiOnline === null && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                    בודק זמינות AI...
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 מענה מותאם אישית לחברי בהצדעה, UNIQ ו-Mastercard Day
@@ -207,6 +248,52 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Provider Switcher Bar (Direct AI Providers specified by user) */}
+        <div className="px-4 sm:px-6 py-2.5 bg-slate-100/80 dark:bg-slate-800/70 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 overflow-x-auto">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 shrink-0">
+            <span className="font-bold text-slate-700 dark:text-slate-300">ספק AI ישיר:</span>
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+            {PROVIDER_OPTIONS.map(opt => {
+              const isSelected = selectedProvider === opt.id;
+              const isAvailable = providerStatuses?.[opt.id]?.available ?? false;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setSelectedProvider(opt.id)}
+                  className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                    isSelected
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700'
+                  }`}
+                  title={`${opt.name} (${opt.model}) - סוד: ${opt.secret} ${isAvailable ? '(מוגדר ✓)' : '(לא מוגדר)'}`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full shrink-0 ${
+                      isAvailable
+                        ? isSelected ? 'bg-emerald-200' : 'bg-emerald-500'
+                        : isSelected ? 'bg-amber-300' : 'bg-slate-400'
+                    }`}
+                  />
+                  <span>{opt.name}</span>
+                  <span className="text-[10px] opacity-75 font-mono">({opt.model})</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Selected Provider Status Alert if missing API key */}
+        {providerStatuses && providerStatuses[selectedProvider] && !providerStatuses[selectedProvider].available && (
+          <div className="px-4 sm:px-6 py-2 bg-amber-500/10 dark:bg-amber-950/40 border-b border-amber-500/20 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>
+              <strong>{PROVIDER_OPTIONS.find(p => p.id === selectedProvider)?.name}</strong> נבחר — נדרש משתנה סודי <code className="font-mono bg-white/70 dark:bg-slate-900 px-1 py-0.5 rounded text-[11px]">{PROVIDER_OPTIONS.find(p => p.id === selectedProvider)?.secret}</code> ב-GitHub Secrets או ב-.env. (כרגע במצב קטלוג מקומי)
+            </span>
+          </div>
+        )}
 
         {/* Scrollable Conversation Thread */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
@@ -270,6 +357,15 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
 
                   {/* Message Bubble Container */}
                   <div className={`max-w-[85%] sm:max-w-[80%] space-y-2`}>
+                    {!isUser && msg.isAiOnline === false && (
+                      <div className="p-2.5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2 shadow-2xs">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="leading-relaxed">
+                          <span className="font-bold">מודל ה-AI אינו זמין {msg.provider ? `(${msg.provider})` : ''}:</span> התשובה נוצרה במצב לא מקוון מקומי על בסיס קטלוג המערכת בלבד {msg.statusNote ? `— ${msg.statusNote}` : ''}.
+                        </div>
+                      </div>
+                    )}
+
                     <div
                       className={`rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm ${
                         isUser
@@ -280,7 +376,15 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
                       {isUser ? (
                         <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                       ) : (
-                        renderFormattedText(msg.content)
+                        <>
+                          {renderFormattedText(msg.content)}
+                          {msg.isAiOnline === true && (
+                            <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500">
+                              <Sparkles className="w-3 h-3 text-emerald-500" />
+                              <span>מענה חי מ-AI ({msg.provider || 'AI'} {msg.model ? `• ${msg.model}` : ''})</span>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
 

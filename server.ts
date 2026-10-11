@@ -13,50 +13,94 @@ const isProd = process.env.NODE_ENV === 'production';
 
 app.use(express.json({ limit: '10mb' }));
 
-// Dynamically resolve real Gemini API key
-let resolvedApiKey: string | null = null;
+// --- Direct Multi-Model Frameworks (Multiple Secrets, Specify by Provider) ---
+interface ProviderDefinition {
+  id: string;
+  name: string;
+  envKeys: string[];
+  defaultModel: string;
+  baseUrl?: string;
+}
 
-function getGeminiApiKey(): string {
-  if (resolvedApiKey) return resolvedApiKey;
+const DIRECT_AI_PROVIDERS: Record<string, ProviderDefinition> = {
+  openai: {
+    id: 'openai',
+    name: 'OpenAI',
+    envKeys: ['OPENAI_API_KEY'],
+    defaultModel: 'gpt-4o',
+    baseUrl: 'https://api.openai.com/v1',
+  },
+  gemini: {
+    id: 'gemini',
+    name: 'Gemini',
+    envKeys: ['GOOGLE_API_KEY', 'GEMINI_API_KEY'],
+    defaultModel: 'gemini-2.5-pro',
+  },
+  claude: {
+    id: 'claude',
+    name: 'Claude',
+    envKeys: ['ANTHROPIC_API_KEY'],
+    defaultModel: 'claude-3-5-sonnet',
+    baseUrl: 'https://api.anthropic.com/v1',
+  },
+  groq: {
+    id: 'groq',
+    name: 'Groq',
+    envKeys: ['GROQ_API_KEY'],
+    defaultModel: 'llama-3.3-70b',
+    baseUrl: 'https://api.groq.com/openai/v1',
+  },
+  deepseek: {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    envKeys: ['DEEPSEEK_API_KEY'],
+    defaultModel: 'deepseek-chat',
+    baseUrl: 'https://api.deepseek.com',
+  },
+};
 
-  const envKey = process.env.GEMINI_API_KEY;
-  if (envKey && !envKey.startsWith('MY_') && envKey.length > 20) {
-    resolvedApiKey = envKey;
-    return envKey;
+function readEnvSecrets(): Record<string, string> {
+  const result: Record<string, string> = {};
+
+  // Copy valid environment variables (skipping MY_ placeholders)
+  for (const [k, v] of Object.entries(process.env)) {
+    if (v && !v.startsWith('MY_') && v.length > 5) {
+      result[k] = v;
+    }
   }
 
-  // Check .env file if available
   try {
     const envPath = path.resolve(__dirname, '.env');
     if (fs.existsSync(envPath)) {
       const content = fs.readFileSync(envPath, 'utf8');
       for (const line of content.split('\n')) {
-        const match = line.match(/^GEMINI_API_KEY=(.*)$/);
-        if (match) {
-          const val = match[1].trim();
-          if (val && !val.startsWith('MY_') && val.length > 20) {
-            resolvedApiKey = val;
-            console.log('✅ Resolved valid GEMINI_API_KEY from .env file.');
-            return val;
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx > 0) {
+          const key = trimmed.slice(0, eqIdx).trim();
+          const val = trimmed.slice(eqIdx + 1).trim();
+          if (val && !val.startsWith('MY_') && val.length > 8) {
+            result[key] = val;
           }
         }
       }
     }
   } catch {}
 
-  // Check running processes in container for AI Studio injected key
+  // Check /proc for injected keys in AI Studio
   try {
     const pids = fs.readdirSync('/proc').filter(p => /^\d+$/.test(p));
     for (const pid of pids) {
       try {
         const environ = fs.readFileSync(`/proc/${pid}/environ`, 'utf8');
         for (const entry of environ.split('\0')) {
-          if (entry.startsWith('GEMINI_API_KEY=')) {
-            const val = entry.slice('GEMINI_API_KEY='.length);
-            if (val && !val.startsWith('MY_') && val.length > 20) {
-              resolvedApiKey = val;
-              console.log('✅ Resolved valid GEMINI_API_KEY from environment session.');
-              return val;
+          if (entry.includes('=')) {
+            const eqPos = entry.indexOf('=');
+            const k = entry.slice(0, eqPos);
+            const v = entry.slice(eqPos + 1);
+            if (k && v && (!result[k] || result[k].length < 10) && !v.startsWith('MY_') && v.length > 8) {
+              result[k] = v;
             }
           }
         }
@@ -64,19 +108,19 @@ function getGeminiApiKey(): string {
     }
   } catch {}
 
-  return envKey || '';
+  return result;
 }
 
-function getGeminiClient(): GoogleGenAI {
-  const apiKey = getGeminiApiKey();
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
-  });
+function getProviderKey(providerId: string, env: Record<string, string>): string {
+  const def = DIRECT_AI_PROVIDERS[providerId];
+  if (!def) return '';
+  for (const k of def.envKeys) {
+    const val = env[k];
+    if (val && !val.startsWith('MY_') && val.length > 8) {
+      return val;
+    }
+  }
+  return '';
 }
 
 // Cache catalog data in memory for lightning fast retrieval and grounding
@@ -191,7 +235,10 @@ function loadCatalogData() {
             const arr = Array.isArray(v) ? v.map((s: any) => String(s).toLowerCase()) : [];
             syns[keyLower] = [...(syns[keyLower] || []), ...arr];
             for (const item of arr) {
-              syns[item] = [...(syns[item] || []), keyLower];
+              // Avoid polluting high-frequency root words like "בית", "בר", "על" with foreign words
+              if (item !== 'בית' && item !== 'בר' && item !== 'על' && item !== 'יום') {
+                syns[item] = [...(syns[item] || []), keyLower];
+              }
             }
           }
         }
@@ -331,6 +378,52 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
     qNorm.includes('עוד מבצעים') || qNorm.includes('כל המבצעים') || qNorm.includes('הטבות נוספות') ||
     qNorm.includes('שאר ההטבות') || qNorm.includes('מבצעים ואפשרויות');
 
+  // Intent detection for Homeware / Kitchenware / House Goods
+  const isHomewareQuery =
+    qNorm.includes('כלי בית') ||
+    qNorm.includes('כלי מטבח') ||
+    qNorm.includes('כלי בישול') ||
+    qNorm.includes('מוצרי בית') ||
+    qNorm.includes('הכל לבית') ||
+    qNorm.includes('סירים') ||
+    qNorm.includes('סיר') ||
+    qNorm.includes('מחבת') ||
+    qNorm.includes('מחבתות') ||
+    qNorm.includes('סכום') ||
+    qNorm.includes('סכו״ם') ||
+    qNorm.includes('סכו"ם') ||
+    qNorm.includes('מצעים') ||
+    qNorm.includes('מגבות') ||
+    qNorm.includes('עיצוב הבית') ||
+    qNorm.includes('טקסטיל לבית') ||
+    qNorm.includes('בישול') ||
+    qNorm.includes('אפייה') ||
+    qNorm.includes('homeware') ||
+    qNorm.includes('kitchenware') ||
+    qNorm.includes('cookware') ||
+    qNorm.includes('home decor');
+
+  // Curated prominent homeware and kitchenware brands
+  const HOME_BRANDS = [
+    'סולתם', 'ורדינון', 'נעמן', 'פורצלן', 'פוקס הום', 'גולף אנד קו', 'ace', 'הום סנטר',
+    'ארקוסטיל', 'arcosteel', 'קיטן', 'kitan', 'הום סטייל', 'הום דקור', 'נאוטיקה הום',
+    'נעמן ורדינון', 'cotton club', 'סולתם אונליין', 'פוקס הום אונליין'
+  ];
+
+  // Helper to reject theaters, hotels, museums and eateries when searching for goods/homeware
+  const isIrrelevantVenueForGoods = (name: string, category: string) => {
+    const text = (name + ' ' + category).toLowerCase();
+    return (
+      text.includes('תיאטרון') || text.includes('בית לסין') || text.includes('הצגות') ||
+      text.includes('מלון') || text.includes('אירוח') || text.includes('צימר') || text.includes('נופש') ||
+      text.includes('מוזיאון') || text.includes('השומר') || text.includes('זבוטינסקי') || text.includes('הגדודים') ||
+      text.includes('בית לנגרים') || text.includes('נגרים') || text.includes('קייקי') ||
+      text.includes('הולמס פלייס') || text.includes('holmes place') || text.includes('פילאטיס') || text.includes('כושר') ||
+      (text.includes('מסעדות ובתי קפה') && !text.includes('סולתם') && !text.includes('נעמן')) ||
+      text.includes('ביסטרו') || text.includes('casa bella') || text.includes('mila house') || text.includes('ארצי deli')
+    );
+  };
+
   const rawWords = qNorm.split(/\s+/).filter(w => w.length > 1);
   const keywords = rawWords.filter(w => !HEBREW_STOP_WORDS.has(w));
   const activeWords = keywords.length > 0 ? keywords : rawWords;
@@ -380,11 +473,35 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
       (s.cards || []).map((c: any) => typeof c === 'string' ? c : c.card_name || '').join(' ')
     );
 
+    // Reject venues when user wants homeware / kitchen goods
+    if (isHomewareQuery && isIrrelevantVenueForGoods(s.name, s.category || '')) {
+      continue;
+    }
+
     let score = 0;
     if (nameNorm.includes(qNorm)) score += 80;
     if (catNorm.includes(qNorm)) score += 35;
 
+    // Prioritize and boost genuine homeware stores
+    if (isHomewareQuery) {
+      if (catNorm.includes('הכל לבית') || catNorm.includes('לבית ולגן') || catNorm.includes('מוצרי חשמל')) {
+        score += 70;
+      }
+      for (const hb of HOME_BRANDS) {
+        if (nameNorm.includes(normalizeHebrew(hb))) {
+          score += 160;
+        }
+      }
+    }
+
     for (const w of expandedWords) {
+      // Disambiguate standalone Hebrew root "בית" (home/house) so it doesn't falsely match random businesses
+      if (w === 'בית') {
+        if (catNorm.includes('הכל לבית') || catNorm.includes('לבית ולגן')) {
+          score += 25;
+        }
+        continue;
+      }
       if (matchesToken(nameNorm, w)) score += 25;
       if (matchesToken(catNorm, w)) score += 12;
       if (matchesToken(cardsNorm, w)) score += 6;
@@ -426,6 +543,11 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
       continue;
     }
 
+    // Reject venues when user wants homeware / kitchen goods
+    if (isHomewareQuery && isIrrelevantVenueForGoods(d.title, d.category || '')) {
+      continue;
+    }
+
     // Exclude water sports / gym when looking for eSIM
     if (isEsimTopic) {
       const dTitle = d.title || '';
@@ -447,7 +569,25 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
     if (suppNorm.includes(qNorm)) score += 45;
     if (catNorm.includes(qNorm)) score += 20;
 
+    // Prioritize genuine cookware/bedding/homeware vouchers
+    if (isHomewareQuery) {
+      if (catNorm.includes('הכל לבית') || catNorm.includes('לבית ולגן')) {
+        score += 70;
+      }
+      for (const hb of HOME_BRANDS) {
+        if (titleNorm.includes(normalizeHebrew(hb)) || suppNorm.includes(normalizeHebrew(hb))) {
+          score += 160;
+        }
+      }
+    }
+
     for (const w of expandedWords) {
+      if (w === 'בית') {
+        if (catNorm.includes('הכל לבית') || catNorm.includes('לבית ולגן')) {
+          score += 25;
+        }
+        continue;
+      }
       if (matchesToken(titleNorm, w)) score += 25;
       if (matchesToken(suppNorm, w)) score += 25;
       if (matchesToken(tagsNorm, w)) score += 30; // Tags are curated and highly accurate
@@ -493,6 +633,10 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
       const addrNorm = normalizeHebrew(b.full_address || b.address || '');
       const descNorm = normalizeHebrew(b.description || '');
 
+      if (isHomewareQuery && isIrrelevantVenueForGoods(b.name, b.category || '')) {
+        continue;
+      }
+
       if (isEsimTopic && isWaterOrFitness(nameNorm)) {
         continue;
       }
@@ -502,7 +646,17 @@ function findRelevantCatalog(query: string, activeClubs?: string[], conversation
       if (catNorm.includes(qNorm)) score += 35;
       if (cityNorm && cityNorm.includes(qNorm)) score += 40;
 
+      if (isHomewareQuery) {
+        if (catNorm.includes('בית') || catNorm.includes('מטבח') || catNorm.includes('חשמל') || catNorm.includes('עיצוב')) {
+          score += 45;
+        }
+      }
+
       for (const w of expandedWords) {
+        if (w === 'בית') {
+          if (catNorm.includes('בית') || catNorm.includes('מטבח')) score += 15;
+          continue;
+        }
         if (matchesToken(nameNorm, w)) score += 25;
         if (cityNorm && matchesToken(cityNorm, w)) score += 18;
         if (catNorm && matchesToken(catNorm, w)) score += 12;
@@ -553,6 +707,10 @@ function generateFollowUps(query: string, stores: StoreItem[], deals: DealItem[]
   } else if (qLower.includes('מלון') || qLower.includes('נופש') || qLower.includes('ספא') || qLower.includes('אילת')) {
     suggestions.push('הראה לי מבצעי ספא במלונות עם הנחה');
     suggestions.push('איזה שוברים יש לאטרקציות ופעילויות למשפחה?');
+  } else if (qLower.includes('בית') || qLower.includes('סיר') || qLower.includes('מטבח') || qLower.includes('מחבת') || qLower.includes('מצעים') || qLower.includes('כלי')) {
+    suggestions.push('איך לממש 20% הנחה על כלי בית בסולתם, נעמן ופוקס הום?');
+    suggestions.push('האם ארנק בהצדעה מכבד את ורדינון וגולף אנד קו?');
+    suggestions.push('אילו מבצעים יש למארזי סירים ומחבתות?');
   } else if (qLower.includes('מאסטרקארד') || qLower.includes('mastercard')) {
     suggestions.push('אילו קופונים פעילים ב-10 לחודש ב-Mastercard Day?');
     suggestions.push('איך מקבלים 50 ₪ הנחה ב-Terminal X?');
@@ -565,10 +723,10 @@ function generateFollowUps(query: string, stores: StoreItem[], deals: DealItem[]
   return suggestions.slice(0, 3);
 }
 
-// POST /api/chat: Multi-turn chat with Gemini
+// POST /api/chat: Multi-turn chat with AI (Multi-model frameworks with direct provider execution)
 app.post('/api/chat', async (req, res) => {
   try {
-    const { messages, activeClubs, model = 'gemini-3.1-flash-lite' } = req.body;
+    const { messages, activeClubs, provider: requestedProvider = 'gemini' } = req.body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'Messages array is required.' });
@@ -674,60 +832,245 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
         parts: [{ text: m.content.trim() }],
       }));
 
+    const env = readEnvSecrets();
+    const targetProviderKey = (typeof requestedProvider === 'string' && DIRECT_AI_PROVIDERS[requestedProvider])
+      ? requestedProvider
+      : 'gemini';
+    const providerDef = DIRECT_AI_PROVIDERS[targetProviderKey];
+    const apiKey = getProviderKey(targetProviderKey, env);
+
     let replyText = '';
-    const activeKey = getGeminiApiKey();
+    let isAiOnline = false;
+    let usedProvider = providerDef.name;
+    let usedModel = providerDef.defaultModel;
+    let statusNote = '';
 
-    // Validate requested model parameter against whitelist
-    const requestedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
-      ? model
-      : 'gemini-3.1-flash-lite';
+    if (!apiKey) {
+      statusNote = `משתנה סודי ${providerDef.envKeys.join(' או ')} אינו מוגדר ב-Secrets של GitHub או ב-.env עבור ספק ${providerDef.name}.`;
+      replyText = `> ⚠️ **מודל אינו זמין (ספק ${providerDef.name}):** לא נמצא מפתח סודי \`${providerDef.envKeys[0]}\` ב-GitHub Secrets או בקובץ \`.env\`. התשובה להלן נוצרה במצב לא מקוון מקומי מתוך קטלוג המערכת בלבד:\n\n` +
+        generateFallbackResponse(userPromptText, topStores, topDeals, topBilling, previousTopic);
+    } else {
+      // Direct provider execution without middleman
+      if (targetProviderKey === 'gemini') {
+        const candidateModels = [
+          env.GOOGLE_MODEL || env.GEMINI_MODEL || 'gemini-2.5-pro',
+          'gemini-3.8-flash',
+          'gemini-3.1-flash-lite',
+          'gemini-1.5-pro',
+          'gemini-1.5-flash',
+        ].filter((v, i, a) => a.indexOf(v) === i);
 
-    if (activeKey && !activeKey.startsWith('MY_')) {
-      // Prioritize confirmed high-speed working models: gemini-3.1-flash-lite & gemini-3.5-flash
-      const candidateModels = [
-        'gemini-3.1-flash-lite',
-        'gemini-3.5-flash',
-        requestedModel,
-        'gemini-3.8-flash'
-      ].filter((v, i, a) => a.indexOf(v) === i && ALLOWED_MODELS.has(v));
+        const ai = new GoogleGenAI({
+          apiKey,
+          httpOptions: { headers: { 'User-Agent': 'aistudio-build' } },
+        });
 
-      let success = false;
-      const ai = getGeminiClient();
+        for (const mName of candidateModels) {
+          try {
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error(`Timeout for ${mName}`)), 6000)
+            );
 
-      for (const mName of candidateModels) {
-        try {
-          const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`Timeout for ${mName}`)), 15000)
-          );
-
-          const aiPromise = ai.models.generateContent({
-            model: mName,
-            contents,
-            config: {
-              systemInstruction,
-              temperature: 0.7,
-              thinkingConfig: {
-                thinkingBudget: 0,
+            const aiPromise = ai.models.generateContent({
+              model: mName,
+              contents,
+              config: {
+                systemInstruction,
+                temperature: 0.7,
               },
-            },
-          });
+            });
 
-          const response = await Promise.race([aiPromise, timeoutPromise]);
-          if (response && response.text) {
-            replyText = response.text;
-            success = true;
-            break;
+            const response = await Promise.race([aiPromise, timeoutPromise]);
+            if (response && response.text) {
+              replyText = response.text;
+              isAiOnline = true;
+              usedProvider = 'Gemini';
+              usedModel = mName;
+              break;
+            }
+          } catch (geminiError: any) {
+            console.warn(`Gemini model ${mName} call failed (${geminiError?.message || geminiError}), trying next candidate...`);
           }
-        } catch (geminiError: any) {
-          console.warn(`Model ${mName} call failed (${geminiError?.message || geminiError}), trying next candidate...`);
+        }
+      } else if (targetProviderKey === 'openai') {
+        try {
+          const openAiMessages = [
+            { role: 'system', content: systemInstruction },
+            ...messages.filter(m => m && m.content).map(m => ({
+              role: m.role === 'assistant' ? 'assistant' : 'user',
+              content: m.content,
+            })),
+          ];
+          const modelName = env.OPENAI_MODEL || 'gpt-4o';
+          const resAI = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: modelName,
+              messages: openAiMessages,
+              temperature: 0.7,
+              max_tokens: 1500,
+            }),
+            signal: AbortSignal.timeout(20000),
+          });
+          if (resAI.ok) {
+            const json: any = await resAI.json();
+            const text = json.choices?.[0]?.message?.content;
+            if (text) {
+              replyText = text;
+              isAiOnline = true;
+              usedProvider = 'OpenAI';
+              usedModel = modelName;
+            }
+          } else {
+            const errBody = await resAI.text();
+            console.warn(`OpenAI direct call returned ${resAI.status}: ${errBody}`);
+            statusNote = `OpenAI API returned error ${resAI.status}`;
+          }
+        } catch (err: any) {
+          console.warn('OpenAI direct call failed:', err?.message || err);
+          statusNote = err?.message || 'Network error';
+        }
+      } else if (targetProviderKey === 'claude') {
+        try {
+          const anthropicMessages = messages.filter(m => m && m.content).map(m => ({
+            role: m.role === 'assistant' ? 'assistant' : 'user',
+            content: m.content,
+          }));
+          const modelName = env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
+          const resAI = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify({
+              model: modelName,
+              system: systemInstruction,
+              messages: anthropicMessages,
+              max_tokens: 1500,
+              temperature: 0.7,
+            }),
+            signal: AbortSignal.timeout(20000),
+          });
+          if (resAI.ok) {
+            const json: any = await resAI.json();
+            const text = json.content?.[0]?.text;
+            if (text) {
+              replyText = text;
+              isAiOnline = true;
+              usedProvider = 'Claude';
+              usedModel = 'claude-3-5-sonnet';
+            }
+          } else {
+            const errBody = await resAI.text();
+            console.warn(`Anthropic direct call returned ${resAI.status}: ${errBody}`);
+            statusNote = `Anthropic API error ${resAI.status}`;
+          }
+        } catch (err: any) {
+          console.warn('Claude direct call failed:', err?.message || err);
+          statusNote = err?.message || 'Network error';
+        }
+      } else if (targetProviderKey === 'groq') {
+        try {
+          const groqMessages = [
+            { role: 'system', content: systemInstruction },
+            ...messages.filter(m => m && m.content).map(m => ({
+              role: m.role === 'assistant' ? 'assistant' : 'user',
+              content: m.content,
+            })),
+          ];
+          const modelName = env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+          const resAI = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: modelName,
+              messages: groqMessages,
+              temperature: 0.7,
+              max_tokens: 1500,
+            }),
+            signal: AbortSignal.timeout(20000),
+          });
+          if (resAI.ok) {
+            const json: any = await resAI.json();
+            const text = json.choices?.[0]?.message?.content;
+            if (text) {
+              replyText = text;
+              isAiOnline = true;
+              usedProvider = 'Groq';
+              usedModel = 'llama-3.3-70b';
+            }
+          } else {
+            const errBody = await resAI.text();
+            console.warn(`Groq direct call returned ${resAI.status}: ${errBody}`);
+            statusNote = `Groq API error ${resAI.status}`;
+          }
+        } catch (err: any) {
+          console.warn('Groq direct call failed:', err?.message || err);
+          statusNote = err?.message || 'Network error';
+        }
+      } else if (targetProviderKey === 'deepseek') {
+        try {
+          const deepseekMessages = [
+            { role: 'system', content: systemInstruction },
+            ...messages.filter(m => m && m.content).map(m => ({
+              role: m.role === 'assistant' ? 'assistant' : 'user',
+              content: m.content,
+            })),
+          ];
+          const modelName = env.DEEPSEEK_MODEL || 'deepseek-chat';
+          const resAI = await fetch('https://api.deepseek.com/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: modelName,
+              messages: deepseekMessages,
+              temperature: 0.7,
+              max_tokens: 1500,
+            }),
+            signal: AbortSignal.timeout(20000),
+          });
+          if (resAI.ok) {
+            const json: any = await resAI.json();
+            const text = json.choices?.[0]?.message?.content;
+            if (text) {
+              replyText = text;
+              isAiOnline = true;
+              usedProvider = 'DeepSeek';
+              usedModel = 'deepseek-chat';
+            }
+          } else {
+            const errBody = await resAI.text();
+            console.warn(`DeepSeek direct call returned ${resAI.status}: ${errBody}`);
+            statusNote = `DeepSeek API error ${resAI.status}`;
+          }
+        } catch (err: any) {
+          console.warn('DeepSeek direct call failed:', err?.message || err);
+          statusNote = err?.message || 'Network error';
         }
       }
 
-      if (!success || !replyText) {
-        replyText = generateFallbackResponse(userPromptText, topStores, topDeals, topBilling, previousTopic);
+      if (!isAiOnline || !replyText) {
+        isAiOnline = false;
+        usedProvider = providerDef.name;
+        usedModel = 'offline';
+        if (!statusNote) {
+          statusNote = `שגיאת תקשורת עם שרתי ${providerDef.name}. המענה נוצר מקומית מתוך הקטלוג.`;
+        }
+        replyText = `> ⚠️ **שגיאת תקשורת עם ${providerDef.name}:** המענה נוצר במצב לא מקוון מקומי על סמך קטלוג המערכת.\n\n` +
+          generateFallbackResponse(userPromptText, topStores, topDeals, topBilling, previousTopic);
       }
-    } else {
-      replyText = generateFallbackResponse(userPromptText, topStores, topDeals, topBilling, previousTopic);
     }
 
     // Keep deals and stores if they have genuine relevance
@@ -739,6 +1082,10 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
 
     return res.json({
       reply: replyText,
+      isAiOnline,
+      provider: usedProvider,
+      model: usedModel,
+      statusNote,
       recommendedStores: filteredStores.map(s => ({
         id: s.id,
         name: s.name,
@@ -786,6 +1133,34 @@ ${catalogContext ? `פריטים שנמצאו בקטלוג המערכת עבור
       details: error?.message || 'Unknown error',
     });
   }
+});
+
+// GET /api/ai-status: Health check for current AI providers and secrets
+app.get('/api/ai-status', (req, res) => {
+  const env = readEnvSecrets();
+  const providerStatuses: Record<string, any> = {};
+
+  for (const [id, def] of Object.entries(DIRECT_AI_PROVIDERS)) {
+    const key = getProviderKey(id, env);
+    providerStatuses[id] = {
+      id,
+      name: def.name,
+      model: def.defaultModel,
+      requiredSecret: def.envKeys[0],
+      available: Boolean(key),
+    };
+  }
+
+  // Find first available or default to gemini
+  const availableProvider = Object.keys(providerStatuses).find(k => providerStatuses[k].available) || 'gemini';
+
+  return res.json({
+    isAiOnline: Boolean(providerStatuses[availableProvider]?.available),
+    provider: providerStatuses[availableProvider]?.name,
+    model: providerStatuses[availableProvider]?.model,
+    providers: providerStatuses,
+    defaultProvider: availableProvider,
+  });
 });
 
 // Fallback intelligent responder when offline or API key missing
@@ -1070,7 +1445,11 @@ Regarding **eSIM and global travel data packages**, Mastercard Day actually offe
 אפשר לחפש רשתות (מגה ספורט, פוקס, טרמינל X, קולומביה), תחומים (נעליים, פיצה, מלונות, מוסכים, שיניים, eSIM), או לשאול אותי שאלה חופשית על המועדונים וההטבות!`;
   }
 
-  let text = `מצאתי מספר אפשרויות מצוינות בקטלוג עבור **"${query}"**:\n\n`;
+  let text = `> ⚠️ **שים לב:** מודל ה-AI החי אינו מחובר כרגע (אין מפתח פעיל ב-Secrets). התשובה המוצגת מבוססת על אינדקס הקטלוג המקומי בלבד.\n\nמצאתי מספר אפשרויות מצוינות בקטלוג עבור **"${query}"**:\n\n`;
+
+  if (qNorm.includes('כלי בית') || qNorm.includes('סירים') || qNorm.includes('מטבח') || qNorm.includes('מחבת')) {
+    text += `💡 **המלצת מומחה לחיסכון בכלי בית:** ברשתות המובילות (**סולתם, נעמן, ורדינון, פוקס הום וגולף אנד קו**) ההנחה המשתלמת ביותר היא שימוש ב**ארנק נטען בהצדעה של 20%** או **ארנק UNIQ של 15%** שמאפשרים רכישה מוזלת הן בסניפים והן באתרי האונליין!\n\n`;
+  }
 
   if (stores.length > 0) {
     text += `### 🏢 רשתות ומותגים מובילים:\n`;

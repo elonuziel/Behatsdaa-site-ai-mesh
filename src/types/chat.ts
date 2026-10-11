@@ -1,3 +1,22 @@
+export type AiProviderKey = 'gemini' | 'openai' | 'claude' | 'groq' | 'deepseek';
+
+export interface ProviderInfo {
+  id: AiProviderKey;
+  name: string;
+  model: string;
+  requiredSecret: string;
+  available: boolean;
+  codeSnippet: string;
+}
+
+export interface AiStatusResponse {
+  isAiOnline: boolean;
+  provider: string;
+  model: string;
+  providers: Record<AiProviderKey, ProviderInfo>;
+  defaultProvider: AiProviderKey;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -7,6 +26,10 @@ export interface ChatMessage {
   recommendedDeals?: RecommendedDeal[];
   recommendedBilling?: RecommendedBilling[];
   followUps?: string[];
+  isAiOnline?: boolean;
+  provider?: string;
+  model?: string;
+  statusNote?: string;
 }
 
 export interface RecommendedBilling {
@@ -56,5 +79,9 @@ export interface ChatResponse {
   recommendedDeals?: RecommendedDeal[];
   recommendedBilling?: RecommendedBilling[];
   suggestedFollowUps?: string[];
+  isAiOnline?: boolean;
+  provider?: string;
+  model?: string;
+  statusNote?: string;
   error?: string;
 }
