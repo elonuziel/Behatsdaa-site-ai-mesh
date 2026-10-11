@@ -66,9 +66,10 @@ if (fs.existsSync(uniqScrapedPath)) {
 }
 
 let mcDealsList = [];
+let mcRaw = null;
 const mcDealsPath = path.join(sourcesDir, 'mastercard', 'deals.json');
 if (fs.existsSync(mcDealsPath)) {
-  const mcRaw = JSON.parse(fs.readFileSync(mcDealsPath, 'utf-8'));
+  mcRaw = JSON.parse(fs.readFileSync(mcDealsPath, 'utf-8'));
   mcDealsList = mcRaw.deals || [];
 }
 
@@ -783,9 +784,16 @@ unifiedStores.forEach(s => {
 });
 
 // 5. Write Harmonized Master Files
+const clubsLastUpdated = {
+  behatsdaa: behStoresRaw?.metadata?.last_updated || '2026-10-07T03:53:21Z',
+  uniq: uniqRec?.metadata?.last_updated || '2026-10-11T09:47:04Z',
+  mastercard: mcRaw?.metadata?.last_updated || '2026-10-11T12:37:18Z'
+};
+
 const updatedStoresJson = JSON.stringify({
   metadata: {
     last_updated: new Date().toISOString(),
+    clubs_last_updated: clubsLastUpdated,
     total_stores: unifiedStores.length,
     clubs: ['behatsdaa', 'uniq', 'mastercard']
   },
@@ -795,6 +803,7 @@ const updatedStoresJson = JSON.stringify({
 const updatedDealsJson = JSON.stringify({
   metadata: {
     last_updated: new Date().toISOString(),
+    clubs_last_updated: clubsLastUpdated,
     total_deals: unifiedDeals.length,
     clubs: ['behatsdaa', 'uniq', 'mastercard']
   },

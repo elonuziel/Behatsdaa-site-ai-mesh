@@ -10,6 +10,8 @@ export interface ClubConfig {
   activeBg: string;
   accentColor: string;
   description: string;
+  lastUpdated: string;
+  lastUpdatedFormatted: string;
 }
 
 export const CLUBS: Record<ClubId, ClubConfig> = {
@@ -22,7 +24,9 @@ export const CLUBS: Record<ClubId, ClubConfig> = {
     borderClass: 'border-emerald-300 dark:border-emerald-700',
     activeBg: 'bg-emerald-600 text-white border-emerald-600',
     accentColor: '#10b981',
-    description: 'הטבות וארנקים נטענים לחיילי מילואים ומשוחררים'
+    description: 'הטבות וארנקים נטענים לחיילי מילואים ומשוחררים',
+    lastUpdated: '2026-10-07T03:53:21Z',
+    lastUpdatedFormatted: '07.10.2026'
   },
   uniq: {
     id: 'uniq',
@@ -33,7 +37,9 @@ export const CLUBS: Record<ClubId, ClubConfig> = {
     borderClass: 'border-purple-300 dark:border-purple-700',
     activeBg: 'bg-purple-600 text-white border-purple-600',
     accentColor: '#8b5cf6',
-    description: 'מועדון האקדמאים - 15% הנחה בטעינה ומבצעי רשת'
+    description: 'מועדון האקדמאים - 15% הנחה בטעינה ומבצעי רשת',
+    lastUpdated: '2026-10-11T09:47:04Z',
+    lastUpdatedFormatted: '11.10.2026'
   },
   mastercard: {
     id: 'mastercard',
@@ -44,6 +50,8 @@ export const CLUBS: Record<ClubId, ClubConfig> = {
     borderClass: 'border-amber-300 dark:border-amber-700',
     activeBg: 'bg-amber-500 text-white border-amber-500',
     accentColor: '#f59e0b',
-    description: 'חגיגת קניות והנחות בלעדיות ב-10 לכל חודש'
+    description: 'חגיגת קניות והנחות בלעדיות ב-10 לכל חודש',
+    lastUpdated: '2026-10-11T12:37:18Z',
+    lastUpdatedFormatted: '11.10.2026'
   }
 };

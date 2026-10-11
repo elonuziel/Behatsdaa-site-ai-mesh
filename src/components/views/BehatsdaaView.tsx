@@ -11,6 +11,7 @@ import { BillingView } from '../BillingView';
 const MapView = React.lazy(() => import('../MapView').then(m => ({ default: m.MapView })));
 import { WalletsView } from '../WalletsView';
 import { ViewModeToggle } from '../ViewModeToggle';
+import { ClubLastUpdatedBadge } from '../ClubLastUpdatedBadge';
 import { normalizeHebrew } from '../../utils/hebrew';
 import { expandSmartTerms, matchesCategory } from '../../hooks/useMiniSearch';
 import {
@@ -178,6 +179,16 @@ export const BehatsdaaView: React.FC<BehatsdaaViewProps> = ({
   if (subTab === 'deals') {
     return (
       <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pb-0.5">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+              מועדון בהצדעה — שוברים ומבצעים
+            </h2>
+          </div>
+          <ClubLastUpdatedBadge clubId="behatsdaa" variant="header" />
+        </div>
+
         <CategoryChips
           categories={behDealCategories}
           selectedCategory={selectedCategory}
@@ -274,6 +285,10 @@ export const BehatsdaaView: React.FC<BehatsdaaViewProps> = ({
             </button>
           </div>
         )}
+
+        <div className="pt-4 border-t border-slate-200/60 dark:border-slate-800/60">
+          <ClubLastUpdatedBadge clubId="behatsdaa" variant="footer" />
+        </div>
       </div>
     );
   }
@@ -281,6 +296,16 @@ export const BehatsdaaView: React.FC<BehatsdaaViewProps> = ({
   // default subTab === 'stores'
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 pb-0.5">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+            מועדון בהצדעה — רשתות וארנקים נטענים
+          </h2>
+        </div>
+        <ClubLastUpdatedBadge clubId="behatsdaa" variant="header" />
+      </div>
+
       <CategoryChips
         categories={behStoreCategories}
         selectedCategory={selectedCategory}
@@ -413,6 +438,10 @@ export const BehatsdaaView: React.FC<BehatsdaaViewProps> = ({
           </button>
         </div>
       )}
+
+      <div className="pt-4 border-t border-slate-200/60 dark:border-slate-800/60">
+        <ClubLastUpdatedBadge clubId="behatsdaa" variant="footer" />
+      </div>
     </div>
   );
 };

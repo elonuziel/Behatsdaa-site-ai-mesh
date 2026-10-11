@@ -501,6 +501,11 @@ const searchIndexDeals = allDeals.map(d => {
 const searchIndexPayload = {
   metadata: {
     last_updated: storesRaw.metadata?.last_updated || new Date().toISOString(),
+    clubs_last_updated: storesRaw.metadata?.clubs_last_updated || {
+      behatsdaa: '2026-10-07T03:53:21Z',
+      uniq: '2026-10-11T09:47:04Z',
+      mastercard: '2026-10-11T12:37:18Z'
+    },
     total_stores: allStores.length,
     total_deals: allDeals.length,
     total_billing: allBilling.length

@@ -7,7 +7,11 @@ import { SearchProvider } from './context/SearchContext';
 import { FavoritesProvider } from './context/FavoritesContext';
 import { ToastProvider } from './context/ToastContext';
 import { ChatProvider } from './context/ChatContext';
+import { registerServiceWorker } from './registerServiceWorker';
 import './index.css';
+
+// Register offline caching service worker
+registerServiceWorker();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

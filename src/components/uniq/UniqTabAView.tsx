@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ViewModeToggle } from '../ViewModeToggle';
 import { useSearch } from '../../context/SearchContext';
+import { ClubLastUpdatedBadge } from '../ClubLastUpdatedBadge';
 import {
   CreditCard,
   Search,
