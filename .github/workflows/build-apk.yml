@@ -36,6 +36,7 @@ jobs:
       - name: Build web application static assets
         env:
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: npm run build
 
       - name: Sync Capacitor Android platform
@@ -49,9 +50,9 @@ jobs:
       - name: Build signed Android release APK
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ORG_GRADLE_PROJECT_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ORG_GRADLE_PROJECT_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ORG_GRADLE_PROJECT_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_RELEASE_STORE_PASSWORD: ${{ secrets.ORG_GRADLE_PROJECT_RELEASE_STORE_PASSWORD }}
+          ORG_GRADLE_PROJECT_RELEASE_KEY_ALIAS: ${{ secrets.ORG_GRADLE_PROJECT_RELEASE_KEY_ALIAS }}
+          ORG_GRADLE_PROJECT_RELEASE_KEY_PASSWORD: ${{ secrets.ORG_GRADLE_PROJECT_RELEASE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
           for secret in ANDROID_KEYSTORE_BASE64 ORG_GRADLE_PROJECT_RELEASE_STORE_PASSWORD ORG_GRADLE_PROJECT_RELEASE_KEY_ALIAS ORG_GRADLE_PROJECT_RELEASE_KEY_PASSWORD; do
@@ -63,7 +64,7 @@ jobs:
           umask 077
           export ORG_GRADLE_PROJECT_RELEASE_STORE_FILE="$(mktemp "$RUNNER_TEMP/android-release-XXXXXX.keystore")"
           trap 'rm -f "$ORG_GRADLE_PROJECT_RELEASE_STORE_FILE"' EXIT
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ORG_GRADLE_PROJECT_RELEASE_STORE_FILE"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" \vert{} base64 --decode > "$ORG_GRADLE_PROJECT_RELEASE_STORE_FILE"
           unset ANDROID_KEYSTORE_BASE64
           cd android
           ./gradlew assembleRelease --no-daemon
