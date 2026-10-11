@@ -1,6 +1,11 @@
 {
   "metadata": {
-    "last_updated": "2026-10-11T17:02:26.985Z",
+    "last_updated": "2026-10-11T18:14:04.643Z",
+    "clubs_last_updated": {
+      "behatsdaa": "2026-10-07T03:53:21.245472+00:00",
+      "uniq": "2026-10-11T09:47:04.482238Z",
+      "mastercard": "2026-10-11T12:37:18.115736+00:00"
+    },
     "total_stores": 1041,
     "clubs": [
       "behatsdaa",

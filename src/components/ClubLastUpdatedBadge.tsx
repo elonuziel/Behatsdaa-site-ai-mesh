@@ -1,7 +1,7 @@
 import React from 'react';
 import { useClubs } from '../context/ClubContext';
 import { ClubId, CLUBS } from '../types/club';
-import { Clock, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Clock, RefreshCw } from 'lucide-react';
 
 interface ClubLastUpdatedBadgeProps {
   clubId?: ClubId;
