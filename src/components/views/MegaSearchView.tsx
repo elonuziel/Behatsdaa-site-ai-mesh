@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { UnifiedStore } from '../../types/store';
 import { UnifiedDeal } from '../../types/deal';
 import { useSearch } from '../../context/SearchContext';
+import { useChat } from '../../context/ChatContext';
 import { StoreCard } from '../StoreCard';
 import { DealCard } from '../DealCard';
 import { TableView } from '../TableView';
@@ -18,7 +19,7 @@ import {
   Tag,
   Sparkles,
   Search,
-  SlidersHorizontal
+  Bot
 } from 'lucide-react';
 
 interface MegaSearchViewProps {
@@ -71,6 +72,8 @@ export const MegaSearchView: React.FC<MegaSearchViewProps> = ({
     setSearchInDesc
   } = useSearch();
 
+  const { openChat } = useChat();
+
   const [contentTypeFilter, setContentTypeFilter] = useState<'all' | 'stores' | 'deals'>('all');
   const [visibleStoreLimit, setVisibleStoreLimit] = useState(36);
   const [visibleDealLimit, setVisibleDealLimit] = useState(36);
@@ -99,48 +102,107 @@ export const MegaSearchView: React.FC<MegaSearchViewProps> = ({
     );
   }
 
+  // CLEAN MODE: When no query is typed, show ONLY minimal search & AI search
+  if (uiDensity === 'clean' && !query.trim()) {
+    return (
+      <div className="max-w-2xl mx-auto py-12 sm:py-20 px-4 text-center space-y-7 animate-in fade-in duration-200">
+        <div className="space-y-2.5">
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+            חיפוש הטבות
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            חיפוש מהיר או שיחה עם סייר ה-AI בכל מועדוני הצרכנות
+          </p>
+        </div>
+
+        {/* Minimalist Search Box */}
+        <div className="relative max-w-xl mx-auto">
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="חפש רשת, הטבה או מוצר (למשל: דלק, פיצה, KSP)..."
+            autoFocus
+            className="w-full bg-white dark:bg-slate-850 border-2 border-slate-200 dark:border-slate-750 focus:border-emerald-500 dark:focus:border-emerald-500 rounded-2xl px-5 py-4 pl-12 text-sm sm:text-base text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm focus:outline-none transition-all"
+          />
+          <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+        </div>
+
+        {/* AI Direct Action */}
+        <div className="flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => openChat(query)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-sm transition cursor-pointer"
+          >
+            <Bot className="w-4 h-4 text-emerald-400 dark:text-white" />
+            <span>סייר הטבות AI</span>
+          </button>
+        </div>
+
+        {/* Quick Search Tags */}
+        <div className="pt-2">
+          <div className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mb-2">
+            חיפושים מהירים:
+          </div>
+          <div className="flex items-center justify-center gap-1.5 flex-wrap">
+            {['פיצה', 'דלק', 'סופרמרקט', 'eSIM', 'קולנוע', 'KSP', 'מלונות'].map(item => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setQuery(item)}
+                className="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-300 text-xs transition cursor-pointer"
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Switch to Full Mode Link */}
+        <div className="pt-10 border-t border-slate-100 dark:border-slate-800/80">
+          <button
+            type="button"
+            onClick={toggleUiDensity}
+            className="text-xs text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition cursor-pointer"
+          >
+            רוצה לראות את כל הרשתות והמבצעים? <span className="underline font-semibold">מעבר לתצוגה מלאה</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // subTab === 'all'
   return (
     <div className="space-y-4">
       {uiDensity === 'clean' ? (
-        <>
-          <CategoryChips
-            categories={storeCategories}
-            selectedCategory={selectedCategory}
-            onSelectCategory={cat => setSelectedCategory(cat)}
-            totalCount={allStores.length + allDeals.length}
-            compact={true}
-          />
-          <CatalogToolbar
-            totalStoresCount={filteredStores.length}
-            totalDealsCount={filteredDeals.length}
-            availableCards={availableCards}
-            storeCategories={storeCategories}
-            contentTypeFilter={contentTypeFilter}
-            setContentTypeFilter={setContentTypeFilter}
-          />
-        </>
-      ) : (
-        <>
-          {/* Detailed Mode Banner */}
-          <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-indigo-50/80 dark:bg-indigo-950/50 rounded-2xl border border-indigo-200/80 dark:border-indigo-800/80 text-xs text-indigo-900 dark:text-indigo-200">
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-              <span className="font-bold">מצב תצוגה מפורטת (הכל מוצג):</span>
-              <span className="text-slate-600 dark:text-slate-300 hidden sm:inline">
-                כל סרגלי הסינון, בורר המועדונים, קרוסלת הקטגוריות והגדרות החיפוש פתוחים.
-              </span>
-            </div>
+        /* In Clean Mode with active query: sleek minimal results bar with AI action */
+        <div className="flex items-center justify-between gap-3 p-3 bg-white dark:bg-slate-850 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+          <div className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+            תוצאות עבור: <span className="font-bold text-slate-900 dark:text-white">"{query}"</span>
+            {' '}({(filteredStores.length + filteredDeals.length).toLocaleString()} תוצאות)
+          </div>
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={toggleUiDensity}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 font-bold border border-slate-200 dark:border-slate-700 shadow-2xs transition cursor-pointer text-xs"
+              onClick={() => openChat(query)}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-600 text-white font-semibold text-xs hover:bg-emerald-500 transition cursor-pointer shadow-2xs"
             >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-              <span>עבור לתצוגה נקייה</span>
+              <Bot className="w-3.5 h-3.5" />
+              <span>שאל את ה-AI</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs transition cursor-pointer"
+            >
+              נקה
             </button>
           </div>
-
+        </div>
+      ) : (
+        <>
           {/* Clubs Selector Filter Pills */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3.5 shadow-2xs flex flex-wrap items-center justify-between gap-3">
             <MyClubsPills />

@@ -61,10 +61,10 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onSelect, onSelectD
   return (
     <div
       onClick={() => onSelect(store.slug)}
-      className={`group relative bg-white dark:bg-slate-850 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between ${
+      className={`group relative bg-white dark:bg-slate-850 hover:bg-slate-50/80 dark:hover:bg-slate-800 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between ${
         uiDensity === 'clean'
-          ? 'p-3.5 sm:p-4 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs'
-          : 'p-4 border-slate-200/90 dark:border-slate-800 shadow-2xs hover:shadow-md hover:border-emerald-500/50 dark:hover:border-emerald-500/50'
+          ? 'p-3.5 sm:p-4 border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/50 dark:hover:border-emerald-500/60 hover:shadow-sm dark:hover:shadow-slate-900/60'
+          : 'p-4 border-slate-200/90 dark:border-slate-800 shadow-2xs hover:shadow-md dark:hover:shadow-slate-900/60 hover:border-emerald-500/50 dark:hover:border-emerald-500/60'
       }`}
     >
       {uiDensity === 'clean' && !showDetailsLocally ? (
@@ -73,7 +73,7 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onSelect, onSelectD
           <div className="flex items-start justify-between gap-3 mb-2">
             <div className="flex items-center gap-3 min-w-0">
               {/* Logo container */}
-              <div className="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-800 p-1 border border-slate-100 dark:border-slate-750 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden">
+              <div className="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-800 p-1 border border-slate-100 dark:border-slate-750 group-hover:border-emerald-500/30 dark:group-hover:border-emerald-500/40 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden transition-colors">
                 {store.logo && !imgError ? (
                   <img
                     src={store.logo}

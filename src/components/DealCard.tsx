@@ -46,7 +46,9 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, onSelect, onSelectStor
   return (
     <div
       onClick={() => onSelect(deal.id)}
-      className="group bg-white dark:bg-slate-850 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-2xs hover:shadow-md hover:border-amber-500/50 dark:hover:border-amber-500/50 transition-all duration-200 cursor-pointer flex flex-col justify-between"
+      className={`group bg-white dark:bg-slate-850 hover:bg-slate-50/80 dark:hover:bg-slate-800 rounded-2xl border border-slate-200/90 dark:border-slate-800 ${
+        uiDensity === 'clean' ? 'p-3.5 sm:p-4 hover:shadow-sm' : 'p-4 shadow-2xs hover:shadow-md'
+      } hover:border-amber-500/50 dark:hover:border-amber-500/60 dark:hover:shadow-slate-900/60 transition-all duration-200 cursor-pointer flex flex-col justify-between`}
     >
       <div>
         {/* Deal Image Container */}
