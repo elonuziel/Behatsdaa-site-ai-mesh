@@ -500,7 +500,7 @@ export function useMiniSearch(
           tokenize: tokenizeHebrew,
           processTerm: (term) => normalizeHebrew(term),
           searchOptions: {
-            prefix: (term) => term.length >= 3,
+            prefix: (term) => term.length >= 2,
             fuzzy: (term) => (term.length > 4 ? 0.2 : false),
             boost: { nameNorm: 3.5, suppNorm: 3.0, catNorm: 2.0, cardsNorm: 1.8, branchesNorm: 1.5, tagsNorm: 1.3, tokens: 1.0, descNorm: 0.6 },
             processTerm: (term) => normalizeHebrew(term)
@@ -643,7 +643,7 @@ export function useMiniSearch(
         : ['nameNorm', 'catNorm', 'cardsNorm', 'branchesNorm', 'suppNorm', 'tagsNorm', 'tokens'];
 
       const searchOpts: SearchOptions = {
-        prefix: (term: string) => term.length >= 3,
+        prefix: (term: string) => term.length >= 2,
         fuzzy: fuzzySearch ? (term: string) => (term.length > 4 ? 0.2 : false) : false,
         fields: searchFields,
         boost: { nameNorm: 3.5, suppNorm: 3.0, catNorm: 2.0, cardsNorm: 1.8, branchesNorm: 1.5, tagsNorm: 1.3, tokens: 1.0, descNorm: 0.6 },
@@ -734,6 +734,31 @@ export function useMiniSearch(
           }
         } catch {
           // Keep sets empty on fatal query error
+        }
+      }
+
+      // Direct fallback for short query prefixes or acronyms if no results found
+      if (matchingStoreIds.size === 0 && matchingDealIds.size === 0 && q.length >= 2) {
+        const normQ = normalizeHebrew(q);
+        for (const s of stores) {
+          const nameNorm = normalizeHebrew(s.name);
+          if (nameNorm && (nameNorm.startsWith(normQ) || nameNorm.includes(normQ))) {
+            const origId = String(s.id);
+            matchingStoreIds.add(origId);
+            storeSearchScore.set(origId, 10);
+          }
+        }
+        for (const d of deals) {
+          const titleNorm = normalizeHebrew(d.title);
+          const suppNorm = normalizeHebrew(d.supplier);
+          if (
+            (titleNorm && (titleNorm.startsWith(normQ) || titleNorm.includes(normQ))) ||
+            (suppNorm && (suppNorm.startsWith(normQ) || suppNorm.includes(normQ)))
+          ) {
+            const origId = String(d.id);
+            matchingDealIds.add(origId);
+            dealSearchScore.set(origId, 10);
+          }
         }
       }
     }
