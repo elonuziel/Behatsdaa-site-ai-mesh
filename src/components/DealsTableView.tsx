@@ -35,7 +35,7 @@ export const DealsTableView: React.FC<DealsTableViewProps> = ({
     <div className="bg-white dark:bg-slate-850 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-right text-xs">
-          <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+          <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
             <tr>
               <th className="py-3 px-4 w-12 text-center">⭐</th>
               <th className="py-3 px-4">הטבה / שובר</th>
