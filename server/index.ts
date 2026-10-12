@@ -9,8 +9,8 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
 export const app = express();
-const PORT = Number(process.env.PORT) || 3000;
 const isProd = process.env.NODE_ENV === 'production';
+const PORT = isProd && process.env.PORT ? Number(process.env.PORT) : 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
