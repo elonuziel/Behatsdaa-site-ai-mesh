@@ -29,7 +29,7 @@ export const TableView: React.FC<TableViewProps> = ({ stores, onSelect }) => {
     >
       <div className="overflow-x-auto">
         <table className={`w-full text-right ${isClean ? 'text-[13px]' : 'text-xs'} border-collapse`}>
-          <thead>
+          <thead className="sticky top-0 z-10">
             {isClean ? (
               <tr className="border-b-2 border-editorial-ink dark:border-slate-700 bg-editorial-bg dark:bg-slate-850">
                 <th className="py-4 px-4 w-12 text-center">⭐</th>
