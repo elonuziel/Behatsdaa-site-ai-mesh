@@ -90,7 +90,7 @@ export const Navbar: React.FC = () => {
             
             {/* Smart Search Suggestions Popover */}
             {isFocused && (
-              <div className="absolute top-full mt-2 left-0 right-0 z-50 bg-white dark:bg-slate-900 rounded-lg border-2 border-editorial-ink dark:border-slate-750 shadow-xl p-3 space-y-3">
+              <div className="absolute top-full mt-2 left-0 right-0 z-50 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-750 shadow-2xl p-3 space-y-3">
                 {/* AI Search Quick Direct Action */}
                 <button
                   type="button"
@@ -98,23 +98,27 @@ export const Navbar: React.FC = () => {
                     openChat(query);
                     setIsFocused(false);
                   }}
-                  className="w-full flex items-center justify-between p-2.5 rounded-md bg-editorial-bg dark:bg-slate-800 border border-editorial-ink dark:border-slate-700 text-right cursor-pointer hover:bg-emerald-50 dark:hover:bg-slate-750 transition"
+                  className="w-full flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-right cursor-pointer hover:bg-emerald-50 dark:hover:bg-slate-750 transition"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded bg-editorial-ink dark:bg-white text-white dark:text-slate-900 flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
                       <Bot className="w-4 h-4" />
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-editorial-ink dark:text-white flex items-center gap-1.5">
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
                         <span>סייר ההטבות AI</span>
-                        {query ? <span className="text-emerald-700 dark:text-emerald-400 truncate max-w-[140px]">: "{query}"</span> : null}
+                        {query ? (
+                          <span className="text-emerald-700 dark:text-emerald-400 font-semibold" dir="ltr">
+                            : &quot;<bdi className="font-bold">{query}</bdi>&quot;
+                          </span>
+                        ) : null}
                       </div>
-                      <div className="text-[10px] text-editorial-ink-muted dark:text-slate-400">
-                        {query ? 'קבל תשובה מפורטת והמלצות' : 'שאל כל שאלה על המועדונים'}
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                        {query ? 'קבל תשובה מפורטת והמלצות חכמות' : 'שאל כל שאלה על המועדונים והמבצעים'}
                       </div>
                     </div>
                   </div>
-                  <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                  <Sparkles className="w-4 h-4 text-amber-500 shrink-0 mr-1" />
                 </button>
 
                 {!query.trim() ? (

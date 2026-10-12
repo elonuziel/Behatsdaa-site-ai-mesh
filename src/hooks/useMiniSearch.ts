@@ -21,6 +21,9 @@ export function tokenizeHebrew(text: string | null | undefined): string[] {
   const str = String(text);
 
   const expandedStr = str
+    // Preserve dotted acronyms like ק.ס.פ -> קספ so letters aren't scattered into single-character tokens
+    .replace(/([א-תa-zA-Z0-9])\.([א-תa-zA-Z0-9])\.([א-תa-zA-Z0-9])/g, '$1$2$3')
+    .replace(/([א-תa-zA-Z0-9])\.([א-תa-zA-Z0-9])/g, '$1$2')
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
     .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
 
@@ -28,10 +31,19 @@ export function tokenizeHebrew(text: string | null | undefined): string[] {
   const origNorm = normalizeHebrew(str);
   if (!norm && !origNorm) return [];
 
-  const rawWords = `${origNorm} ${norm}`.split(/\s+/).filter(Boolean);
+  // Also include dotless joined version of acronyms from the original string
+  const acronymCollapsed = str.replace(/[.״׳"']/g, '');
+  const acronymNorm = normalizeHebrew(acronymCollapsed);
+
+  const rawWords = `${origNorm} ${norm} ${acronymNorm}`.split(/\s+/).filter(Boolean);
   const tokens = new Set<string>();
 
   for (const w of rawWords) {
+    // Exclude single-letter Hebrew tokens that cause noise and false matches across the dictionary
+    if (w.length < 2 && /[\u0590-\u05FF]/.test(w)) {
+      continue;
+    }
+
     tokens.add(w);
 
     // Sub-word eSIM / SIM detection across compound words
@@ -644,12 +656,25 @@ export function useMiniSearch(
       if (smartSearch) {
         const expandedSynonyms = expandSmartTerms(q);
         if (expandedSynonyms.length > 0) {
+          const subQueries: Query[] = [q];
+          for (const syn of expandedSynonyms) {
+            const words = syn.split(/\s+/).filter(w => w.length >= 2);
+            if (words.length > 1) {
+              // Multi-word synonyms (e.g. "קיי אס פי"): require all words together
+              subQueries.push({
+                combineWith: 'AND',
+                queries: words.map(w => ({ queries: [w], boostTerm: () => 0.7 }))
+              });
+            } else if (words.length === 1) {
+              subQueries.push({
+                queries: [words[0]],
+                boostTerm: () => 0.7
+              });
+            }
+          }
           finalQuery = {
             combineWith: 'OR',
-            queries: [
-              q,
-              ...expandedSynonyms.map(t => ({ queries: [t], boostTerm: () => 0.6 }))
-            ]
+            queries: subQueries
           };
         }
       }
@@ -775,11 +800,13 @@ export function useMiniSearch(
 
     // Sort stores
     sList.sort((a, b) => {
-      if (sortBy === 'relevant' && q) {
+      // When a query is present, prioritize search relevance by default so exact matches (like KSP) surface first
+      if (q) {
         const scoreA = storeSearchScore.get(String(a.id)) || 0;
         const scoreB = storeSearchScore.get(String(b.id)) || 0;
         if (scoreA !== scoreB) return scoreB - scoreA;
-      } else if (sortBy === 'discount') {
+      }
+      if (sortBy === 'discount') {
         const discA = getStoreActiveDiscount(a, activeClubs);
         const discB = getStoreActiveDiscount(b, activeClubs);
         if (discA !== discB) return discB - discA;
@@ -789,11 +816,13 @@ export function useMiniSearch(
 
     // Sort deals
     dList.sort((a, b) => {
-      if (sortBy === 'relevant' && q) {
+      // When a query is present, prioritize search relevance by default so exact matches surface first
+      if (q) {
         const scoreA = dealSearchScore.get(String(a.id)) || 0;
         const scoreB = dealSearchScore.get(String(b.id)) || 0;
         if (scoreA !== scoreB) return scoreB - scoreA;
-      } else if (sortBy === 'discount') {
+      }
+      if (sortBy === 'discount') {
         const discA = a.discount_percent || 0;
         const discB = b.discount_percent || 0;
         if (discA !== discB) return discB - discA;
