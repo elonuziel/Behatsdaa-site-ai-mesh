@@ -2,15 +2,15 @@
   "metadata": {
     "title": "הטבות ומבצעים מועדון UNIQ (חיבור חי)",
     "scraper": "scrape_uniq_site.py",
-    "last_updated": "2026-10-14T08:30:45.375828Z",
-    "scraped_at": "2026-10-14T08:30:45.375828Z",
+    "last_updated": "2026-10-15T08:05:15.545925Z",
+    "scraped_at": "2026-10-15T08:05:15.545925Z",
     "source": "https://www.uniq-club.co.il",
     "api_endpoint": "https://admin.uniq-club.co.il/api/graphql",
     "counts": {
       "tab_b_deals": 98,
       "tab_c_brands": 117,
-      "tab_d_billing": 118,
-      "total": 333
+      "tab_d_billing": 119,
+      "total": 334
     }
   },
   "item_deals": [
@@ -1245,6 +1245,7 @@
       "category": "מה שצריך ללימודים",
       "categories": [
         "מה שצריך ללימודים",
+        "חשמל ואלקטרוניקה VIEW ALL",
         "חשמל ואלקטרוניקה"
       ],
       "price": 2550,
@@ -8542,51 +8543,6 @@
       ]
     },
     {
-      "id": "billing-1069",
-      "original_id": "1069",
-      "name": "הקונטיינר מוצרי חשמל ביתיים",
-      "category": "הטבות חדשות",
-      "categories": [
-        "הטבות חדשות",
-        "הנחות במעמד חיוב",
-        "חשמל ואלקטרוניקה VIEW ALL"
-      ],
-      "discount": "4% הנחה במעמד החיוב",
-      "discount_rate": "4%",
-      "type": "billing_stage",
-      "restrictions": [
-        "ההנחה ניתנת אוטומטית בדף פירוט חיובי האשראי של כרטיס יוניק."
-      ],
-      "badges": [
-        {
-          "type": "blue",
-          "text": "הנחה במעמד החיוב"
-        },
-        {
-          "type": "yellow",
-          "text": "4% הנחה"
-        }
-      ],
-      "terms": "הנחה של 4% ניתנת באופן אוטומטי במעמד החיוב בחשבון האשראי למשלמים בכרטיס UNIQ.",
-      "logo_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/fe5d0d6bc20ab6ec06ac3034cd4622eb.jpg",
-      "tags": [
-        "קונטיינר",
-        "מוצרי חשמל",
-        "חשמל",
-        "מוצרי חשמל לבית",
-        "הקונטיינר"
-      ],
-      "direct_url": "https://www.uniq-club.co.il/benefit/1069",
-      "cross_references": [
-        {
-          "tab": "A",
-          "target_id": "alm-electric",
-          "name": "א.ל.מ. מוצרי חשמל (A.L.M)",
-          "label": "תקף גם בכרטיס נטען 15%"
-        }
-      ]
-    },
-    {
       "id": "billing-1107",
       "original_id": "1107",
       "name": "מכלול",
@@ -9387,6 +9343,48 @@
       ],
       "direct_url": "https://www.uniq-club.co.il/benefit/1736",
       "cross_references": []
+    },
+    {
+      "id": "billing-1747",
+      "original_id": "1747",
+      "name": "ליווי של סוכן ביטוח 24/7 PassportCard",
+      "category": "הטבות חדשות",
+      "categories": [
+        "הטבות חדשות"
+      ],
+      "discount": "ביטוח PassportCard עם ליווי אישי ",
+      "discount_rate": "ביטוח PassportCard עם ליווי אישי ",
+      "type": "billing_stage",
+      "restrictions": [
+        "ההנחה ניתנת אוטומטית בדף פירוט חיובי האשראי של כרטיס יוניק."
+      ],
+      "badges": [
+        {
+          "type": "blue",
+          "text": "הנחה במעמד החיוב"
+        }
+      ],
+      "terms": "הנחה של ביטוח PassportCard עם ליווי אישי  ניתנת באופן אוטומטי במעמד החיוב בחשבון האשראי למשלמים בכרטיס UNIQ.",
+      "logo_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/888026a84ba5d1833f26c197b241dd44.jpg",
+      "tags": [
+        "PASSPORTCARD",
+        "PASSPORT",
+        "ביטוח",
+        "פאספורט",
+        "פאספורטקארד",
+        "פספורטקארד",
+        "טיסה",
+        "סוכן ביטוח"
+      ],
+      "direct_url": "https://www.uniq-club.co.il/benefit/1747",
+      "cross_references": [
+        {
+          "tab": "A",
+          "target_id": "mega-sport",
+          "name": "מגה ספורט ומגה קידס (Mega Sport & Kids)",
+          "label": "תקף גם בכרטיס נטען 15%"
+        }
+      ]
     },
     {
       "id": "billing-141",
@@ -10203,8 +10201,8 @@
         "הנחות במעמד חיוב",
         "בילויים ופנאי"
       ],
-      "discount": "8% הנחה במעמד החיוב",
-      "discount_rate": "8%",
+      "discount": "עד 15% הנחה במעמד החיוב",
+      "discount_rate": "15%",
       "type": "billing_stage",
       "restrictions": [
         "ההנחה ניתנת אוטומטית בדף פירוט חיובי האשראי של כרטיס יוניק."
@@ -10216,10 +10214,10 @@
         },
         {
           "type": "yellow",
-          "text": "8% הנחה"
+          "text": "15% הנחה"
         }
       ],
-      "terms": "הנחה של 8% ניתנת באופן אוטומטי במעמד החיוב בחשבון האשראי למשלמים בכרטיס UNIQ.",
+      "terms": "הנחה של 15% ניתנת באופן אוטומטי במעמד החיוב בחשבון האשראי למשלמים בכרטיס UNIQ.",
       "logo_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/6ca789e59389acfaae5de393e939ced0.jpg",
       "tags": [
         "אוכל",
@@ -10777,6 +10775,51 @@
       ],
       "direct_url": "https://www.uniq-club.co.il/benefit/1865",
       "cross_references": []
+    },
+    {
+      "id": "billing-1866",
+      "original_id": "1866",
+      "name": "בר המזג | תל אביב",
+      "category": "הנחות במעמד חיוב",
+      "categories": [
+        "הנחות במעמד חיוב"
+      ],
+      "discount": "5% הנחה במעמד החיוב",
+      "discount_rate": "5%",
+      "type": "billing_stage",
+      "restrictions": [
+        "ההנחה ניתנת אוטומטית בדף פירוט חיובי האשראי של כרטיס יוניק."
+      ],
+      "badges": [
+        {
+          "type": "blue",
+          "text": "הנחה במעמד החיוב"
+        },
+        {
+          "type": "yellow",
+          "text": "5% הנחה"
+        }
+      ],
+      "terms": "הנחה של 5% ניתנת באופן אוטומטי במעמד החיוב בחשבון האשראי למשלמים בכרטיס UNIQ.",
+      "logo_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/63ef5bfac0b86f53db320077d4c0e296.png",
+      "tags": [
+        "ג'ון ג'ון בר",
+        "גון גון בר",
+        "בר",
+        "אלכוהול",
+        "שתייה",
+        "בילויים",
+        "ברים"
+      ],
+      "direct_url": "https://www.uniq-club.co.il/benefit/1866",
+      "cross_references": [
+        {
+          "tab": "A",
+          "target_id": "artikim-tlv",
+          "name": "ארטיקים תל אביב (Artikim TLV)",
+          "label": "תקף גם בכרטיס נטען 15%"
+        }
+      ]
     },
     {
       "id": "billing-727",
