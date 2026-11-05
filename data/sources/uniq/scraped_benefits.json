@@ -2,15 +2,15 @@
   "metadata": {
     "title": "הטבות ומבצעים מועדון UNIQ (חיבור חי)",
     "scraper": "scrape_uniq_site.py",
-    "last_updated": "2026-11-04T10:38:09.898114Z",
-    "scraped_at": "2026-11-04T10:38:09.898114Z",
+    "last_updated": "2026-11-05T10:30:08.603836Z",
+    "scraped_at": "2026-11-05T10:30:08.603836Z",
     "source": "https://www.uniq-club.co.il",
     "api_endpoint": "https://admin.uniq-club.co.il/api/graphql",
     "counts": {
-      "tab_b_deals": 91,
+      "tab_b_deals": 90,
       "tab_c_brands": 116,
       "tab_d_billing": 131,
-      "total": 338
+      "total": 337
     }
   },
   "item_deals": [
@@ -522,41 +522,6 @@
       "image_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/3e0e778355509cdc9f2a1042a6692398.png",
       "tags": [],
       "direct_url": "https://www.uniq-club.co.il/product/4241",
-      "cross_references": []
-    },
-    {
-      "id": "deal-4242",
-      "original_id": "4242",
-      "name": "אקדמרקט - כריך + פחית",
-      "category": "הטבות באוניברסיטת בר-אילן",
-      "categories": [
-        "הטבות באוניברסיטת בר-אילן"
-      ],
-      "price": 14,
-      "original_price": 26,
-      "discount": "46% הנחה (חיסכון 12 ₪)",
-      "restrictions": [
-        "מלאי מוגבל",
-        "בכפוף לתנאי אספקה ומשלוח"
-      ],
-      "badges": [
-        {
-          "type": "yellow",
-          "text": "46% הנחה (חיסכון 12 ₪)"
-        },
-        {
-          "type": "blue",
-          "text": "מחיר מועדון: 14 ₪"
-        },
-        {
-          "type": "slate",
-          "text": "מחיר רגיל: 26 ₪"
-        }
-      ],
-      "terms": "איזה כריך בא לכם היום? אבוקדו, צהובה, חביתה, טונה או טבעוני. סטודנטים וסטודנטיות באוניברסיטת בר אילן כריך שווה לבחירה + שתיה בפחית הטבה סופר מסובדת למימוש ביום רביעי בלבד!",
-      "image_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/a57ba5c47fc02012ddccc46a476ee6d2.jpg",
-      "tags": [],
-      "direct_url": "https://www.uniq-club.co.il/product/4242",
       "cross_references": []
     },
     {
