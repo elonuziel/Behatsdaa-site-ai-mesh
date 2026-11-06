@@ -2,8 +2,8 @@
   "metadata": {
     "title": "הטבות ומבצעים מועדון UNIQ (חיבור חי)",
     "scraper": "scrape_uniq_site.py",
-    "last_updated": "2026-11-05T10:30:08.603836Z",
-    "scraped_at": "2026-11-05T10:30:08.603836Z",
+    "last_updated": "2026-11-06T10:32:38.736161Z",
+    "scraped_at": "2026-11-06T10:32:38.736161Z",
     "source": "https://www.uniq-club.co.il",
     "api_endpoint": "https://admin.uniq-club.co.il/api/graphql",
     "counts": {
