@@ -2,15 +2,15 @@
   "metadata": {
     "title": "הטבות ומבצעים מועדון UNIQ (חיבור חי)",
     "scraper": "scrape_uniq_site.py",
-    "last_updated": "2026-11-10T10:52:07.451650Z",
-    "scraped_at": "2026-11-10T10:52:07.451650Z",
+    "last_updated": "2026-11-11T10:29:25.566439Z",
+    "scraped_at": "2026-11-11T10:29:25.566439Z",
     "source": "https://www.uniq-club.co.il",
     "api_endpoint": "https://admin.uniq-club.co.il/api/graphql",
     "counts": {
-      "tab_b_deals": 90,
+      "tab_b_deals": 91,
       "tab_c_brands": 116,
       "tab_d_billing": 131,
-      "total": 337
+      "total": 338
     }
   },
   "item_deals": [
@@ -957,6 +957,48 @@
         "סלמון"
       ],
       "direct_url": "https://www.uniq-club.co.il/product/4294",
+      "cross_references": []
+    },
+    {
+      "id": "deal-4552",
+      "original_id": "4552",
+      "name": "פודטראק \"השפן\" | כריך בריסקט מעושן",
+      "category": "הטבות באוניברסיטה העברית",
+      "categories": [
+        "הטבות באוניברסיטה העברית"
+      ],
+      "price": 32,
+      "original_price": 44,
+      "discount": "27% הנחה (חיסכון 12 ₪)",
+      "restrictions": [
+        "מלאי מוגבל",
+        "בכפוף לתנאי אספקה ומשלוח"
+      ],
+      "badges": [
+        {
+          "type": "yellow",
+          "text": "27% הנחה (חיסכון 12 ₪)"
+        },
+        {
+          "type": "blue",
+          "text": "מחיר מועדון: 32 ₪"
+        },
+        {
+          "type": "slate",
+          "text": "מחיר רגיל: 44 ₪"
+        }
+      ],
+      "terms": "רביעי עם בריסקט מעושן 🥪 קפצו לפודטראק „השפן” בגבעת רם, מבית קבוצת מחניודה, ותיהנו מכריך בריסקט מעושן, משביע וטעים! כל יום רביעי בקמפוס גבעת רם - האוניברסיטה העברית מחיר לחברי המועדון: רק 32 ₪ במקום 44 ₪ הטבה מסובסדת! איך מממשים? רוכשים את ההטבה באתר מציגים את קוד ה־QR בפודטראק \"השפן” 📍 מיקום: גבעת רם 🕦 שעות פעילות: 11:30 - 17:30 📅 מימוש: בימי רביעי בלבד 🔒 הגבלה: הטבה אחת ללקוח בשבוע ⏳ תוקף: עד 31.12.2027",
+      "image_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/f192030dec0d9118d021176bea6bafa5.png",
+      "tags": [
+        "מעושן",
+        "השפן",
+        "בריסקט",
+        "פודטראק",
+        "בשר",
+        "גבעת רם"
+      ],
+      "direct_url": "https://www.uniq-club.co.il/product/4552",
       "cross_references": []
     },
     {
