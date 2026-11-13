@@ -2,15 +2,15 @@
   "metadata": {
     "title": "הטבות ומבצעים מועדון UNIQ (חיבור חי)",
     "scraper": "scrape_uniq_site.py",
-    "last_updated": "2026-11-12T10:45:39.156742Z",
-    "scraped_at": "2026-11-12T10:45:39.156742Z",
+    "last_updated": "2026-11-13T10:41:30.753244Z",
+    "scraped_at": "2026-11-13T10:41:30.753244Z",
     "source": "https://www.uniq-club.co.il",
     "api_endpoint": "https://admin.uniq-club.co.il/api/graphql",
     "counts": {
-      "tab_b_deals": 90,
+      "tab_b_deals": 91,
       "tab_c_brands": 118,
       "tab_d_billing": 131,
-      "total": 339
+      "total": 340
     }
   },
   "item_deals": [
@@ -931,6 +931,48 @@
         "גבעת רם"
       ],
       "direct_url": "https://www.uniq-club.co.il/product/4552",
+      "cross_references": []
+    },
+    {
+      "id": "deal-4568",
+      "original_id": "4568",
+      "name": "POKE BOWL | בעברית",
+      "category": "הטבות באוניברסיטה העברית",
+      "categories": [
+        "הטבות באוניברסיטה העברית"
+      ],
+      "price": 39,
+      "original_price": 64,
+      "discount": "39% הנחה (חיסכון 25 ₪)",
+      "restrictions": [
+        "מלאי מוגבל",
+        "בכפוף לתנאי אספקה ומשלוח"
+      ],
+      "badges": [
+        {
+          "type": "yellow",
+          "text": "39% הנחה (חיסכון 25 ₪)"
+        },
+        {
+          "type": "blue",
+          "text": "מחיר מועדון: 39 ₪"
+        },
+        {
+          "type": "slate",
+          "text": "מחיר רגיל: 64 ₪"
+        }
+      ],
+      "terms": "🥗 קערת פוקי גדולה לבחירה - במחיר מיוחד לחברי יוניק! בוחרים קערת פוקי גדולה עם דג או בהרכב צמחוני, ומוסיפים את התוספות שאוהבים 😋 רק 39 ₪ במקום 64 ₪ ההטבה מסובסדת איך מממשים? רוכשים את ההטבה באתר ומציגים את קוד ה־QR בסניף לסריקה. 📍 רחבת הזיכרון, קמפוס גבעת רם ⏳ בתוקף עד 25.10.27 🔒 עד מימוש אחד ללקוח בשבוע",
+      "image_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/8cef42ec6edef96c217c4b34ee8e288d.png",
+      "tags": [
+        "פוקי בול",
+        "POKE",
+        "POKE BOWL",
+        "האוניברסיטה העברית",
+        "בעברית",
+        "העברית"
+      ],
+      "direct_url": "https://www.uniq-club.co.il/product/4568",
       "cross_references": []
     },
     {
@@ -10231,44 +10273,6 @@
       "cross_references": []
     },
     {
-      "id": "billing-1867",
-      "original_id": "1867",
-      "name": "מועדון פאדל | באר שבע",
-      "category": "האגודה הסטודנטיאלית בן גוריון",
-      "categories": [
-        "האגודה הסטודנטיאלית בן גוריון",
-        "ספורט וכושר"
-      ],
-      "discount": "5% הנחה במעמד החיוב",
-      "discount_rate": "5%",
-      "type": "billing_stage",
-      "restrictions": [
-        "ההנחה ניתנת אוטומטית בדף פירוט חיובי האשראי של כרטיס יוניק."
-      ],
-      "badges": [
-        {
-          "type": "blue",
-          "text": "הנחה במעמד החיוב"
-        },
-        {
-          "type": "yellow",
-          "text": "5% הנחה"
-        }
-      ],
-      "terms": "הנחה של 5% ניתנת באופן אוטומטי במעמד החיוב בחשבון האשראי למשלמים בכרטיס UNIQ.",
-      "logo_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/20cd07fb8d4ee13dcedbc0b886947472.png",
-      "tags": [
-        "בילויים",
-        "פאדל",
-        "באר שבע",
-        "PADEL",
-        "PADEL CLUB",
-        "ספורט"
-      ],
-      "direct_url": "https://www.uniq-club.co.il/benefit/1867",
-      "cross_references": []
-    },
-    {
       "id": "billing-1199",
       "original_id": "1199",
       "name": "ISIC CARD - כרטיס סטודנט בינלאומי",
@@ -11642,6 +11646,41 @@
           "label": "תקף גם בכרטיס נטען 15%"
         }
       ]
+    },
+    {
+      "id": "billing-1867",
+      "original_id": "1867",
+      "name": "NEMYZ | אופנה יד שנייה",
+      "category": "אופנה",
+      "categories": [
+        "אופנה"
+      ],
+      "discount": "5% הנחה במעמד החיוב",
+      "discount_rate": "5%",
+      "type": "billing_stage",
+      "restrictions": [
+        "ההנחה ניתנת אוטומטית בדף פירוט חיובי האשראי של כרטיס יוניק."
+      ],
+      "badges": [
+        {
+          "type": "blue",
+          "text": "הנחה במעמד החיוב"
+        },
+        {
+          "type": "yellow",
+          "text": "5% הנחה"
+        }
+      ],
+      "terms": "הנחה של 5% ניתנת באופן אוטומטי במעמד החיוב בחשבון האשראי למשלמים בכרטיס UNIQ.",
+      "logo_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/fd8356755e1ec13f07963a9f1de8b8fa.png",
+      "tags": [
+        "בגדים",
+        "נאמיז",
+        "בגדי יד שנייה",
+        "יד שנייה"
+      ],
+      "direct_url": "https://www.uniq-club.co.il/benefit/1867",
+      "cross_references": []
     },
     {
       "id": "billing-228",
