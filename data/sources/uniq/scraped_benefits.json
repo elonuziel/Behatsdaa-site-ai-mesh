@@ -2,63 +2,18 @@
   "metadata": {
     "title": "הטבות ומבצעים מועדון UNIQ (חיבור חי)",
     "scraper": "scrape_uniq_site.py",
-    "last_updated": "2026-11-15T10:31:08.778391Z",
-    "scraped_at": "2026-11-15T10:31:08.778391Z",
+    "last_updated": "2026-11-16T10:47:05.420341Z",
+    "scraped_at": "2026-11-16T10:47:05.420341Z",
     "source": "https://www.uniq-club.co.il",
     "api_endpoint": "https://admin.uniq-club.co.il/api/graphql",
     "counts": {
-      "tab_b_deals": 91,
+      "tab_b_deals": 90,
       "tab_c_brands": 116,
       "tab_d_billing": 131,
-      "total": 338
+      "total": 337
     }
   },
   "item_deals": [
-    {
-      "id": "deal-994",
-      "original_id": "994",
-      "name": "פופקורן בינוני + שתייה בינונית ב- Planet ורב חן",
-      "category": "הטבות חדשות",
-      "categories": [
-        "הטבות חדשות",
-        "האגודה הסטודנטיאלית בן גוריון",
-        "הטבות באוניברסיטת בר-אילן",
-        "הטבות באוניברסיטה העברית"
-      ],
-      "price": 35,
-      "original_price": 52,
-      "discount": "33% הנחה (חיסכון 17 ₪)",
-      "restrictions": [
-        "מלאי מוגבל",
-        "בכפוף לתנאי אספקה ומשלוח"
-      ],
-      "badges": [
-        {
-          "type": "yellow",
-          "text": "33% הנחה (חיסכון 17 ₪)"
-        },
-        {
-          "type": "blue",
-          "text": "מחיר מועדון: 35 ₪"
-        },
-        {
-          "type": "slate",
-          "text": "מחיר רגיל: 52 ₪"
-        }
-      ],
-      "terms": "הטבה מסובסדת! 🥳 שובר דיגיטלי לפופקורן בינוני + שתייה בינונית ב-35 ש\"ח במקום 52 ש\"ח ניתן למימוש בכל סניפי הרשת, בכל ימות השבוע כולל שבתות, חגים וחופשות בית ספר. *למימוש במזנון הקולנוע* *שימו לב כי אין לצאת ממסך ההזמנה בזמן תהליך ההזמנה וכי במידה וההזמנה לא תושלם תוך מס` דקות הקוד ינעל לשימוש. הקוד יפתח שוב לשימוש לאחר כרבע שעה. עם סיום הרכישה באתר ישלח אליך קוד שובר במייל ובנייד. יש להציג את קוד ההטבה במזנון פלאנט. איך עושים את זה? 1- מתחברים לאתר עם כרטיס המועדון 2- רוכשים את ההטבה 3- הקוד יישלח אליכם ב-SMS ו/או אימייל 4- הגיעו עם הקוד למזנון הקולנוע והציגו אותו בעת הרכישה. *יש להגיע עם כרטיס האשראי איתו בוצעה ההזמנה",
-      "image_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/d9b7368b85c43eea78f10beb35e13da3.png",
-      "tags": [
-        "סרט",
-        "סרטים",
-        "קולנוע",
-        "בילויים",
-        "פופקורן ושתייה",
-        "פופקורן"
-      ],
-      "direct_url": "https://www.uniq-club.co.il/product/994",
-      "cross_references": []
-    },
     {
       "id": "deal-2982",
       "original_id": "2982",
@@ -4094,6 +4049,49 @@
       "cross_references": []
     },
     {
+      "id": "brand-698",
+      "original_id": "698",
+      "name": "10% הנחה ברשת ויקטורי",
+      "category": "שוברים חדשים ומשתלמים",
+      "categories": [
+        "שוברים חדשים ומשתלמים",
+        "האגודה הסטודנטיאלית בן גוריון",
+        "הטבות באוניברסיטת בר-אילן",
+        "הטבות באוניברסיטה העברית",
+        "מה שצריך ללימודים",
+        "אוכל ושתייה"
+      ],
+      "price": 90,
+      "original_price": 100,
+      "discount": "10% הנחה (חיסכון 10 ₪)",
+      "restrictions": [
+        "בכפוף לתקנון המועדון",
+        "יש להציג קוד/כרטיס במעמד הקנייה"
+      ],
+      "badges": [
+        {
+          "type": "yellow",
+          "text": "10% הנחה (חיסכון 10 ₪)"
+        },
+        {
+          "type": "blue",
+          "text": "רכישה אונליין בלבד"
+        }
+      ],
+      "terms": "שובר של 10% הנחה לכל רשת ויקטורי **מלאי מוגבל 🔥הטבה מסובסדת • ניתן לפצל רכישות (לא חובה להשתמש בכל הסכום ברכישה אחת!) • מימוש ההטבה בסניפי הרשת: יש להגיע עם קוד השובר הדיגיטלי המתקבל בסיום הרכישה לאחד מסניפי הרשת. *למימוש בסניפי הרשתות בלבד. לא כולל רכישות באתרי הסחר של בתי העסק (אונליין)",
+      "image_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/af4b1046cff8ffd2fc80992ff5fd1926.jpg",
+      "tags": [
+        "קניות",
+        "בית",
+        "סופר",
+        "ויקטורי",
+        "VICTORY",
+        "מזון"
+      ],
+      "direct_url": "https://www.uniq-club.co.il/product/698",
+      "cross_references": []
+    },
+    {
       "id": "brand-4016",
       "original_id": "4016",
       "name": "DREAM CARD",
@@ -4805,48 +4803,6 @@
         "השקה"
       ],
       "direct_url": "https://www.uniq-club.co.il/product/4539",
-      "cross_references": []
-    },
-    {
-      "id": "brand-698",
-      "original_id": "698",
-      "name": "10% הנחה ברשת ויקטורי",
-      "category": "האגודה הסטודנטיאלית בן גוריון",
-      "categories": [
-        "האגודה הסטודנטיאלית בן גוריון",
-        "הטבות באוניברסיטת בר-אילן",
-        "הטבות באוניברסיטה העברית",
-        "מה שצריך ללימודים",
-        "אוכל ושתייה"
-      ],
-      "price": 90,
-      "original_price": 100,
-      "discount": "10% הנחה (חיסכון 10 ₪)",
-      "restrictions": [
-        "בכפוף לתקנון המועדון",
-        "יש להציג קוד/כרטיס במעמד הקנייה"
-      ],
-      "badges": [
-        {
-          "type": "yellow",
-          "text": "10% הנחה (חיסכון 10 ₪)"
-        },
-        {
-          "type": "blue",
-          "text": "רכישה אונליין בלבד"
-        }
-      ],
-      "terms": "שובר של 10% הנחה לכל רשת ויקטורי **מלאי מוגבל 🔥הטבה מסובסדת • ניתן לפצל רכישות (לא חובה להשתמש בכל הסכום ברכישה אחת!) • מימוש ההטבה בסניפי הרשת: יש להגיע עם קוד השובר הדיגיטלי המתקבל בסיום הרכישה לאחד מסניפי הרשת. *למימוש בסניפי הרשתות בלבד. לא כולל רכישות באתרי הסחר של בתי העסק (אונליין)",
-      "image_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/af4b1046cff8ffd2fc80992ff5fd1926.jpg",
-      "tags": [
-        "קניות",
-        "בית",
-        "סופר",
-        "ויקטורי",
-        "VICTORY",
-        "מזון"
-      ],
-      "direct_url": "https://www.uniq-club.co.il/product/698",
       "cross_references": []
     },
     {
@@ -9369,6 +9325,44 @@
       "cross_references": []
     },
     {
+      "id": "billing-1687",
+      "original_id": "1687",
+      "name": "גיפט קארד נטען - TERMINAL X",
+      "category": "הטבות חדשות",
+      "categories": [
+        "הטבות חדשות",
+        "אופנה"
+      ],
+      "discount": "15% בהטענת כרטיס MAX ACADEMIC",
+      "discount_rate": "15%",
+      "type": "billing_stage",
+      "restrictions": [
+        "ההנחה ניתנת אוטומטית בדף פירוט חיובי האשראי של כרטיס יוניק."
+      ],
+      "badges": [
+        {
+          "type": "blue",
+          "text": "הנחה במעמד החיוב"
+        },
+        {
+          "type": "yellow",
+          "text": "15% הנחה"
+        }
+      ],
+      "terms": "הנחה של 15% ניתנת באופן אוטומטי במעמד החיוב בחשבון האשראי למשלמים בכרטיס UNIQ.",
+      "logo_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/1f5c891d91788725a3f3214b8276991a.png",
+      "tags": [],
+      "direct_url": "https://www.uniq-club.co.il/benefit/1687",
+      "cross_references": [
+        {
+          "tab": "A",
+          "target_id": "golf-group",
+          "name": "קבוצת גולף (Golf Group)",
+          "label": "תקף גם בכרטיס נטען 15%"
+        }
+      ]
+    },
+    {
       "id": "billing-104",
       "original_id": "104",
       "name": "אופנועי הגשר",
@@ -11236,43 +11230,6 @@
       ],
       "direct_url": "https://www.uniq-club.co.il/benefit/1605",
       "cross_references": []
-    },
-    {
-      "id": "billing-1687",
-      "original_id": "1687",
-      "name": "גיפט קארד נטען - TERMINAL X",
-      "category": "אופנה",
-      "categories": [
-        "אופנה"
-      ],
-      "discount": "15% בהטענת כרטיס MAX ACADEMIC",
-      "discount_rate": "15%",
-      "type": "billing_stage",
-      "restrictions": [
-        "ההנחה ניתנת אוטומטית בדף פירוט חיובי האשראי של כרטיס יוניק."
-      ],
-      "badges": [
-        {
-          "type": "blue",
-          "text": "הנחה במעמד החיוב"
-        },
-        {
-          "type": "yellow",
-          "text": "15% הנחה"
-        }
-      ],
-      "terms": "הנחה של 15% ניתנת באופן אוטומטי במעמד החיוב בחשבון האשראי למשלמים בכרטיס UNIQ.",
-      "logo_url": "https://uniq-club-shop.s3.eu-west-1.amazonaws.com/images/1f5c891d91788725a3f3214b8276991a.png",
-      "tags": [],
-      "direct_url": "https://www.uniq-club.co.il/benefit/1687",
-      "cross_references": [
-        {
-          "tab": "A",
-          "target_id": "golf-group",
-          "name": "קבוצת גולף (Golf Group)",
-          "label": "תקף גם בכרטיס נטען 15%"
-        }
-      ]
     },
     {
       "id": "billing-1688",
